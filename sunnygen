@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Thin entry point; the launcher logic lives in apps/cli.
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+exec node "$ROOT/apps/cli/bin/sunnygen.mjs" "$@"

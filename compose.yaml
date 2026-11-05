@@ -1,0 +1,19 @@
+services:
+  cobalt:
+    image: ghcr.io/imputnet/cobalt:11
+    container_name: sunnygen-cobalt
+    init: true
+    read_only: true
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:9000:9000'
+    environment:
+      API_URL: 'http://cobalt:9000/'
+      CORS_WILDCARD: '0'
+      TUNNEL_LIFESPAN: '300'
+      RATELIMIT_MAX: '60'
+    # Optional: uncomment to read logged-in cookies for services that need them
+    # (Instagram and others). Place cookies.json beside this file.
+    # volumes:
+    #   - ./cobalt-cookies.json:/cookies.json:ro
+    # environment also needs: COOKIE_PATH: "/cookies.json"

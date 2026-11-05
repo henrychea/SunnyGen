@@ -1,0 +1,61 @@
+import { mkdirSync } from 'node:fs'
+import { DatabaseSync } from 'node:sqlite'
+import { MIGRATIONS, SCHEMA_VERSION } from './migrations'
+import { dataDir, databasePath, mediaDir } from './paths'
+
+let connection: DatabaseSync | null = null
+
+function migrate(database: DatabaseSync): void {
+  const row = database.prepare('PRAGMA user_version').get() as { user_version: number }
+  for (let version = row.user_version; version < MIGRATIONS.length; version += 1) {
+    const migration = MIGRATIONS[version]
+    if (!migration) throw new Error(`Missing database migration ${version + 1}`)
+    database.exec('BEGIN')
+    try {
+      database.exec(migration)
+      database.exec(`PRAGMA user_version = ${version + 1}`)
+      database.exec('COMMIT')
+    } catch (error) {
+      database.exec('ROLLBACK')
+      throw error
+    }
+  }
+}
+
+export function getDb(): DatabaseSync {
+  if (connection) return connection
+  mkdirSync(dataDir, { recursive: true })
+  mkdirSync(mediaDir, { recursive: true })
+  const database = new DatabaseSync(databasePath)
+  database.exec('PRAGMA journal_mode = WAL')
+  database.exec('PRAGMA foreign_keys = ON')
+  database.exec('PRAGMA busy_timeout = 5000')
+  migrate(database)
+  connection = database
+  return database
+}
+
+export interface DatabaseInfo {
+  path: string
+  version: number
+  dataDir: string
+  mediaDir: string
+}
+
+export function getDatabaseInfo(): DatabaseInfo {
+  const database = getDb()
+  const row = database.prepare('PRAGMA user_version').get() as { user_version: number }
+  return {
+    path: databasePath,
+    version: row.user_version,
+    dataDir,
+    mediaDir,
+  }
+}
+
+export function closeDb(): void {
+  connection?.close()
+  connection = null
+}
+
+export { SCHEMA_VERSION }

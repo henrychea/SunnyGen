@@ -1,0 +1,33 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# builds and caches
+.turbo/
+**/.output/
+**/.tanstack/
+**/dist/
+.next/
+coverage/
+*.tsbuildinfo
+
+# local runtime state
+.sunnygen/
+data/
+.temp/
+
+# env files
+.env
+.env.*
+!.env.example
+
+# cobalt cookies
+cobalt-cookies.json
+
+# misc
+.DS_Store
+*.pem
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+.vercel/
