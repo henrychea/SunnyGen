@@ -1,166 +1,169 @@
-<p align="center">
-  <img src="apps/web/public/favicon.svg" alt="SunnyGen" width="64" />
-</p>
+<div align="center">
+  <img src="apps/web/public/favicon.svg" width="76" alt="SunnyGen" />
 
-<p align="center">
-  <strong>Build AI image and video pipelines visually.</strong><br/>
-  A local-first studio for prompts, models, references, and repeatable workflows.
-</p>
+  <h1>SunnyGen</h1>
 
----
+  <p><strong>Your models. Your machine. Your library.</strong></p>
 
-# SunnyGen
+  <p>A local-first studio for building image and video generation pipelines on an infinite canvas.</p>
 
-SunnyGen is a self-hosted visual studio for image and video generation. It runs as a
-local web app, keeps projects and media on your disk, and lets you choose the provider
-behind every render.
+[![License: MIT](https://img.shields.io/badge/license-MIT-A31621?style=flat-square)](LICENSE)
+[![Node](https://img.shields.io/badge/node-%E2%89%A522.20-2A1E17?style=flat-square)](https://nodejs.org)
+[![TanStack Start](https://img.shields.io/badge/built%20with-TanStack%20Start-A31621?style=flat-square)](https://tanstack.com/start)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-2F7A4B?style=flat-square)](#contributing)
 
-- Infinite node canvas for reusable pipelines
-- Image and video generation across providers
-- Avatar + wardrobe lookbook Studio
-- Gallery, folders, uploads, and social references
-- Prompt assistant with response modes
-- Local SQLite storage and local media files
+</div>
 
-No subscription. No shared credit pool. Bring your own provider keys.
+![SunnyGen canvas](docs/screenshots/canvas.webp)
 
 ---
 
-# Requirements
+SunnyGen is a self-hosted alternative to cloud AI studios. Chain prompts, models, and
+reference images into reusable workflows, render across your own provider accounts, and
+keep every project, key, and asset on your disk.
 
-- Node.js 22.20 or newer (Node 24 recommended)
-- pnpm 9.15
-- Optional: Docker for social imports
-- Optional: `codex` and `codex-imagegen` for the Codex provider
+No account. No shared credit pool. No markup. No telemetry.
 
----
+## Why SunnyGen
 
-# Quick start
+- **Local-first by default.** SQLite, media files, and provider keys live in `data/`.
+- **Provider-agnostic.** Sunra.ai, fal.ai, Azure AI Foundry, and a local Codex CLI.
+- **Pipelines, not one-off prompts.** Save a canvas and re-run it with new references.
+- **Studio built in.** Avatars, garment prep, poses, scenes, and multi-angle lookbooks.
+- **Boring storage.** Content-addressed media, byte-range streaming, no cloud bucket required.
+- **Hackable.** Small TypeScript packages, typed server functions, and a clean monorepo.
+
+## Quick start
 
 ```bash
+git clone https://github.com/henrychea/SunnyGen.git
+cd SunnyGen
 pnpm install
 ./sunnygen
 ```
 
-Open <http://localhost:8977>. For development:
+Open **<http://localhost:8977>**, then:
+
+1. **Settings → Providers** — add a Sunra.ai, fal.ai, Azure, or Codex credential.
+2. **Canvas** — connect a Prompt node to a Generate node and press **Run all**.
+3. **Gallery** — every finished render lands here automatically.
+
+Prefer hot reload?
 
 ```bash
 pnpm dev
 ```
 
-Open <http://localhost:8977> and add a provider key in **Settings → Providers**.
+**Requirements:** Node.js 22.20+ (24 recommended), pnpm 9.15. Docker is optional and only
+needed for social imports.
 
----
+## Features
 
-# Providers
+| Surface       | What it does                                                                                                                 |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| **Canvas**    | Infinite node editor with prompt, media, generate, note, and comment nodes. Graphs autosave and execute in dependency order. |
+| **Gallery**   | Image and video renders, folders, failed-job retry, lightbox, download, and social imports.                                  |
+| **Studio**    | Avatar sheets, wardrobe slots, garment prep, pose and scene references, then 1–4 angle renders per look.                     |
+| **Assets**    | Uploads and imported references, deduplicated by SHA-256 and served with byte-range support.                                 |
+| **Assistant** | OpenRouter-powered prompt drafting and rewrites with selectable response modes. Never used for generation.                   |
+| **Launcher**  | One command to build, serve, publish on your LAN, and keep the app alive.                                                    |
 
-| Provider             | Runs                               | Credential                      |
-| -------------------- | ---------------------------------- | ------------------------------- |
-| **Sunra.ai**         | Curated image and video models     | Sunra API key                   |
-| **fal.ai**           | GPT Image 2 on fal                 | fal API key                     |
-| **Azure AI Foundry** | GPT Image 2 in your own deployment | Azure key, base URL, deployment |
-| **Codex CLI**        | GPT Image 2 through a ChatGPT plan | Local `codex` login             |
-| **OpenRouter**       | Assistant chat only                | OpenRouter key                  |
+## Providers
 
-Keys are stored in the local SQLite database. Environment fallbacks:
-`SUNRA_API_KEY`, `FAL_KEY`, `AZURE_API_KEY`, `OPENROUTER_API_KEY`.
+| Provider                                         | Models                                                     | Credential                |
+| ------------------------------------------------ | ---------------------------------------------------------- | ------------------------- |
+| [**Sunra.ai**](https://sunra.ai)                 | Nano Banana, Seedream, GPT Image, Veo, Kling, Grok Imagine | Sunra API key             |
+| [**fal.ai**](https://fal.ai)                     | GPT Image 2 on fal                                         | fal API key               |
+| [**Azure AI Foundry**](https://ai.azure.com)     | GPT Image 2 in your own deployment                         | Key, base URL, deployment |
+| [**Codex CLI**](https://github.com/openai/codex) | GPT Image 2 through a ChatGPT plan                         | Local `codex` login       |
+| [**OpenRouter**](https://openrouter.ai)          | Assistant chat only                                        | OpenRouter key            |
 
-When the selected provider is not configured, generation falls back to another
-configured provider that supports the same model.
+Keys are stored in your local SQLite database and only sent to the provider you choose.
+Environment fallbacks: `SUNRA_API_KEY`, `FAL_KEY`, `AZURE_API_KEY`,
+`OPENROUTER_API_KEY`.
 
----
+If the selected provider is not configured, SunnyGen falls back to another configured
+provider that supports the same model.
 
-# The app
+## Architecture
 
-## Canvas
+```mermaid
+flowchart LR
+  A[Prompt] --> C[Canvas graph]
+  B[References] --> C
+  C --> D[Provider adapter]
+  D --> E[Job poller]
+  E --> F[(SQLite + media)]
+  F --> G[Gallery]
+  F --> H[Studio]
+```
 
-`/canvas` is the workflow editor. Add prompt, media, and generate nodes, connect them,
-and run the graph. Generation nodes execute in dependency order; each node keeps its
-own model, ratio, quality, duration, resolution, and references.
+```text
+apps/
+  web/          TanStack Start app: routes, server functions, UI
+  cli/          ./sunnygen launcher
+packages/
+  core/         Domain types, model catalog, pure studio/workflow logic
+  db/           node:sqlite schema and repositories
+  providers/    Sunra, fal, Azure, and Codex adapters
+  ui/           Base UI primitives and the warm theme
+```
 
-Graphs autosave to SQLite. **Open** switches between saved pipelines.
+Turborepo runs tasks; pnpm workspaces own the packages. Server-only code stays in
+`.server.ts` files, and every cross-boundary call goes through typed server functions.
 
-## Gallery
+## Commands
 
-`/gallery` lists finished renders. Use **New render** for a one-off generation, paste a
-social link to import references, move results into folders, download, or delete.
+| Command            | What it does                              |
+| ------------------ | ----------------------------------------- |
+| `./sunnygen`       | Build when stale, serve on `0.0.0.0:8977` |
+| `./sunnygen --dev` | Vite dev server                           |
+| `pnpm dev`         | Web app only, with hot reload             |
+| `pnpm build`       | Production build                          |
+| `pnpm test`        | Unit tests                                |
+| `pnpm typecheck`   | TypeScript across the workspace           |
+| `pnpm lint`        | ESLint                                    |
+| `pnpm format`      | Prettier                                  |
 
-## Studio
+### Network access
 
-`/studio` builds catalogue looks:
+`./sunnygen` prints local, LAN, Tailscale, and MagicDNS URLs, and can publish a Bonjour
+name so phones and other laptops can connect:
 
-- **Avatars** — two uploaded sheets: a character sheet and a 4×4 identity panel sheet.
-- **Wardrobe** — garments by slot, with prep for on-model and supplier photos.
-- **Poses** — body-stance references.
-- **Scenes** — background references plus a built-in white studio.
+```bash
+./sunnygen --name studio     # http://studio.local:8977
+./sunnygen --no-mdns
+./sunnygen --port 3000
+./sunnygen --background      # detach, log to .sunnygen/
+./sunnygen --stop
+./sunnygen --tunnel          # Cloudflare Tunnel connector
+```
 
-Pick an avatar, up to six garments, a pose, a scene, and one to four angles. Each angle
-is one generation over the same reference list.
+On macOS, `--install-service` registers a launchd job that restarts after a crash:
 
-## Assets
+```bash
+./sunnygen --install-service
+./sunnygen --service-status
+./sunnygen --restart-service
+./sunnygen --uninstall-service
+```
 
-`/assets` stores uploads and social references. Files are deduplicated by SHA-256 and
-served from `/api/media/<id>` with byte-range support.
-
-## Assistant
-
-`/chat` uses OpenRouter for prompt drafting and rewrites. It is never used for image or
-video generation.
-
----
-
-# Data & privacy
+## Data & privacy
 
 | What     | Default location   |
 | -------- | ------------------ |
 | Database | `data/sunnygen.db` |
 | Media    | `data/media/`      |
 
-Override with `SUNNYGEN_DATA_DIR` and `SUNNYGEN_MEDIA_DIR`. Deleting both directories is
-a full reset.
+Move either with `SUNNYGEN_DATA_DIR` and `SUNNYGEN_MEDIA_DIR`. Delete both for a full
+reset. The app has no account system: if you expose it beyond localhost, put an
+authenticating proxy in front of it (for example Cloudflare Access).
 
-SunnyGen has no account system. If you expose it beyond localhost, put an authenticating
-proxy in front of it (for example Cloudflare Access).
+<details>
+<summary><strong>Optional: social imports with cobalt</strong></summary>
 
----
-
-# Launcher
-
-```bash
-./sunnygen                 # build if stale, serve on 0.0.0.0:8977
-./sunnygen --dev           # Vite dev server with hot reload
-./sunnygen --port 3000
-./sunnygen --background    # detach, log to .sunnygen/
-./sunnygen --stop
-./sunnygen --name studio   # publish studio.local over Bonjour
-./sunnygen --no-mdns
-./sunnygen --tunnel        # Cloudflare Tunnel connector
-./sunnygen --help
-```
-
-It prints the local, LAN, Tailscale, and MagicDNS URLs when they are available.
-
-### Login service (macOS)
-
-```bash
-./sunnygen --install-service
-./sunnygen --service-status
-./sunnygen --restart-service
-./sunnygen --stop-service
-./sunnygen --uninstall-service
-```
-
-The launchd job runs the production server and restarts it after a crash. Logs:
-`~/Library/Logs/sunnygen.log` and `~/Library/Logs/sunnygen.err.log`.
-
-Only one server may run at a time.
-
----
-
-# Social imports (optional)
-
-Social links are resolved by a local [cobalt](https://github.com/imputnet/cobalt)
-container:
+Social post links are resolved by a local [cobalt](https://github.com/imputnet/cobalt)
+container. Start it with:
 
 ```bash
 ./sunnygen --cobalt
@@ -168,59 +171,41 @@ container:
 docker compose logs -f cobalt
 ```
 
-Cobalt listens on `127.0.0.1:9000`. Set `COBALT_API_URL` if you host it elsewhere, and
+Cobalt listens on `127.0.0.1:9000`. Set `COBALT_API_URL` if it runs elsewhere, and
 `COBALT_API_KEY` when your instance requires auth. Without cobalt, the rest of the app
 keeps working.
 
----
+</details>
 
-# Codex provider (optional)
+<details>
+<summary><strong>Optional: Codex provider</strong></summary>
 
-The Codex provider runs GPT Image 2 through your own ChatGPT plan instead of API
-credits. It needs the `codex` CLI, `codex-imagegen`, and a logged-in session on the
-machine running SunnyGen; containers cannot reach host binaries. See
-[`codex-imagegen-cli`](https://github.com/jdmnk/codex-imagegen-cli) for installation.
+Run GPT Image 2 through your own ChatGPT plan instead of API credits. The provider needs
+[`codex`](https://github.com/openai/codex),
+[`codex-imagegen`](https://github.com/jdmnk/codex-imagegen-cli), and a logged-in session
+on the machine running SunnyGen. Containers cannot reach host binaries.
 
-**Settings → Providers → Codex CLI** shows whether the CLI and login are ready.
+**Settings → Providers → Codex CLI** reports whether the CLI and login are ready. Run
+`codex login` in a terminal if they are not.
 
----
+</details>
 
-# Repository layout
+## Contributing
 
-```
-apps/
-  web/          TanStack Start app (routes, server functions, UI)
-  cli/          ./sunnygen launcher
-packages/
-  core/         Domain types, model catalog, pure studio/workflow logic
-  db/           SQLite schema and repositories
-  providers/    Sunra, fal, Azure, and Codex adapters
-  ui/           Shared React primitives and theme
-```
-
-Turborepo orchestrates tasks; pnpm workspaces manage packages.
-
----
-
-# Development
+Issues and pull requests are welcome. If you are changing code:
 
 ```bash
-pnpm dev          # app dev server
-pnpm build        # production build
-pnpm typecheck    # TypeScript across the workspace
-pnpm test         # unit tests
-pnpm lint         # ESLint
+pnpm install
+pnpm test
+pnpm typecheck
+pnpm lint
 ```
 
-Useful filters:
+Keep changes narrow, add a test when behavior can regress, and open an issue first for
+large features. The repo is deliberately small; new abstractions need a reason to exist.
 
-```bash
-pnpm --filter @sunnygen/web dev
-pnpm --filter @sunnygen/providers test
-```
+If SunnyGen saves you time, a star helps other people find it.
 
----
+## License
 
-# License
-
-MIT — see [`LICENSE`](LICENSE).
+MIT — see [LICENSE](LICENSE).
