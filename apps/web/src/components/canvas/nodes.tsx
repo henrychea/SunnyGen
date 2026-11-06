@@ -134,7 +134,7 @@ export function MediaInputNode({ id, data, selected, type }: NodeProps<CanvasNod
             )}
             <button
               type="button"
-              className="nodrag bg-ink/70 text-canvas absolute right-0.5 top-0.5 grid size-4 place-items-center rounded opacity-0 group-hover:opacity-100"
+              className="nodrag bg-ink/70 text-canvas absolute top-0.5 right-0.5 grid size-4 place-items-center rounded opacity-0 group-hover:opacity-100"
               onClick={() => updateNodeData(id, { assetIds: ids.filter((value) => value !== assetId) })}
               aria-label="Remove"
             >
@@ -243,7 +243,7 @@ export function GenerateNode({ id, data, selected, type }: NodeProps<CanvasNode>
     >
       <div className="grid grid-cols-2 gap-2">
         <label className="col-span-2 flex flex-col gap-1">
-          <span className="text-ink/40 text-[9.5px] font-semibold uppercase tracking-[0.08em]">Model</span>
+          <span className="text-ink/40 text-[9.5px] font-semibold tracking-[0.08em] uppercase">Model</span>
           <Select
             value={model?.id ?? ''}
             onChange={(event) => updateModel(event.target.value)}
@@ -258,7 +258,7 @@ export function GenerateNode({ id, data, selected, type }: NodeProps<CanvasNode>
         </label>
 
         <label className="flex flex-col gap-1">
-          <span className="text-ink/40 text-[9.5px] font-semibold uppercase tracking-[0.08em]">Ratio</span>
+          <span className="text-ink/40 text-[9.5px] font-semibold tracking-[0.08em] uppercase">Ratio</span>
           <Select
             value={String(data.aspectRatio ?? model?.ratios[0] ?? '1:1')}
             onChange={(event) => updateNodeData(id, { aspectRatio: event.target.value })}
@@ -274,7 +274,7 @@ export function GenerateNode({ id, data, selected, type }: NodeProps<CanvasNode>
 
         {!video && model?.kind === 'image' && model.supportsQuality ? (
           <label className="flex flex-col gap-1">
-            <span className="text-ink/40 text-[9.5px] font-semibold uppercase tracking-[0.08em]">
+            <span className="text-ink/40 text-[9.5px] font-semibold tracking-[0.08em] uppercase">
               Quality
             </span>
             <Select
@@ -294,7 +294,7 @@ export function GenerateNode({ id, data, selected, type }: NodeProps<CanvasNode>
         {video && model?.kind === 'video' ? (
           <>
             <label className="flex flex-col gap-1">
-              <span className="text-ink/40 text-[9.5px] font-semibold uppercase tracking-[0.08em]">
+              <span className="text-ink/40 text-[9.5px] font-semibold tracking-[0.08em] uppercase">
                 Seconds
               </span>
               <Select
@@ -311,7 +311,7 @@ export function GenerateNode({ id, data, selected, type }: NodeProps<CanvasNode>
             </label>
             {model.resolutions.length > 0 ? (
               <label className="flex flex-col gap-1">
-                <span className="text-ink/40 text-[9.5px] font-semibold uppercase tracking-[0.08em]">
+                <span className="text-ink/40 text-[9.5px] font-semibold tracking-[0.08em] uppercase">
                   Resolution
                 </span>
                 <Select
@@ -329,7 +329,7 @@ export function GenerateNode({ id, data, selected, type }: NodeProps<CanvasNode>
             ) : null}
             {model.modes.length > 0 ? (
               <label className="flex flex-col gap-1">
-                <span className="text-ink/40 text-[9.5px] font-semibold uppercase tracking-[0.08em]">
+                <span className="text-ink/40 text-[9.5px] font-semibold tracking-[0.08em] uppercase">
                   Mode
                 </span>
                 <Select

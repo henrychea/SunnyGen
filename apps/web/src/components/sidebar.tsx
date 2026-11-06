@@ -61,7 +61,7 @@ export function Sidebar() {
 
       <div className="mt-auto flex flex-col gap-3">
         <div className="border-line/80 bg-canvas/60 rounded-xl border px-3 py-2.5">
-          <div className="text-ink/40 flex items-center gap-2 text-[10.5px] font-semibold uppercase tracking-[0.09em]">
+          <div className="text-ink/40 flex items-center gap-2 text-[10.5px] font-semibold tracking-[0.09em] uppercase">
             <span className={cn('size-1.5 rounded-full', configured > 0 ? 'bg-success' : 'bg-warning')} />
             {configured > 0
               ? `${configured} provider${configured === 1 ? '' : 's'} ready`

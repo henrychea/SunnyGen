@@ -84,12 +84,12 @@ export function MediaPicker({
                       <img src={asset.url} alt="" loading="lazy" className="size-full object-cover" />
                     )}
                     {asset.kind !== 'image' ? (
-                      <Badge tone="neutral" className="bg-ink/60 text-canvas absolute left-1 top-1">
+                      <Badge tone="neutral" className="bg-ink/60 text-canvas absolute top-1 left-1">
                         {asset.kind}
                       </Badge>
                     ) : null}
                     {active ? (
-                      <span className="bg-accent absolute right-1 top-1 grid size-5 place-items-center rounded-full text-white">
+                      <span className="bg-accent absolute top-1 right-1 grid size-5 place-items-center rounded-full text-white">
                         <Check size={11} />
                       </span>
                     ) : null}

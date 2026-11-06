@@ -3,7 +3,13 @@ import { z } from 'zod'
 import { IMAGE_MODELS, VIDEO_MODELS, getModel } from '@sunnygen/core'
 
 export type CanvasNodeType =
-  'prompt' | 'image-input' | 'video-input' | 'generate-image' | 'generate-video' | 'note' | 'comment'
+  | 'prompt'
+  | 'image-input'
+  | 'video-input'
+  | 'generate-image'
+  | 'generate-video'
+  | 'note'
+  | 'comment'
 
 export type NodeStatus = 'idle' | 'queued' | 'running' | 'succeeded' | 'failed'
 

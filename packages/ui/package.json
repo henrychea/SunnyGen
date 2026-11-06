@@ -2,6 +2,8 @@
   "name": "@sunnygen/ui",
   "version": "2.0.0",
   "private": true,
+  "license": "MIT",
+  "author": "Henry Chea",
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -15,15 +17,13 @@
     "clsx": "^2.1.1",
     "tailwind-merge": "^3.7.0"
   },
-  "peerDependencies": {
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
-  },
   "devDependencies": {
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "typescript": "^5.9.3"
   },
-  "license": "MIT",
-  "author": "Henry Chea"
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  }
 }

@@ -122,8 +122,8 @@ Turborepo runs tasks; pnpm workspaces own the packages. Server-only code stays i
 | `pnpm build`       | Production build                          |
 | `pnpm test`        | Unit tests                                |
 | `pnpm typecheck`   | TypeScript across the workspace           |
-| `pnpm lint`        | ESLint                                    |
-| `pnpm format`      | Prettier                                  |
+| `pnpm lint`        | Oxlint                                    |
+| `pnpm format`      | Oxfmt                                     |
 
 ### Network access
 

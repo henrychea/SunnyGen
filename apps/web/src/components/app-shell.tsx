@@ -32,7 +32,7 @@ export function PageHeader({
     <header className="border-line/70 flex flex-wrap items-end justify-between gap-4 border-b px-6 py-6 md:px-9">
       <div>
         {eyebrow ? (
-          <p className="text-accent/80 text-[10.5px] font-semibold uppercase tracking-[0.14em]">{eyebrow}</p>
+          <p className="text-accent/80 text-[10.5px] font-semibold tracking-[0.14em] uppercase">{eyebrow}</p>
         ) : null}
         <h1 className="font-display text-ink mt-1 text-[24px] font-semibold tracking-tight md:text-[27px]">
           {title}

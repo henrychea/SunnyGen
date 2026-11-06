@@ -10,8 +10,9 @@ disk, client state in React Query and Zustand. Provider calls run server-side.
 | `pnpm dev`                        | Vite dev server for `apps/web` on port 8977. |
 | `pnpm build`                      | Production build.                            |
 | `pnpm test`                       | Unit tests (`tsx --test`).                   |
+| `pnpm format`                     | Oxfmt.                                       |
 | `pnpm typecheck`                  | TypeScript across all packages.              |
-| `pnpm lint`                       | ESLint.                                      |
+| `pnpm lint`                       | Oxlint.                                      |
 | `pnpm --filter @sunnygen/web dev` | Run only the web app.                        |
 
 Run the production build with `./sunnygen`; the launcher builds when stale, serves

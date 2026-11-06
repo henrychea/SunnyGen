@@ -57,12 +57,12 @@ export function StudioLibraryGrid({
                 </div>
               )}
               {item.builtin ? (
-                <Badge tone="neutral" className="absolute left-2 top-2">
+                <Badge tone="neutral" className="absolute top-2 left-2">
                   Built in
                 </Badge>
               ) : null}
               {needsPrep ? (
-                <Badge tone="warning" className="absolute left-2 top-2">
+                <Badge tone="warning" className="absolute top-2 left-2">
                   Needs prep
                 </Badge>
               ) : null}

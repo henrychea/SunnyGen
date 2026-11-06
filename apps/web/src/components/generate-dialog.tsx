@@ -1,7 +1,7 @@
 import { IMAGE_MODELS, PROVIDERS, VIDEO_MODELS, type ModelDefinition, type ProviderId } from '@sunnygen/core'
 import { Badge, Button, Dialog, DialogSurface, Input, Label, Select, Textarea, cn } from '@sunnygen/ui'
 import { FolderOpen, ImagePlus, Loader2, Sparkles, X } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { MediaPicker } from './media-picker'
 import { getGenerationView, submitGeneration } from '~/server/generation.functions'
 
@@ -20,16 +20,21 @@ export function GenerateDialog({
   onGenerated,
   initialKind = 'image',
 }: GenerateDialogProps) {
+  const initialVideoModel = VIDEO_MODELS[0]
   const [kind, setKind] = useState<'image' | 'video'>(initialKind)
   const [prompt, setPrompt] = useState('')
-  const [modelId, setModelId] = useState(IMAGE_MODELS[0]?.id ?? '')
+  const [modelId, setModelId] = useState(
+    initialKind === 'image' ? (IMAGE_MODELS[0]?.id ?? '') : (initialVideoModel?.id ?? ''),
+  )
   const [provider, setProvider] = useState<'auto' | ProviderId>('auto')
-  const [aspectRatio, setAspectRatio] = useState('1:1')
-  const [quality, setQuality] = useState('1k')
-  const [durationSeconds, setDurationSeconds] = useState(5)
-  const [resolution, setResolution] = useState('720p')
-  const [sound, setSound] = useState(true)
-  const [mode, setMode] = useState('')
+  const [aspectRatio, setAspectRatio] = useState(
+    initialKind === 'video' ? (initialVideoModel?.defaultRatio ?? '16:9') : '1:1',
+  )
+  const [quality, setQuality] = useState(IMAGE_MODELS[0]?.defaultQuality ?? '1k')
+  const [durationSeconds, setDurationSeconds] = useState(initialVideoModel?.defaultDuration ?? 5)
+  const [resolution, setResolution] = useState(initialVideoModel?.defaultResolution ?? '720p')
+  const [sound, setSound] = useState(initialVideoModel?.sound ?? true)
+  const [mode, setMode] = useState(initialVideoModel?.defaultMode ?? '')
   const [assetIds, setAssetIds] = useState<string[]>([])
   const [uploading, setUploading] = useState(false)
   const [link, setLink] = useState('')
@@ -44,15 +49,21 @@ export function GenerateDialog({
   const models = kind === 'image' ? IMAGE_MODELS : VIDEO_MODELS
   const model: ModelDefinition | undefined = models.find((entry) => entry.id === modelId) ?? models[0]
 
-  useEffect(() => {
-    if (!open) return
+  const resetSession = () => {
+    pollToken.current += 1
     setPhase('idle')
     setError(null)
     setGenerationId(null)
-  }, [open])
+  }
 
-  useEffect(() => {
-    const reset = kind === 'image' ? IMAGE_MODELS[0] : VIDEO_MODELS[0]
+  const closeDialog = () => {
+    resetSession()
+    onOpenChange(false)
+  }
+
+  const changeKind = (next: 'image' | 'video') => {
+    setKind(next)
+    const reset = next === 'image' ? IMAGE_MODELS[0] : VIDEO_MODELS[0]
     if (!reset) return
     setModelId(reset.id)
     setProvider('auto')
@@ -67,13 +78,7 @@ export function GenerateDialog({
       setSound(reset.sound)
       setMode(reset.defaultMode)
     }
-  }, [kind])
-
-  useEffect(() => {
-    if (!open) {
-      pollToken.current += 1
-    }
-  }, [open])
+  }
 
   const changeModel = (id: string) => {
     const next = models.find((entry) => entry.id === id)
@@ -133,7 +138,7 @@ export function GenerateDialog({
         setPhase('idle')
         setGenerationId(null)
         onGenerated()
-        onOpenChange(false)
+        closeDialog()
         return
       }
       if (view.generation.status === 'failed') {
@@ -186,7 +191,7 @@ export function GenerateDialog({
       }
       if (view.generation.status === 'succeeded') {
         onGenerated()
-        onOpenChange(false)
+        closeDialog()
         return
       }
       setGenerationId(view.generation.id)
@@ -205,10 +210,7 @@ export function GenerateDialog({
       <Dialog.Root
         open={open}
         onOpenChange={(next) => {
-          if (!next && busy) {
-            pollToken.current += 1
-            setPhase('idle')
-          }
+          if (!next) resetSession()
           onOpenChange(next)
         }}
       >
@@ -224,7 +226,7 @@ export function GenerateDialog({
             </div>
             <button
               type="button"
-              onClick={() => onOpenChange(false)}
+              onClick={closeDialog}
               className="text-ink/40 hover:bg-ink/5 hover:text-ink grid size-8 place-items-center rounded-lg"
               aria-label="Close"
             >
@@ -240,7 +242,7 @@ export function GenerateDialog({
                     key={option}
                     type="button"
                     disabled={busy}
-                    onClick={() => setKind(option)}
+                    onClick={() => changeKind(option)}
                     className={cn(
                       'rounded-[10px] px-3 py-1.5 text-[11.5px] font-medium capitalize',
                       kind === option ? 'bg-ink text-canvas' : 'text-ink/50',
@@ -408,7 +410,7 @@ export function GenerateDialog({
                       <button
                         type="button"
                         onClick={() => setAssetIds((current) => current.filter((id) => id !== assetId))}
-                        className="bg-ink/70 text-canvas absolute right-0.5 top-0.5 grid size-4 place-items-center rounded opacity-0 group-hover:opacity-100"
+                        className="bg-ink/70 text-canvas absolute top-0.5 right-0.5 grid size-4 place-items-center rounded opacity-0 group-hover:opacity-100"
                         aria-label="Remove reference"
                       >
                         <X size={9} />

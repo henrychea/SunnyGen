@@ -142,7 +142,7 @@ function GalleryPage() {
           {(failures.data ?? []).length > 0 ? (
             <div className="border-error/20 bg-error/[0.04] mb-5 rounded-xl border p-3">
               <div className="mb-2 flex items-center justify-between">
-                <p className="text-error/80 text-[11px] font-semibold uppercase tracking-[0.08em]">
+                <p className="text-error/80 text-[11px] font-semibold tracking-[0.08em] uppercase">
                   Failed lately
                 </p>
                 <p className="text-error/50 text-[10px]">{failures.data?.length} unfinished</p>
@@ -319,10 +319,10 @@ function GalleryPage() {
               </div>
               <div className="flex flex-col gap-4 p-5">
                 <div>
-                  <p className="text-ink/40 text-[10.5px] font-semibold uppercase tracking-[0.09em]">
+                  <p className="text-ink/40 text-[10.5px] font-semibold tracking-[0.09em] uppercase">
                     Prompt
                   </p>
-                  <p className="text-ink/70 mt-1.5 whitespace-pre-wrap text-[12.5px] leading-relaxed">
+                  <p className="text-ink/70 mt-1.5 text-[12.5px] leading-relaxed whitespace-pre-wrap">
                     {open.prompt || 'No prompt recorded.'}
                   </p>
                 </div>
@@ -333,7 +333,7 @@ function GalleryPage() {
                   <Meta label="Model" value={open.model} />
                 </div>
                 <label className="flex flex-col gap-1.5">
-                  <span className="text-ink/40 text-[9.5px] font-semibold uppercase tracking-[0.08em]">
+                  <span className="text-ink/40 text-[9.5px] font-semibold tracking-[0.08em] uppercase">
                     Folder
                   </span>
                   <Select
@@ -389,7 +389,7 @@ function GalleryPage() {
 function Meta({ label, value }: { label: string; value: string }) {
   return (
     <div className="border-line/70 bg-canvas/50 rounded-lg border px-2.5 py-2">
-      <p className="text-ink/35 text-[9.5px] font-semibold uppercase tracking-[0.08em]">{label}</p>
+      <p className="text-ink/35 text-[9.5px] font-semibold tracking-[0.08em] uppercase">{label}</p>
       <p className="text-ink/70 mt-0.5 truncate text-[11.5px]">{value}</p>
     </div>
   )

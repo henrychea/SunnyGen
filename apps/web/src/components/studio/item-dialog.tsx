@@ -9,7 +9,7 @@ import {
 } from '@sunnygen/core'
 import { Badge, Button, Dialog, DialogSurface, Input, Label, Select, Textarea, cn } from '@sunnygen/ui'
 import { ImagePlus, Loader2, X } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import type { StudioItemDto } from '~/server/studio.functions'
 import { saveStudioItemFn } from '~/server/studio.functions'
 
@@ -33,32 +33,24 @@ export function StudioItemDialog({
   item?: StudioItemDto | null
   onSaved: () => void
 }) {
-  const [name, setName] = useState('')
-  const [style, setStyle] = useState<'photoreal' | 'anime'>('photoreal')
-  const [sheetId, setSheetId] = useState<string | null>(null)
-  const [characterSheetId, setCharacterSheetId] = useState<string | null>(null)
-  const [slot, setSlot] = useState<GarmentSlot>('top')
-  const [sourceKind, setSourceKind] = useState<GarmentSource>('flat-lay')
-  const [notes, setNotes] = useState('')
+  const [name, setName] = useState(item?.name ?? '')
+  const [style, setStyle] = useState<'photoreal' | 'anime'>(
+    item?.data.style === 'anime' ? 'anime' : 'photoreal',
+  )
+  const [sheetId, setSheetId] = useState<string | null>(item?.assetId ?? null)
+  const [characterSheetId, setCharacterSheetId] = useState<string | null>(
+    typeof item?.data.characterSheetAssetId === 'string' ? item.data.characterSheetAssetId : null,
+  )
+  const [slot, setSlot] = useState<GarmentSlot>((item?.data.slot as GarmentSlot) ?? 'top')
+  const [sourceKind, setSourceKind] = useState<GarmentSource>(
+    (item?.data.sourceKind as GarmentSource) ?? 'flat-lay',
+  )
+  const [notes, setNotes] = useState(String(item?.data.notes ?? ''))
   const [uploading, setUploading] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const pendingField = useRef<string>('asset')
-
-  useEffect(() => {
-    if (!open) return
-    setName(item?.name ?? '')
-    setStyle(item?.data.style === 'anime' ? 'anime' : 'photoreal')
-    setSheetId(item?.assetId ?? null)
-    setCharacterSheetId(
-      typeof item?.data.characterSheetAssetId === 'string' ? item.data.characterSheetAssetId : null,
-    )
-    setSlot((item?.data.slot as GarmentSlot) ?? 'top')
-    setSourceKind((item?.data.sourceKind as GarmentSource) ?? 'flat-lay')
-    setNotes(String(item?.data.notes ?? ''))
-    setError(null)
-  }, [open, item])
 
   const pick = (field: string) => {
     pendingField.current = field

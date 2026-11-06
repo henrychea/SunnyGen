@@ -158,6 +158,7 @@ function StudioPage() {
 
       {dialog ? (
         <StudioItemDialog
+          key={dialog.item?.id ?? `new-${dialog.kind}`}
           open
           onOpenChange={(open) => {
             if (!open) setDialog(null)

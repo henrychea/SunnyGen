@@ -1,0 +1,19 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "printWidth": 110,
+  "semi": false,
+  "singleQuote": true,
+  "trailingComma": "all",
+  "ignorePatterns": [
+    "node_modules/**",
+    "**/.output/**",
+    "**/.tanstack/**",
+    "**/dist/**",
+    ".turbo/**",
+    ".next/**",
+    "data/**",
+    "pnpm-lock.yaml",
+    "apps/web/src/routeTree.gen.ts"
+  ],
+  "sortTailwindcss": true
+}

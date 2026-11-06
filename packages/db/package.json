@@ -2,6 +2,8 @@
   "name": "@sunnygen/db",
   "version": "2.0.0",
   "private": true,
+  "license": "MIT",
+  "author": "Henry Chea",
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -18,7 +20,5 @@
   "devDependencies": {
     "@types/node": "^22.20.0",
     "typescript": "^5.9.3"
-  },
-  "license": "MIT",
-  "author": "Henry Chea"
+  }
 }

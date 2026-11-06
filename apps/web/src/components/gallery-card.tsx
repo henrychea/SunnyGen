@@ -19,7 +19,7 @@ export function GalleryCard({ item, onOpen }: { item: GalleryItem; onOpen: () =>
               preload="metadata"
               className="size-full object-cover"
             />
-            <span className="bg-ink/70 text-canvas absolute left-2.5 top-2.5 inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[9.5px] font-semibold uppercase tracking-[0.06em] backdrop-blur">
+            <span className="bg-ink/70 text-canvas absolute top-2.5 left-2.5 inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[9.5px] font-semibold tracking-[0.06em] uppercase backdrop-blur">
               <Play size={9} fill="currentColor" /> Video
             </span>
           </>
@@ -32,7 +32,7 @@ export function GalleryCard({ item, onOpen }: { item: GalleryItem; onOpen: () =>
           />
         )}
         {item.outputCount > 1 ? (
-          <span className="bg-ink/70 text-canvas absolute right-2.5 top-2.5 rounded-md px-1.5 py-1 text-[9.5px] font-semibold backdrop-blur">
+          <span className="bg-ink/70 text-canvas absolute top-2.5 right-2.5 rounded-md px-1.5 py-1 text-[9.5px] font-semibold backdrop-blur">
             {item.outputCount}
           </span>
         ) : null}
@@ -47,7 +47,7 @@ export function GalleryCard({ item, onOpen }: { item: GalleryItem; onOpen: () =>
             {new Date(item.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
           </p>
         </div>
-        <span className="bg-ink/[0.05] text-ink/45 rounded px-1.5 py-0.5 text-[9.5px] font-semibold uppercase tracking-[0.05em]">
+        <span className="bg-ink/[0.05] text-ink/45 rounded px-1.5 py-0.5 text-[9.5px] font-semibold tracking-[0.05em] uppercase">
           {item.provider}
         </span>
       </div>

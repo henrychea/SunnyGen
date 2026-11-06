@@ -378,7 +378,7 @@ function PrepModelCard({ model, onSaved }: { model: string; onSaved: () => void 
 function PathRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-baseline justify-between gap-4">
-      <span className="text-ink/40 text-[10.5px] font-semibold uppercase tracking-[0.08em]">{label}</span>
+      <span className="text-ink/40 text-[10.5px] font-semibold tracking-[0.08em] uppercase">{label}</span>
       <span className="text-ink/60 truncate font-mono text-[10.5px]">{value}</span>
     </div>
   )

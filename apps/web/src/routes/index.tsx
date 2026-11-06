@@ -32,13 +32,13 @@ function HomePage() {
         <div className="grid gap-4 lg:grid-cols-[1.5fr_1fr]">
           <Card className="relative overflow-hidden p-6">
             <div
-              className="pointer-events-none absolute -right-20 -top-24 size-72 rounded-full opacity-70 blur-3xl"
+              className="pointer-events-none absolute -top-24 -right-20 size-72 rounded-full opacity-70 blur-3xl"
               style={{ background: 'radial-gradient(circle, rgba(163,22,33,0.18), transparent 65%)' }}
             />
-            <p className="text-accent/75 text-[10.5px] font-semibold uppercase tracking-[0.14em]">
+            <p className="text-accent/75 text-[10.5px] font-semibold tracking-[0.14em] uppercase">
               Start here
             </p>
-            <h2 className="font-display mt-2 max-w-md text-[28px] font-semibold leading-[1.08] tracking-tight">
+            <h2 className="font-display mt-2 max-w-md text-[28px] leading-[1.08] font-semibold tracking-tight">
               Make the next frame.
             </h2>
             <p className="text-ink/50 mt-2 max-w-md text-[12.5px] leading-relaxed">
@@ -115,9 +115,9 @@ function HomePage() {
 function Stat({ label, value, detail }: { label: string; value: number; detail: string }) {
   return (
     <Card className="flex flex-col justify-between p-4">
-      <p className="text-ink/40 text-[10px] font-semibold uppercase tracking-[0.1em]">{label}</p>
+      <p className="text-ink/40 text-[10px] font-semibold tracking-[0.1em] uppercase">{label}</p>
       <div>
-        <p className="font-display text-[26px] font-semibold leading-none tracking-tight">{value}</p>
+        <p className="font-display text-[26px] leading-none font-semibold tracking-tight">{value}</p>
         <p className="text-ink/40 mt-1.5 text-[10.5px]">{detail}</p>
       </div>
     </Card>

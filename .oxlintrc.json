@@ -1,0 +1,29 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["react", "typescript", "import", "unicorn"],
+  "env": {
+    "browser": true,
+    "node": true,
+    "es2024": true
+  },
+  "categories": {
+    "correctness": "error"
+  },
+  "rules": {
+    "no-unused-vars": ["warn", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }],
+    "no-explicit-any": "off",
+    "no-empty": ["error", { "allowEmptyCatch": true }],
+    "react-hooks/exhaustive-deps": "warn"
+  },
+  "ignorePatterns": [
+    "node_modules/**",
+    "**/.output/**",
+    "**/.tanstack/**",
+    "**/dist/**",
+    ".turbo/**",
+    ".next/**",
+    "data/**",
+    "docs/**",
+    "apps/web/src/routeTree.gen.ts"
+  ]
+}

@@ -260,7 +260,7 @@ function AssetsPage() {
                         </button>
                         <div className="flex items-center justify-between gap-1 px-2.5 py-2">
                           <div className="min-w-0">
-                            <p className="text-ink/55 text-[10.5px] font-medium uppercase tracking-[0.05em]">
+                            <p className="text-ink/55 text-[10.5px] font-medium tracking-[0.05em] uppercase">
                               {asset.mime.split('/')[1]}
                             </p>
                             <p className="text-ink/35 text-[10px]">

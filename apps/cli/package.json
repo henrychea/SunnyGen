@@ -2,16 +2,16 @@
   "name": "@sunnygen/cli",
   "version": "2.0.0",
   "private": true,
-  "type": "module",
+  "license": "MIT",
+  "author": "Henry Chea",
   "bin": {
     "sunnygen": "./bin/sunnygen.mjs"
   },
+  "type": "module",
   "scripts": {
     "start": "node bin/sunnygen.mjs"
   },
   "engines": {
     "node": ">=22.20"
-  },
-  "license": "MIT",
-  "author": "Henry Chea"
+  }
 }

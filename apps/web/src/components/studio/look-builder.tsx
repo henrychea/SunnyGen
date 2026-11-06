@@ -13,7 +13,7 @@ import {
 import { Badge, Button, Card, Select, Textarea, cn } from '@sunnygen/ui'
 import { Camera, Check, Loader2, Play, RotateCcw } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
-import { useMemo, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import type { StudioItemDto, StudioLibrary } from '~/server/studio.functions'
 import { getGenerationView, submitGeneration } from '~/server/generation.functions'
 import { createFolderFn } from '~/server/library.functions'
@@ -23,6 +23,10 @@ interface AngleResult {
   status: 'pending' | 'running' | 'done' | 'failed'
   url?: string
   error?: string
+}
+
+function studioFolderName(): string {
+  return `Studio · ${new Date().toLocaleDateString()}`
 }
 
 export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
@@ -114,14 +118,14 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
     })
   }
 
-  const referenceIds = useMemo(() => {
-    if (!avatar) return [] as string[]
-    const ids = [avatar.assetId ?? '']
-    for (const item of orderedGarments) ids.push(item.cleanAssetId ?? item.assetId ?? '')
-    if (pose?.assetId) ids.push(pose.assetId)
-    if (scene?.assetId) ids.push(scene.assetId)
-    return ids.filter(Boolean)
-  }, [avatar, orderedGarments, pose, scene])
+  const referenceIds: string[] = []
+  if (avatar) {
+    referenceIds.push(avatar.assetId ?? '')
+    for (const item of orderedGarments) referenceIds.push(item.cleanAssetId ?? item.assetId ?? '')
+    if (pose?.assetId) referenceIds.push(pose.assetId)
+    if (scene?.assetId) referenceIds.push(scene.assetId)
+  }
+  const usableReferenceIds = referenceIds.filter(Boolean)
 
   const updateResult = (angle: StudioAngle, patch: Partial<AngleResult>) => {
     setResults((current) => current.map((entry) => (entry.angle === angle ? { ...entry, ...patch } : entry)))
@@ -142,7 +146,7 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
 
     try {
       const folder = await createFolderFn({
-        data: { name: `Studio · ${new Date().toLocaleDateString()}` },
+        data: { name: studioFolderName() },
       })
 
       for (const angle of selected) {
@@ -154,7 +158,7 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
             kind: 'image',
             model: model.id,
             prompt,
-            assetIds: referenceIds,
+            assetIds: usableReferenceIds,
             params: { aspectRatio: ratio, quality },
             folderId: folder.id,
           },
@@ -210,7 +214,7 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
       <div className="flex flex-col gap-5">
         <Card className="p-4">
           <div className="mb-2 flex items-center justify-between">
-            <p className="text-ink/45 text-[11px] font-semibold uppercase tracking-[0.08em]">Avatar</p>
+            <p className="text-ink/45 text-[11px] font-semibold tracking-[0.08em] uppercase">Avatar</p>
             <span className="text-ink/35 text-[10.5px]">{library.avatars.length} saved</span>
           </div>
           {library.avatars.length === 0 ? (
@@ -245,7 +249,7 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
 
         <Card className="p-4">
           <div className="mb-2 flex items-center justify-between">
-            <p className="text-ink/45 text-[11px] font-semibold uppercase tracking-[0.08em]">Wardrobe</p>
+            <p className="text-ink/45 text-[11px] font-semibold tracking-[0.08em] uppercase">Wardrobe</p>
             <span className="text-ink/35 text-[10.5px]">{selectedGarments.length}/6 pieces</span>
           </div>
           {library.garments.length === 0 ? (
@@ -276,7 +280,7 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
                       <div className="bg-ink/[0.04] aspect-square" />
                     )}
                     {selected ? (
-                      <span className="bg-accent absolute right-1 top-1 grid size-4 place-items-center rounded-full text-white">
+                      <span className="bg-accent absolute top-1 right-1 grid size-4 place-items-center rounded-full text-white">
                         <Check size={9} />
                       </span>
                     ) : null}
@@ -292,7 +296,7 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
 
         <div className="grid gap-3 sm:grid-cols-2">
           <Card className="flex flex-col gap-2 p-4">
-            <p className="text-ink/45 text-[11px] font-semibold uppercase tracking-[0.08em]">Pose</p>
+            <p className="text-ink/45 text-[11px] font-semibold tracking-[0.08em] uppercase">Pose</p>
             <Select value={poseId} onChange={(event) => setPoseId(event.target.value)}>
               <option value="none">Standing (no pose)</option>
               {library.poses.map((item) => (
@@ -303,7 +307,7 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
             </Select>
           </Card>
           <Card className="flex flex-col gap-2 p-4">
-            <p className="text-ink/45 text-[11px] font-semibold uppercase tracking-[0.08em]">Scene</p>
+            <p className="text-ink/45 text-[11px] font-semibold tracking-[0.08em] uppercase">Scene</p>
             <Select value={sceneId} onChange={(event) => setSceneId(event.target.value)}>
               {library.scenes.map((item) => (
                 <option key={item.id} value={item.id}>
@@ -318,7 +322,7 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
       <div className="flex flex-col gap-4">
         <Card className="p-4">
           <div className="flex items-center justify-between">
-            <p className="text-ink/45 text-[11px] font-semibold uppercase tracking-[0.08em]">Shot</p>
+            <p className="text-ink/45 text-[11px] font-semibold tracking-[0.08em] uppercase">Shot</p>
             <Badge tone={blocking ? 'warning' : 'success'}>{blocking ? 'Not ready' : 'Ready'}</Badge>
           </div>
 
@@ -342,7 +346,7 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
 
           <div className="mt-3 flex flex-col gap-2">
             <label className="flex flex-col gap-1.5">
-              <span className="text-ink/40 text-[9.5px] font-semibold uppercase tracking-[0.08em]">
+              <span className="text-ink/40 text-[9.5px] font-semibold tracking-[0.08em] uppercase">
                 Model
               </span>
               <Select
@@ -365,7 +369,7 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
             </label>
             <div className="grid grid-cols-2 gap-2">
               <label className="flex flex-col gap-1.5">
-                <span className="text-ink/40 text-[9.5px] font-semibold uppercase tracking-[0.08em]">
+                <span className="text-ink/40 text-[9.5px] font-semibold tracking-[0.08em] uppercase">
                   Ratio
                 </span>
                 <Select value={ratio} onChange={(event) => setRatio(event.target.value)}>
@@ -377,7 +381,7 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
                 </Select>
               </label>
               <label className="flex flex-col gap-1.5">
-                <span className="text-ink/40 text-[9.5px] font-semibold uppercase tracking-[0.08em]">
+                <span className="text-ink/40 text-[9.5px] font-semibold tracking-[0.08em] uppercase">
                   Quality
                 </span>
                 <Select value={quality} onChange={(event) => setQuality(event.target.value)}>
@@ -390,7 +394,7 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
               </label>
             </div>
             <label className="flex flex-col gap-1.5">
-              <span className="text-ink/40 text-[9.5px] font-semibold uppercase tracking-[0.08em]">
+              <span className="text-ink/40 text-[9.5px] font-semibold tracking-[0.08em] uppercase">
                 Direction
               </span>
               <Textarea
@@ -442,14 +446,14 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
 
           <details className="mt-3">
             <summary className="text-ink/40 cursor-pointer text-[10.5px]">Prompt preview</summary>
-            <pre className="bg-canvas text-ink/55 mt-2 max-h-48 overflow-auto whitespace-pre-wrap rounded-lg p-2 text-[10px] leading-relaxed">
+            <pre className="bg-canvas text-ink/55 mt-2 max-h-48 overflow-auto rounded-lg p-2 text-[10px] leading-relaxed whitespace-pre-wrap">
               {buildStudioPrompt(promptInput)}
             </pre>
           </details>
         </Card>
 
         <Card className="p-4">
-          <p className="text-ink/45 text-[11px] font-semibold uppercase tracking-[0.08em]">Angles</p>
+          <p className="text-ink/45 text-[11px] font-semibold tracking-[0.08em] uppercase">Angles</p>
           {results.length === 0 ? (
             <p className="text-ink/40 mt-3 text-[11.5px]">Renders appear here, one per angle.</p>
           ) : (

@@ -4,30 +4,31 @@
   "private": true,
   "license": "MIT",
   "author": "Henry Chea",
-  "packageManager": "pnpm@9.15.9",
-  "engines": {
-    "node": ">=22.20"
-  },
   "scripts": {
     "dev": "turbo run dev --filter=@sunnygen/web",
     "build": "turbo run build",
     "start": "turbo run start --filter=@sunnygen/web",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
-    "lint": "eslint .",
-    "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "lint": "oxlint .",
+    "format": "oxfmt .",
+    "format:check": "oxfmt --check ."
   },
   "devDependencies": {
-    "@eslint/js": "^9",
-    "eslint": "^9",
-    "eslint-plugin-react-hooks": "^7",
-    "globals": "^16",
-    "prettier": "^3.6.2",
-    "prettier-plugin-tailwindcss": "^0.6.14",
+    "oxfmt": "^0.76.0",
+    "oxlint": "^1.91.0",
     "tsx": "^4.23.15",
     "turbo": "^2.11.10",
-    "typescript": "^5.9.3",
-    "typescript-eslint": "^8"
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=22.20"
+  },
+  "packageManager": "pnpm@9.15.9",
+  "pnpm": {
+    "overrides": {
+      "js-yaml": "4.3.2",
+      "source-map-js": "1.2.2"
+    }
   }
 }

@@ -22,7 +22,7 @@ export function SessionRail({
   return (
     <aside className="border-line/70 bg-surface/45 hidden w-64 shrink-0 flex-col border-r md:flex">
       <div className="border-line/60 flex items-center justify-between gap-2 border-b px-4 py-3">
-        <p className="text-ink/40 text-[10.5px] font-semibold uppercase tracking-[0.14em]">Chats</p>
+        <p className="text-ink/40 text-[10.5px] font-semibold tracking-[0.14em] uppercase">Chats</p>
         <button
           type="button"
           onClick={onNew}

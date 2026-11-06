@@ -424,7 +424,7 @@ function CanvasInner({ latest, workflows }: WorkflowEditorProps) {
               showInteractive={false}
               className="!border-line !bg-surface !rounded-xl !border !shadow-sm"
             />
-            <div className="border-line bg-surface/95 absolute left-3 top-3 z-10 flex flex-col gap-1 rounded-xl border p-1.5 shadow-sm backdrop-blur">
+            <div className="border-line bg-surface/95 absolute top-3 left-3 z-10 flex flex-col gap-1 rounded-xl border p-1.5 shadow-sm backdrop-blur">
               {PALETTE.map((item) => {
                 const Icon = item.icon
                 return (
