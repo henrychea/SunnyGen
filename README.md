@@ -14,7 +14,9 @@
 
 </div>
 
-![SunnyGen canvas](docs/screenshots/canvas.webp)
+<img src="docs/screenshots/studio.webp" alt="SunnyGen Studio look builder with avatar, wardrobe, pose, scene, and angle controls" width="100%" />
+
+<p align="center"><sub><strong>Studio</strong> — one avatar, up to six garments, one camera angle per render.</sub></p>
 
 ---
 
@@ -57,13 +59,42 @@ pnpm dev
 **Requirements:** Node.js 22.20+ (24 recommended), pnpm 9.15. Docker is optional and only
 needed for social imports.
 
+## A look inside
+
+### Studio
+
+Studio is the main workspace: pick a saved avatar, stack up to six garments in slot order,
+choose a pose and scene, then render one to four angles over the same reference list.
+On-model and supplier photos can be prepped into clean product references without leaving
+the app.
+
+<img src="docs/screenshots/studio-wardrobe.webp" alt="Wardrobe library with garment slots and prep actions" width="100%" />
+
+<p align="center"><sub>The wardrobe library stores slot, source type, notes, and a prepared clean reference per piece.</sub></p>
+
+### Gallery and canvas
+
+| Gallery                                                                                                                | Canvas                                                                                                                     |
+| ---------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| <img src="docs/screenshots/gallery.webp" alt="SunnyGen gallery grid with folders and generated images" width="100%" /> | <img src="docs/screenshots/canvas.webp" alt="SunnyGen canvas with prompt, image input, and generate nodes" width="100%" /> |
+| Finished images and video, folders, retries, and a one-off render dialog.                                              | Reusable node pipelines with per-node models, references, and autosave.                                                    |
+
+### Assistant and assets
+
+| Assistant                                                                                                        | Assets                                                                                                        |
+| ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| <img src="docs/screenshots/assistant.webp" alt="SunnyGen assistant with a lookbook conversation" width="100%" /> | <img src="docs/screenshots/assets.webp" alt="SunnyGen asset library with uploads and folders" width="100%" /> |
+| Prompt drafting and rewrites with selectable response modes.                                                     | Uploads and imported references, deduplicated and ready to reuse.                                             |
+
+<p align="center"><sub>Screenshots use demo content. Demo photography from <a href="https://unsplash.com">Unsplash</a>.</sub></p>
+
 ## Features
 
 | Surface       | What it does                                                                                                                 |
 | ------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| **Studio**    | Avatar sheets, wardrobe slots, garment prep, pose and scene references, then 1–4 angle renders per look.                     |
 | **Canvas**    | Infinite node editor with prompt, media, generate, note, and comment nodes. Graphs autosave and execute in dependency order. |
 | **Gallery**   | Image and video renders, folders, failed-job retry, lightbox, download, and social imports.                                  |
-| **Studio**    | Avatar sheets, wardrobe slots, garment prep, pose and scene references, then 1–4 angle renders per look.                     |
 | **Assets**    | Uploads and imported references, deduplicated by SHA-256 and served with byte-range support.                                 |
 | **Assistant** | OpenRouter-powered prompt drafting and rewrites with selectable response modes. Never used for generation.                   |
 | **Launcher**  | One command to build, serve, publish on your LAN, and keep the app alive.                                                    |
