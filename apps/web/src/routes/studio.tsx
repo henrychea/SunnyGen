@@ -103,7 +103,7 @@ function StudioPage() {
               type="button"
               onClick={() => setTab(entry.id)}
               className={cn(
-                'flex items-center gap-1.5 rounded-[10px] px-3 py-1.5 text-[11.5px] font-medium transition-colors',
+                'flex items-center gap-1.5 rounded-[10px] px-2.5 py-1.5 text-[11px] font-medium transition-colors',
                 tab === entry.id ? 'bg-ink text-canvas' : 'text-ink/50 hover:text-ink',
               )}
             >

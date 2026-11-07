@@ -41,7 +41,7 @@ function SettingsPage() {
         description="Provider keys stay in your local SQLite database. Nothing is sent to SunnyGen."
       />
       <PageBody>
-        <div className="grid gap-5 lg:grid-cols-2">
+        <div className="grid min-w-0 gap-5 lg:grid-cols-2">
           <Card>
             <CardHeader>
               <CardTitle>Providers</CardTitle>
@@ -74,7 +74,7 @@ function SettingsPage() {
             </CardContent>
           </Card>
 
-          <div className="flex flex-col gap-5">
+          <div className="flex min-w-0 flex-col gap-5">
             <Card>
               <CardHeader>
                 <CardTitle>Assistant</CardTitle>
@@ -197,8 +197,9 @@ function ProviderKeyCard({
         <Badge tone={configured ? 'success' : 'neutral'}>{configured ? 'Configured' : 'Missing'}</Badge>
       </div>
       {hasKeySetting ? (
-        <div className="flex gap-2">
+        <div className="flex min-w-0 gap-2">
           <Input
+            className="min-w-0"
             type="password"
             value={value}
             onChange={(event) => setValue(event.target.value)}
@@ -206,11 +207,11 @@ function ProviderKeyCard({
             autoComplete="off"
             spellCheck={false}
           />
-          <Button onClick={save} loading={busy} disabled={!value.trim()}>
+          <Button className="shrink-0" onClick={save} loading={busy} disabled={!value.trim()}>
             Save
           </Button>
           {configured ? (
-            <Button variant="ghost" onClick={clear} disabled={busy}>
+            <Button className="shrink-0" variant="ghost" onClick={clear} disabled={busy}>
               Clear
             </Button>
           ) : null}
@@ -324,8 +325,9 @@ function AssistantKeyCard({ configured, onSaved }: { configured: boolean; onSave
         <Label>OpenRouter key</Label>
         <Badge tone={configured ? 'success' : 'neutral'}>{configured ? 'Configured' : 'Optional'}</Badge>
       </div>
-      <div className="flex gap-2">
+      <div className="flex min-w-0 gap-2">
         <Input
+          className="min-w-0"
           type="password"
           value={value}
           onChange={(event) => setValue(event.target.value)}
@@ -333,11 +335,11 @@ function AssistantKeyCard({ configured, onSaved }: { configured: boolean; onSave
           autoComplete="off"
           spellCheck={false}
         />
-        <Button onClick={save} loading={busy} disabled={!value.trim()}>
+        <Button className="shrink-0" onClick={save} loading={busy} disabled={!value.trim()}>
           Save
         </Button>
         {configured ? (
-          <Button variant="ghost" onClick={clear} disabled={busy}>
+          <Button className="shrink-0" variant="ghost" onClick={clear} disabled={busy}>
             Clear
           </Button>
         ) : null}
@@ -365,9 +367,14 @@ function PrepModelCard({ model, onSaved }: { model: string; onSaved: () => void 
   return (
     <div className="flex flex-col gap-2">
       <Label>Garment prep model</Label>
-      <div className="flex gap-2">
-        <Input value={value} onChange={(event) => setValue(event.target.value)} spellCheck={false} />
-        <Button variant="outline" onClick={save} loading={busy} disabled={!value.trim()}>
+      <div className="flex min-w-0 gap-2">
+        <Input
+          className="min-w-0"
+          value={value}
+          onChange={(event) => setValue(event.target.value)}
+          spellCheck={false}
+        />
+        <Button className="shrink-0" variant="outline" onClick={save} loading={busy} disabled={!value.trim()}>
           Save
         </Button>
       </div>

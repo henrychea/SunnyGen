@@ -102,7 +102,7 @@ export function MobileNav() {
           <Settings size={17} />
         </Link>
       </div>
-      <nav className="flex gap-1 overflow-x-auto px-3 pb-2" aria-label="Primary">
+      <nav className="grid grid-cols-3 gap-1 px-3 pb-2" aria-label="Primary">
         {NAV.map((item) => {
           const Icon = item.icon
           const active = isActive(pathname, item)
@@ -111,7 +111,7 @@ export function MobileNav() {
               key={item.to}
               to={item.to}
               className={cn(
-                'flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11.5px] font-medium',
+                'flex flex-col items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-[10px] font-medium',
                 active ? 'bg-ink/[0.08] text-ink' : 'text-ink/50',
               )}
             >

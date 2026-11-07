@@ -41,11 +41,11 @@ export function PageHeader({
           <p className="text-ink/50 mt-1.5 max-w-2xl text-[12.5px] leading-relaxed">{description}</p>
         ) : null}
       </div>
-      {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
+      {actions ? <div className="flex min-w-0 flex-wrap items-center gap-2">{actions}</div> : null}
     </header>
   )
 }
 
 export function PageBody({ children }: { children: ReactNode }) {
-  return <div className="px-6 py-6 md:px-9 md:py-8">{children}</div>
+  return <div className="px-4 py-5 md:px-9 md:py-8">{children}</div>
 }

@@ -157,7 +157,7 @@ function AssetsPage() {
                     value={newFolder}
                     onChange={(event) => setNewFolder(event.target.value)}
                     placeholder="Folder name"
-                    className="h-8 text-[12px]"
+                    className="h-8 min-w-0 text-[12px]"
                   />
                   <Button size="sm" type="submit" disabled={!newFolder.trim()}>
                     Add
