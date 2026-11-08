@@ -143,7 +143,7 @@ export function MobileNav() {
 
   return (
     <>
-      <header className="border-line bg-surface/70 flex items-center justify-between px-4 py-2.5 md:hidden">
+      <header className="pwa-safe-top border-line bg-surface/70 flex items-center justify-between px-4 pb-2.5 md:hidden">
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -177,7 +177,7 @@ export function MobileNav() {
         aria-hidden={!open}
         inert={!open}
         className={cn(
-          'border-line bg-surface fixed inset-y-0 left-0 z-50 flex w-[82vw] max-w-[290px] flex-col border-r shadow-2xl transition-transform duration-200 md:hidden',
+          'pwa-safe-top pwa-safe-bottom border-line bg-surface fixed inset-y-0 left-0 z-50 flex w-[82vw] max-w-[290px] flex-col border-r shadow-2xl transition-transform duration-200 md:hidden',
           open ? 'translate-x-0' : '-translate-x-full',
         )}
       >

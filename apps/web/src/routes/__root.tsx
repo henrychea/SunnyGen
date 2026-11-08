@@ -2,6 +2,7 @@ import { QueryClientProvider, type QueryClient } from '@tanstack/react-query'
 import { HeadContent, Outlet, Scripts, createRootRouteWithContext, Link } from '@tanstack/react-router'
 import { APP_NAME, APP_TAGLINE } from '@sunnygen/core'
 import { AppShell } from '~/components/app-shell'
+import { PwaRegister } from '~/components/pwa-register'
 import '../styles.css'
 
 interface RouterContext {
@@ -12,12 +13,25 @@ export const Route = createRootRouteWithContext<RouterContext>()({
   head: () => ({
     meta: [
       { charSet: 'utf-8' },
-      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+      { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' },
+      { name: 'application-name', content: APP_NAME },
+      { name: 'apple-mobile-web-app-capable', content: 'yes' },
+      { name: 'apple-mobile-web-app-status-bar-style', content: 'default' },
+      { name: 'apple-mobile-web-app-title', content: APP_NAME },
+      { name: 'mobile-web-app-capable', content: 'yes' },
+      { name: 'format-detection', content: 'telephone=no' },
+      { name: 'msapplication-TileColor', content: '#A31621' },
       { title: APP_NAME },
       { name: 'description', content: APP_TAGLINE },
       { name: 'theme-color', content: '#faf6ef' },
     ],
-    links: [{ rel: 'icon', href: '/favicon.svg', type: 'image/svg+xml' }],
+    links: [
+      { rel: 'icon', href: '/favicon.svg', type: 'image/svg+xml' },
+      { rel: 'icon', href: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { rel: 'icon', href: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+      { rel: 'apple-touch-icon', href: '/apple-touch-icon.png', sizes: '180x180' },
+      { rel: 'manifest', href: '/manifest.webmanifest' },
+    ],
   }),
   component: RootComponent,
   notFoundComponent: NotFound,
@@ -31,6 +45,7 @@ function RootComponent() {
         <HeadContent />
       </head>
       <body>
+        <PwaRegister />
         <QueryClientProvider client={queryClient}>
           <AppShell>
             <Outlet />

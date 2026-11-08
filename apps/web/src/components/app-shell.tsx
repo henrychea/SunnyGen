@@ -14,7 +14,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 }
 
 export function PageScroll({ children }: { children: ReactNode }) {
-  return <div className="h-full overflow-y-auto">{children}</div>
+  return <div className="pwa-safe-bottom h-full overflow-y-auto">{children}</div>
 }
 
 export function PageHeader({

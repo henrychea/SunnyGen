@@ -59,6 +59,18 @@ pnpm dev
 **Requirements:** Node.js 22.20+ (24 recommended), pnpm 9.15. Docker is optional and only
 needed for social imports.
 
+### Install as an app
+
+SunnyGen ships a web app manifest, maskable icons, and an offline app shell.
+
+- **Chrome / Edge:** use the install icon in the address bar, or **Menu → Install SunnyGen**.
+- **iPhone / iPad (Safari):** **Share → Add to Home Screen**.
+- **Android (Chrome):** **Menu → Install app**.
+
+It opens standalone, keeps the warm theme in the system UI, and caches the shell so the
+interface still opens when the server is unreachable. Renders, assets, and provider calls
+still need the local server and a network connection.
+
 ## A look inside
 
 ### Studio
@@ -98,6 +110,7 @@ the app.
 | **Assets**    | Uploads and imported references, deduplicated by SHA-256 and served with byte-range support.                                 |
 | **Assistant** | OpenRouter-powered prompt drafting and rewrites with selectable response modes. Never used for generation.                   |
 | **Launcher**  | One command to build, serve, publish on your LAN, and keep the app alive.                                                    |
+| **PWA**       | Installable on desktop and mobile, standalone display, cached shell for offline launches.                                    |
 
 ## Providers
 
