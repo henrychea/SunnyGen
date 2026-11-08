@@ -1,4 +1,5 @@
 import type { ImageModelDefinition } from '@sunnygen/core'
+import { downloadOutput } from './http'
 import { azureSize } from './sizes'
 import {
   ProviderError,
@@ -112,13 +113,8 @@ async function submit(context: AdapterContext, request: ProviderRequest): Promis
     }
   }
   if (first.url) {
-    const download = await context.fetch(first.url)
-    if (!download.ok) throw new ProviderError('azure', `Could not download Azure output (${download.status})`)
-    return {
-      providerJobId: null,
-      status: 'succeeded',
-      outputs: [{ buffer: Buffer.from(await download.arrayBuffer()), mime: 'image/png' }],
-    }
+    const output = await downloadOutput(first.url)
+    return { providerJobId: null, status: 'succeeded', outputs: [output] }
   }
   throw new ProviderError('azure', 'Azure returned no image data')
 }

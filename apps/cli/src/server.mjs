@@ -207,7 +207,7 @@ export function startMdns({ name, port }) {
     ['-P', 'SunnyGen', '_http._tcp', 'local.', String(port), `${name}.local`, address],
     { logFile: MDNS_LOG },
   )
-  fs.writeFileSync(MDNS_PID, String(pid))
+  fs.writeFileSync(MDNS_PID, String(pid), { mode: 0o600 })
   return { pid, name }
 }
 
@@ -237,9 +237,11 @@ export async function startTunnel({ env }) {
   }
   stopHelper(TUNNEL_PID)
   const token = resolveTunnelToken(env)
-  const args = token ? ['tunnel', 'run', '--token', token] : ['tunnel', 'run']
-  const pid = spawnLogged(bin, args, { logFile: TUNNEL_LOG })
-  fs.writeFileSync(TUNNEL_PID, String(pid))
+  const args = ['tunnel', 'run']
+  const pid = token
+    ? spawnLogged(bin, args, { logFile: TUNNEL_LOG, env: { ...env, TUNNEL_TOKEN: token } })
+    : spawnLogged(bin, args, { logFile: TUNNEL_LOG, env })
+  fs.writeFileSync(TUNNEL_PID, String(pid), { mode: 0o600 })
   await sleep(2500)
   if (!processAlive(pid)) {
     const tail = tailFile(TUNNEL_LOG, 6)
@@ -298,10 +300,10 @@ async function waitForBackgroundServer(pid, port, timeoutMs) {
 }
 
 async function startBackground({ command, args, env, port, mode }) {
-  fs.mkdirSync(RUN_DIR, { recursive: true })
+  fs.mkdirSync(RUN_DIR, { recursive: true, mode: 0o700 })
   fs.writeFileSync(SERVER_LOG, '')
   const pid = spawnLogged(command, args, { logFile: SERVER_LOG, env })
-  fs.writeFileSync(SERVER_PID, String(pid))
+  fs.writeFileSync(SERVER_PID, String(pid), { mode: 0o600 })
   const timeout = mode === 'dev' ? 120_000 : 60_000
   const ready = await waitForBackgroundServer(pid, port, timeout)
   if (!ready) {

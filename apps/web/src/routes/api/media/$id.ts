@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { openAssetFile } from '~/server/media.server'
+import { openAssetFile, kindForMime } from '~/server/media.server'
 
 function parseRange(header: string | null, total: number): { start: number; end: number } | null {
   if (!header?.startsWith('bytes=')) return null
@@ -29,9 +29,9 @@ export const Route = createFileRoute('/api/media/$id')({
         if (!file) return new Response('Not found', { status: 404 })
 
         const length = file.end - file.start + 1
-        const download = new URL(request.url).searchParams.has('download')
+        const download = new URL(request.url).searchParams.has('download') || !kindForMime(file.mime)
         const headers = new Headers({
-          'Content-Type': file.mime,
+          'Content-Type': download ? 'application/octet-stream' : file.mime,
           'Content-Length': String(length),
           'Accept-Ranges': 'bytes',
           'Cache-Control': 'public, max-age=31536000, immutable',
@@ -41,7 +41,9 @@ export const Route = createFileRoute('/api/media/$id')({
           headers.set('Content-Range', `bytes ${file.start}-${file.end}/${file.totalBytes}`)
         }
         if (download) {
-          const extension = file.mime.split('/')[1]?.replace('jpeg', 'jpg') ?? 'bin'
+          const extension = kindForMime(file.mime)
+            ? (file.mime.split('/')[1]?.replace('jpeg', 'jpg') ?? 'bin')
+            : 'bin'
           headers.set('Content-Disposition', `attachment; filename="${params.id}.${extension}"`)
           headers.set('Cache-Control', 'no-store')
         }
@@ -57,7 +59,7 @@ export const Route = createFileRoute('/api/media/$id')({
         return new Response(null, {
           status: 200,
           headers: {
-            'Content-Type': file.mime,
+            'Content-Type': kindForMime(file.mime) ? file.mime : 'application/octet-stream',
             'Content-Length': String(file.totalBytes),
             'Accept-Ranges': 'bytes',
           },

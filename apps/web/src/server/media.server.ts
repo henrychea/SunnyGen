@@ -4,7 +4,7 @@ import { mkdir, readFile, stat, unlink, writeFile } from 'node:fs/promises'
 import { dirname, join, relative, resolve } from 'node:path'
 import { Readable } from 'node:stream'
 import { createAsset, findAssetBySha256, getAsset, mediaDir } from '@sunnygen/db'
-import type { AssetKind, AssetRecord, AssetSource } from '@sunnygen/core'
+import { isPrivateHostname, type AssetKind, type AssetRecord, type AssetSource } from '@sunnygen/core'
 import sharp from 'sharp'
 
 export const MAX_UPLOAD_BYTES = 100 * 1024 * 1024
@@ -111,8 +111,8 @@ export async function storeBuffer(input: StoreBufferInput): Promise<AssetRecord>
   const extension = MIME_EXTENSIONS[mime] ?? '.bin'
   const relativePath = join(folder, `${randomUUID()}${extension}`)
   const absolutePath = join(mediaDir, relativePath)
-  await mkdir(dirname(absolutePath), { recursive: true })
-  await writeFile(absolutePath, input.buffer)
+  await mkdir(dirname(absolutePath), { recursive: true, mode: 0o700 })
+  await writeFile(absolutePath, input.buffer, { mode: 0o600 })
 
   const dimensions = await imageDimensions(input.buffer, kind)
   return createAsset({
@@ -128,16 +128,56 @@ export async function storeBuffer(input: StoreBufferInput): Promise<AssetRecord>
   })
 }
 
+async function readCapped(response: Response, maxBytes: number): Promise<Buffer> {
+  const declared = Number(response.headers.get('content-length') ?? 0)
+  if (declared > maxBytes) throw new Error('Remote file exceeds the size limit')
+  if (!response.body) return Buffer.alloc(0)
+  const reader = response.body.getReader()
+  const chunks: Uint8Array[] = []
+  let total = 0
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) break
+    total += value.byteLength
+    if (total > maxBytes) {
+      await reader.cancel()
+      throw new Error('Remote file exceeds the size limit')
+    }
+    chunks.push(value)
+  }
+  return Buffer.concat(chunks)
+}
+
 export async function storeRemoteAsset(
   url: string,
-  options: { kind: AssetKind; source?: AssetSource; folderId?: string | null },
+  options: {
+    kind: AssetKind
+    source?: AssetSource
+    folderId?: string | null
+    allowHosts?: string[]
+  },
 ): Promise<AssetRecord> {
-  const response = await fetch(url, { redirect: 'follow' })
+  let target: URL
+  try {
+    target = new URL(url)
+  } catch {
+    throw new Error('Remote URL is not valid')
+  }
+  if (target.protocol !== 'http:' && target.protocol !== 'https:') {
+    throw new Error('Remote URL must use http or https')
+  }
+  const allowed = new Set((options.allowHosts ?? []).map((host) => host.toLowerCase()))
+  if (isPrivateHostname(target.hostname) && !allowed.has(target.hostname.toLowerCase())) {
+    throw new Error('Remote host is not allowed')
+  }
+
+  const response = await fetch(target, { redirect: 'follow', signal: AbortSignal.timeout(60_000) })
   if (!response.ok) throw new Error(`Download failed: ${response.status}`)
-  const length = Number(response.headers.get('content-length') ?? 0)
-  if (length > MAX_REMOTE_BYTES) throw new Error('Remote file exceeds the 250 MB limit')
-  const buffer = Buffer.from(await response.arrayBuffer())
-  if (buffer.byteLength > MAX_REMOTE_BYTES) throw new Error('Remote file exceeds the 250 MB limit')
+  const finalHost = new URL(response.url).hostname.toLowerCase()
+  if (isPrivateHostname(finalHost) && !allowed.has(finalHost)) {
+    throw new Error('Remote host is not allowed')
+  }
+  const buffer = await readCapped(response, MAX_REMOTE_BYTES)
   const mime = (response.headers.get('content-type') ?? '').split(';')[0]?.trim()
   return storeBuffer({
     buffer,

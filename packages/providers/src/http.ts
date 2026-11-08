@@ -1,4 +1,7 @@
+import { isPrivateHostname } from '@sunnygen/core'
 import type { ProviderOutput } from './types'
+
+const MAX_OUTPUT_BYTES = 512 * 1024 * 1024
 
 export function errorMessage(value: unknown, fallback = 'Generation failed'): string {
   if (!value) return fallback
@@ -39,14 +42,32 @@ export async function responseError(response: Response, fallback: string): Promi
 }
 
 export async function downloadOutput(url: string): Promise<ProviderOutput> {
-  const response = await fetch(url, { signal: AbortSignal.timeout(120_000) })
+  if (!isHttpUrl(url)) throw new Error('Provider returned a non-http output URL')
+  if (isPrivateHostname(new URL(url).hostname)) throw new Error('Provider returned a private output URL')
+  const response = await fetch(url, { redirect: 'follow', signal: AbortSignal.timeout(120_000) })
   if (!response.ok) throw new Error(`Could not download output (HTTP ${response.status})`)
+  if (isPrivateHostname(new URL(response.url).hostname)) {
+    throw new Error('Provider redirected to a private output URL')
+  }
+  const declared = Number(response.headers.get('content-length') ?? 0)
+  if (declared > MAX_OUTPUT_BYTES) throw new Error('Provider output exceeds the size limit')
   const mime =
     (response.headers.get('content-type') ?? '').split(';')[0]?.trim() || 'application/octet-stream'
-  return {
-    buffer: Buffer.from(await response.arrayBuffer()),
-    mime,
+  if (!response.body) throw new Error('Provider returned an empty output')
+  const reader = response.body.getReader()
+  const chunks: Uint8Array[] = []
+  let total = 0
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) break
+    total += value.byteLength
+    if (total > MAX_OUTPUT_BYTES) {
+      await reader.cancel()
+      throw new Error('Provider output exceeds the size limit')
+    }
+    chunks.push(value)
   }
+  return { buffer: Buffer.concat(chunks), mime }
 }
 
 export function isHttpUrl(value: string): boolean {

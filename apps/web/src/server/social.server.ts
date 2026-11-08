@@ -109,9 +109,14 @@ export async function resolveSocialPost(url: string): Promise<SocialItem[]> {
 
 export async function importSocialPost(url: string): Promise<PublicAsset[]> {
   const items = (await resolveSocialPost(url)).slice(0, 10)
+  const cobaltHost = new URL(cobaltBaseUrl()).hostname
   const assets: PublicAsset[] = []
   for (const item of items) {
-    const asset = await storeRemoteAsset(item.url, { kind: item.kind, source: 'social' })
+    const asset = await storeRemoteAsset(item.url, {
+      kind: item.kind,
+      source: 'social',
+      allowHosts: [cobaltHost],
+    })
     assets.push(toPublicAsset(asset))
   }
   return assets

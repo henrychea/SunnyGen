@@ -1,11 +1,15 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { STUDIO_KINDS } from '@sunnygen/core'
 import { MAX_UPLOAD_BYTES, kindForMime, storeBuffer, toPublicAsset } from '~/server/media.server'
+import { payloadTooLarge } from '~/server/guards.server'
 
 export const Route = createFileRoute('/api/studio-upload')({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        const tooLarge = payloadTooLarge(request, MAX_UPLOAD_BYTES + 1_048_576)
+        if (tooLarge) return tooLarge
+
         let form: FormData
         try {
           form = await request.formData()

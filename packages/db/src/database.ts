@@ -1,4 +1,4 @@
-import { mkdirSync } from 'node:fs'
+import { chmodSync, mkdirSync } from 'node:fs'
 import { DatabaseSync } from 'node:sqlite'
 import { MIGRATIONS, SCHEMA_VERSION } from './migrations'
 import { dataDir, databasePath, mediaDir } from './paths'
@@ -24,13 +24,22 @@ function migrate(database: DatabaseSync): void {
 
 export function getDb(): DatabaseSync {
   if (connection) return connection
-  mkdirSync(dataDir, { recursive: true })
-  mkdirSync(mediaDir, { recursive: true })
+  mkdirSync(dataDir, { recursive: true, mode: 0o700 })
+  mkdirSync(mediaDir, { recursive: true, mode: 0o700 })
   const database = new DatabaseSync(databasePath)
   database.exec('PRAGMA journal_mode = WAL')
   database.exec('PRAGMA foreign_keys = ON')
   database.exec('PRAGMA busy_timeout = 5000')
   migrate(database)
+  // The settings table holds provider keys, so keep the database and its
+  // sidecars readable only by the owner.
+  for (const file of [databasePath, `${databasePath}-wal`, `${databasePath}-shm`]) {
+    try {
+      chmodSync(file, 0o600)
+    } catch {
+      // Sidecar files may not exist yet.
+    }
+  }
   connection = database
   return database
 }

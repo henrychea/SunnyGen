@@ -88,8 +88,8 @@ export function capture(command, args, options = {}) {
 }
 
 export function spawnLogged(command, args, { logFile, env = process.env, cwd = ROOT } = {}) {
-  fs.mkdirSync(path.dirname(logFile), { recursive: true })
-  const fd = fs.openSync(logFile, 'w')
+  fs.mkdirSync(path.dirname(logFile), { recursive: true, mode: 0o700 })
+  const fd = fs.openSync(logFile, 'w', 0o600)
   const child = spawn(command, args, {
     cwd,
     env,

@@ -7,6 +7,7 @@ import {
   buildAssistantMessages,
 } from '@sunnygen/core'
 import { readSetting } from '@sunnygen/db'
+import { payloadTooLarge } from '~/server/guards.server'
 
 const OPENROUTER_URL = process.env.OPENROUTER_BASE_URL ?? 'https://openrouter.ai/api/v1/chat/completions'
 const OPENROUTER_KEY_SETTING = 'assistant.openrouter.key'
@@ -56,6 +57,9 @@ export const Route = createFileRoute('/api/assistant')({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        const tooLarge = payloadTooLarge(request, 2 * 1_048_576)
+        if (tooLarge) return tooLarge
+
         let body: unknown
         try {
           body = await request.json()

@@ -27,7 +27,7 @@ const submitSchema = z.object({
   kind: z.enum(GENERATION_KINDS),
   model: z.string().min(1),
   prompt: z.string().default(''),
-  assetIds: z.array(z.string()).default([]),
+  assetIds: z.array(z.string()).max(16).default([]),
   params: z.record(z.string(), z.unknown()).default({}),
   provider: z.enum(PROVIDER_IDS).optional(),
   folderId: z.string().nullable().optional(),
@@ -45,19 +45,33 @@ export const submitGeneration = createServerFn({ method: 'POST', strict: false }
     if (!model) throw new Error(`Unknown model: ${data.model}`)
     if (model.kind !== data.kind) throw new Error(`${model.label} does not generate ${data.kind}s`)
 
+    const requestedRatio = String(data.params.aspectRatio ?? '')
+    const requestedQuality = String(data.params.quality ?? '')
     const params: GenerationParams = {
       ...data.params,
-      aspectRatio:
-        (data.params.aspectRatio as string | undefined) ??
-        (model.kind === 'video' ? model.defaultRatio : '1:1'),
+      aspectRatio: model.ratios.includes(requestedRatio)
+        ? requestedRatio
+        : model.kind === 'video'
+          ? model.defaultRatio
+          : '1:1',
       quality:
-        (data.params.quality as string | undefined) ?? (model.kind === 'image' ? model.defaultQuality : ''),
+        model.kind === 'image'
+          ? model.qualityOptions.includes(requestedQuality)
+            ? requestedQuality
+            : model.defaultQuality
+          : '',
       ...(model.kind === 'video'
         ? {
-            durationSeconds: Number(data.params.durationSeconds ?? model.defaultDuration),
-            resolution: (data.params.resolution as string | undefined) ?? model.defaultResolution,
-            sound: Boolean(data.params.sound ?? model.sound),
-            mode: (data.params.mode as string | undefined) ?? model.defaultMode,
+            durationSeconds: model.durations.includes(Number(data.params.durationSeconds))
+              ? Number(data.params.durationSeconds)
+              : model.defaultDuration,
+            resolution: model.resolutions.includes(String(data.params.resolution ?? ''))
+              ? String(data.params.resolution)
+              : model.defaultResolution,
+            sound: typeof data.params.sound === 'boolean' ? data.params.sound : model.sound,
+            mode: model.modes.some((entry) => entry.value === String(data.params.mode ?? ''))
+              ? String(data.params.mode)
+              : model.defaultMode,
           }
         : {}),
     }
