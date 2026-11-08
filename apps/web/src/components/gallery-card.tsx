@@ -54,3 +54,48 @@ export function GalleryCard({ item, onOpen }: { item: GalleryItem; onOpen: () =>
     </button>
   )
 }
+
+export function GalleryWallTile({ item, onOpen }: { item: GalleryItem; onOpen: () => void }) {
+  const ratio = item.width && item.height ? `${item.width} / ${item.height}` : '4 / 5'
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="group bg-ink/[0.04] border-line hover:border-ink/25 relative mb-3 block w-full break-inside-avoid overflow-hidden rounded-xl border text-left transition-colors"
+    >
+      <div style={{ aspectRatio: ratio }} className="relative w-full overflow-hidden">
+        {item.kind === 'video' ? (
+          <video
+            src={item.url}
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            className="size-full object-cover"
+          />
+        ) : (
+          <img
+            src={item.url}
+            alt={item.prompt || 'Generated image'}
+            loading="lazy"
+            className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+          />
+        )}
+        {item.kind === 'video' ? (
+          <span className="bg-ink/70 text-canvas absolute top-2 left-2 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[9px] font-semibold tracking-[0.06em] uppercase backdrop-blur">
+            <Play size={8} fill="currentColor" /> Video
+          </span>
+        ) : null}
+        {item.outputCount > 1 ? (
+          <span className="bg-ink/70 text-canvas absolute top-2 right-2 rounded px-1.5 py-0.5 text-[9px] font-semibold backdrop-blur">
+            {item.outputCount}
+          </span>
+        ) : null}
+        <div className="from-ink/80 pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t to-transparent p-3 pt-10 opacity-0 transition-opacity group-hover:opacity-100">
+          <p className="text-canvas/90 line-clamp-2 text-[10.5px] leading-snug">{item.prompt}</p>
+          <p className="text-canvas/55 mt-0.5 truncate text-[9.5px]">{item.model}</p>
+        </div>
+      </div>
+    </button>
+  )
+}

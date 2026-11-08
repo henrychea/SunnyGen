@@ -1,10 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { cn, Select } from '@sunnygen/ui'
-import { Download, RefreshCw, Sparkles, Trash2, X } from 'lucide-react'
+import { Columns3, Download, LayoutGrid, RefreshCw, Sparkles, Trash2, X } from 'lucide-react'
 import { PageBody, PageHeader, PageScroll } from '~/components/app-shell'
-import { GalleryCard } from '~/components/gallery-card'
+import { GalleryCard, GalleryWallTile } from '~/components/gallery-card'
 import { GenerateDialog } from '~/components/generate-dialog'
 import { getGenerationView, submitGeneration } from '~/server/generation.functions'
 import {
@@ -19,10 +19,16 @@ import {
 type KindFilter = 'all' | 'image' | 'video'
 
 export const Route = createFileRoute('/gallery')({
+  validateSearch: (search: Record<string, unknown>): { view?: 'canvas' | 'grid' } => ({
+    view: search.view === 'grid' ? 'grid' : search.view === 'canvas' ? 'canvas' : undefined,
+  }),
   component: GalleryPage,
 })
 
 function GalleryPage() {
+  const { view: viewParam } = Route.useSearch()
+  const view = viewParam ?? 'canvas'
+  const navigate = useNavigate()
   const [kind, setKind] = useState<KindFilter>('all')
   const [open, setOpen] = useState<GalleryItem | null>(null)
   const [composerOpen, setComposerOpen] = useState(false)
@@ -219,9 +225,33 @@ function GalleryPage() {
                 </button>
               ))}
             </div>
-            <p className="text-ink/40 text-[11.5px]">
-              {gallery.isLoading ? 'Loading…' : `${items.length} item${items.length === 1 ? '' : 's'}`}
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-ink/40 text-[11.5px]">
+                {gallery.isLoading ? 'Loading…' : `${items.length} item${items.length === 1 ? '' : 's'}`}
+              </p>
+              <div className="border-line bg-surface inline-flex rounded-xl border p-0.5">
+                <button
+                  type="button"
+                  onClick={() => void navigate({ to: '/gallery', search: { view: 'canvas' }, replace: true })}
+                  className={cn(
+                    'inline-flex items-center gap-1 rounded-[10px] px-2.5 py-1.5 text-[10.5px] font-medium',
+                    view === 'canvas' ? 'bg-ink text-canvas' : 'text-ink/50 hover:text-ink',
+                  )}
+                >
+                  <Columns3 size={11} /> Canvas
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void navigate({ to: '/gallery', search: { view: 'grid' }, replace: true })}
+                  className={cn(
+                    'inline-flex items-center gap-1 rounded-[10px] px-2.5 py-1.5 text-[10.5px] font-medium',
+                    view === 'grid' ? 'bg-ink text-canvas' : 'text-ink/50 hover:text-ink',
+                  )}
+                >
+                  <LayoutGrid size={11} /> Grid
+                </button>
+              </div>
+            </div>
           </div>
 
           {gallery.isLoading ? (
@@ -251,6 +281,12 @@ function GalleryPage() {
                   Open Studio
                 </Link>
               </div>
+            </div>
+          ) : view === 'canvas' ? (
+            <div className="columns-2 gap-3 sm:columns-3 xl:columns-4">
+              {items.map((item) => (
+                <GalleryWallTile key={item.id} item={item} onOpen={() => setOpen(item)} />
+              ))}
             </div>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
