@@ -31,3 +31,6 @@ npm-debug.log*
 pnpm-debug.log*
 yarn-debug.log*
 .vercel/
+
+# Local launch video workspace
+/launch_video/
