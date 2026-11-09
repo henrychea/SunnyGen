@@ -33,6 +33,7 @@ No account. No shared credit pool. No markup. No telemetry.
 - **Pipelines, not one-off prompts.** Save a canvas and re-run it with new references.
 - **Studio built in.** Avatars, garment prep, poses, scenes, and multi-angle lookbooks.
 - **Boring storage.** Content-addressed media, byte-range streaming, no cloud bucket required.
+- **Responsive shell.** Side rail on desktop, slide-over drawer on phones, and PWA installability.
 - **Hackable.** Small TypeScript packages, typed server functions, and a clean monorepo.
 
 ## Quick start
@@ -86,10 +87,10 @@ the app.
 
 ### Gallery and canvas
 
-| Gallery                                                                                                                | Canvas                                                                                                                     |
-| ---------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| <img src="docs/screenshots/gallery.webp" alt="SunnyGen gallery grid with folders and generated images" width="100%" /> | <img src="docs/screenshots/canvas.webp" alt="SunnyGen canvas with prompt, image input, and generate nodes" width="100%" /> |
-| Finished images and video, folders, retries, and a one-off render dialog.                                              | Reusable node pipelines with per-node models, references, and autosave.                                                    |
+| Gallery                                                                                                                       | Canvas                                                                                                                     |
+| ----------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| <img src="docs/screenshots/gallery.webp" alt="SunnyGen gallery canvas wall with folders and generated images" width="100%" /> | <img src="docs/screenshots/canvas.webp" alt="SunnyGen canvas with prompt, image input, and generate nodes" width="100%" /> |
+| Canvas wall or grid, folders, retries, lightbox, and one-off renders.                                                         | Reusable node pipelines with per-node models, references, and autosave.                                                    |
 
 ### Assistant and assets
 
@@ -106,7 +107,7 @@ the app.
 | ------------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | **Studio**    | Avatar sheets, wardrobe slots, garment prep, pose and scene references, then 1–4 angle renders per look.                     |
 | **Canvas**    | Infinite node editor with prompt, media, generate, note, and comment nodes. Graphs autosave and execute in dependency order. |
-| **Gallery**   | Image and video renders, folders, failed-job retry, lightbox, download, and social imports.                                  |
+| **Gallery**   | Image and video renders in a canvas wall or grid, folders, failed-job retry, lightbox, download, and social imports.         |
 | **Assets**    | Uploads and imported references, deduplicated by SHA-256 and served with byte-range support.                                 |
 | **Assistant** | OpenRouter-powered prompt drafting and rewrites with selectable response modes. Never used for generation.                   |
 | **Launcher**  | One command to build, serve, publish on your LAN, and keep the app alive.                                                    |
