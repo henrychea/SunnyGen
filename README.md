@@ -237,7 +237,9 @@ on the machine running SunnyGen. Containers cannot reach host binaries.
 
 ## Contributing
 
-Issues and pull requests are welcome. If you are changing code:
+Issues and pull requests are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) for the
+full guide, including review etiquette and what makes a focused change. If you are
+changing code:
 
 ```bash
 pnpm install
