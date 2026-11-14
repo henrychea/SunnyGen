@@ -1,6 +1,9 @@
 import { QueryClient } from '@tanstack/react-query'
 import { createRouter } from '@tanstack/react-router'
+import { RouteError, installChunkRecovery } from './components/route-error'
 import { routeTree } from './routeTree.gen'
+
+installChunkRecovery()
 
 export function getRouter() {
   const queryClient = new QueryClient({
@@ -17,6 +20,7 @@ export function getRouter() {
     context: { queryClient },
     scrollRestoration: true,
     defaultPreload: 'intent',
+    defaultErrorComponent: RouteError,
   })
 }
 

@@ -16,7 +16,8 @@ disk, client state in React Query and Zustand. Provider calls run server-side.
 | `pnpm --filter @sunnygen/web dev` | Run only the web app.                        |
 
 Run the production build with `./sunnygen`; the launcher builds when stale, serves
-`0.0.0.0:8977`, and manages the macOS launchd job.
+`0.0.0.0:8977`, and manages the login service (launchd on macOS, `systemd --user` on
+Linux — `./sunnygen --install-service`, logs in `journalctl --user -u sunnygen`).
 
 ## Layout
 

@@ -232,7 +232,7 @@ export async function startTunnel({ env }) {
   if (running) return { state: 'managed' }
   const bin = which('cloudflared')
   if (!bin) {
-    console.log('  Tunnel     cloudflared not installed — brew install cloudflared')
+    console.log('  Tunnel     cloudflared not installed — install cloudflared first')
     return { state: 'failed' }
   }
   stopHelper(TUNNEL_PID)
@@ -337,7 +337,7 @@ export async function stopBackground() {
 export async function start({ mode, port, background, forceBuild, mdns, name, tunnel }) {
   if (process.env.SUNNYGEN_SERVICE !== '1' && serviceLoaded()) {
     throw new Error(
-      'SunnyGen is running as the launchd service.\nUse ./sunnygen --service-status, --restart-service, or --stop-service.',
+      'SunnyGen is running as the login service.\nUse ./sunnygen --service-status, --restart-service, or --stop-service.',
     )
   }
   clearStalePid()

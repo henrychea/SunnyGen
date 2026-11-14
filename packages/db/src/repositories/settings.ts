@@ -1,10 +1,12 @@
 import { getDb } from '../database'
+import { decryptSecret, encryptSecret, isSecretSetting } from '../secrets'
 
 export function readSetting(key: string): string | null {
   const row = getDb().prepare('SELECT value FROM settings WHERE key = ?').get(key) as
     | { value: string }
     | undefined
-  return row?.value ?? null
+  if (!row) return null
+  return isSecretSetting(key) ? decryptSecret(key, row.value) : row.value
 }
 
 export function writeSetting(key: string, value: string): void {
@@ -13,7 +15,7 @@ export function writeSetting(key: string, value: string): void {
       `INSERT INTO settings (key, value, updated_at) VALUES (?, ?, ?)
        ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
     )
-    .run(key, value, Date.now())
+    .run(key, isSecretSetting(key) ? encryptSecret(key, value) : value, Date.now())
 }
 
 export function deleteSetting(key: string): void {
@@ -25,7 +27,9 @@ export function listSettings(): Record<string, string> {
     key: string
     value: string
   }>
-  return Object.fromEntries(rows.map((row) => [row.key, row.value]))
+  return Object.fromEntries(
+    rows.map(({ key, value }) => [key, isSecretSetting(key) ? decryptSecret(key, value) : value]),
+  )
 }
 
 export function hasSetting(key: string): boolean {

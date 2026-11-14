@@ -184,7 +184,8 @@ name so phones and other laptops can connect:
 ./sunnygen --tunnel          # Cloudflare Tunnel connector
 ```
 
-On macOS, `--install-service` registers a launchd job that restarts after a crash:
+`--install-service` registers a login service that restarts after a crash: launchd on
+macOS, `systemd --user` on Linux (enabled for boot start via lingering):
 
 ```bash
 ./sunnygen --install-service
@@ -193,16 +194,29 @@ On macOS, `--install-service` registers a launchd job that restarts after a cras
 ./sunnygen --uninstall-service
 ```
 
+On Linux the unit is `~/.config/systemd/user/sunnygen.service` and logs go to
+`journalctl --user -u sunnygen.service -f`. It serves the existing production build,
+so run `./sunnygen --build` after changing sources, then `./sunnygen --restart-service`.
+
 ## Data & privacy
 
-| What     | Default location   |
-| -------- | ------------------ |
-| Database | `data/sunnygen.db` |
-| Media    | `data/media/`      |
+| What       | Default location   |
+| ---------- | ------------------ |
+| Database   | `data/sunnygen.db` |
+| Media      | `data/media/`      |
+| Master key | `data/secrets.key` |
 
 Move either with `SUNNYGEN_DATA_DIR` and `SUNNYGEN_MEDIA_DIR`. Delete both for a full
 reset. The app has no account system: if you expose it beyond localhost, put an
 authenticating proxy in front of it (for example Cloudflare Access).
+
+Provider and assistant API keys are encrypted in SQLite with AES-256-GCM. The master
+key lives in `data/secrets.key` with `0600` permissions and is generated on first use.
+Set `SUNNYGEN_SECRET` to supply the master key instead (64 hex characters, base64 for 32
+bytes, or a passphrase stretched with scrypt using `data/secrets.salt`). Keep that value
+stable: changing it makes existing encrypted keys unreadable. Because the default key
+file sits next to the database, encryption protects database copies and backups, not a
+full compromise of the data directory.
 
 <details>
 <summary><strong>Optional: social imports with cobalt</strong></summary>
@@ -219,6 +233,12 @@ docker compose logs -f cobalt
 Cobalt listens on `127.0.0.1:9000`. Set `COBALT_API_URL` if it runs elsewhere, and
 `COBALT_API_KEY` when your instance requires auth. Without cobalt, the rest of the app
 keeps working.
+
+On Linux, `./sunnygen --install-service` also installs `sunnygen-cobalt.service`,
+which runs `docker compose up -d cobalt` for your session and `compose down` on stop.
+It needs a reachable Docker daemon (`sudo systemctl enable --now docker`) and a user in
+the `docker` group (`sudo usermod -aG docker "$USER"`, then log out and back in). The
+container also carries `restart: unless-stopped`, so Docker brings it back on reboot.
 
 </details>
 
