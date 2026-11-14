@@ -85,6 +85,83 @@ the app.
 
 <p align="center"><sub>The wardrobe library stores slot, source type, notes, and a prepared clean reference per piece.</sub></p>
 
+#### Importing packs
+
+Studio libraries move between machines as **packs**: a `.zip` or a folder of images with an
+optional `sunnygen-pack.json` mapping. Open **Studio → Poses / Wardrobe / Scenes / Avatars**
+and press **Import pack**.
+
+- A zip, or a folder picked in the browser.
+- An optional mapping file. If the pack contains `sunnygen-pack.json`, `pack.json`, or
+  `sunnygen.json` at its root, SunnyGen reads it automatically.
+- Images only: `.png`, `.jpg`, `.jpeg`, `.webp`, `.avif`, `.gif`. Hidden files and
+  `__MACOSX` are ignored.
+- Items without a kind fall back to the tab you import from. Names default to the file
+  stem, and duplicate names (including ones already in the library) are skipped, not
+  overwritten.
+- Limits: 250 MB per pack, 500 imported items. Each item is independent, so one bad file
+  is reported without cancelling the rest.
+
+Sample structure:
+
+```text
+pose-pack.zip
+├── sunnygen-pack.json
+├── poses/
+│   ├── P001-stand.png
+│   ├── P002-sit.png
+│   └── P003-recline.png
+└── wardrobe/
+    ├── dress-silk.png
+    └── dress-silk-clean.png
+```
+
+Sample mapping:
+
+```json
+{
+  "name": "Reference pack 01",
+  "defaults": { "data": { "tags": ["reference"] } },
+  "items": [
+    { "file": "poses/P001-stand.png", "kind": "pose", "name": "Standing S-curve" },
+    { "file": "poses/P002-sit.png", "kind": "pose", "name": "Floor sit" },
+    {
+      "file": "wardrobe/dress-silk.png",
+      "kind": "garment",
+      "name": "Silk slip dress",
+      "data": { "slot": "dress", "sourceKind": "flat-lay", "notes": "studio light" },
+      "cleanFile": "wardrobe/dress-silk-clean.png"
+    },
+    {
+      "file": "poses/P003-recline.png",
+      "kind": "avatar",
+      "name": "Reclining model",
+      "characterSheetFile": "poses/P001-stand.png"
+    }
+  ]
+}
+```
+
+`kind` on the manifest sets the default for every item; garment pieces need `slot`
+(`top`, `bottom`, `dress`, `outerwear`, `shoes`, `bag`, `accessory`) and `sourceKind`
+(`flat-lay`, `on-model`, `supplier`). Defaults are `top` and `flat-lay`. `cleanFile`
+attaches a prepared reference; `characterSheetFile` is required for avatars.
+
+A shorthand map works when you only need names or per-file overrides:
+
+```json
+{
+  "kind": "pose",
+  "files": {
+    "poses/P001-stand.png": { "name": "Standing S-curve" },
+    "poses/P002-sit.png": { "include": false }
+  }
+}
+```
+
+Files not listed in a manifest are skipped with a reason, and `"include": false` excludes
+an entry. The import dialog reports counts plus the first few skips and failures.
+
 ### Gallery and canvas
 
 | Gallery                                                                                                                       | Canvas                                                                                                                     |

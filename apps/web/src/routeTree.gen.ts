@@ -18,6 +18,7 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as StudioRouteImport } from './routes/studio'
 import { Route as ApiAssistantRouteImport } from './routes/api/assistant'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
+import { Route as ApiStudioImportRouteImport } from './routes/api/studio-import'
 import { Route as ApiStudioUploadRouteImport } from './routes/api/studio-upload'
 import { Route as ApiUploadRouteImport } from './routes/api/upload'
 import { Route as ApiMediaIdRouteImport } from './routes/api/media/$id'
@@ -69,6 +70,11 @@ const ApiHealthRoute = ApiHealthRouteImport.update({
   path: '/api/health',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiStudioImportRoute = ApiStudioImportRouteImport.update({
+  id: '/api/studio-import',
+  path: '/api/studio-import',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiStudioUploadRoute = ApiStudioUploadRouteImport.update({
   id: '/api/studio-upload',
   path: '/api/studio-upload',
@@ -105,6 +111,7 @@ export interface FileRoutesByFullPath {
   '/studio': typeof StudioRoute
   '/api/assistant': typeof ApiAssistantRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/studio-import': typeof ApiStudioImportRoute
   '/api/studio-upload': typeof ApiStudioUploadRoute
   '/api/upload': typeof ApiUploadRoute
   '/api/media/$id': typeof ApiMediaIdRoute
@@ -121,6 +128,7 @@ export interface FileRoutesByTo {
   '/studio': typeof StudioRoute
   '/api/assistant': typeof ApiAssistantRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/studio-import': typeof ApiStudioImportRoute
   '/api/studio-upload': typeof ApiStudioUploadRoute
   '/api/upload': typeof ApiUploadRoute
   '/api/media/$id': typeof ApiMediaIdRoute
@@ -138,6 +146,7 @@ export interface FileRoutesById {
   '/studio': typeof StudioRoute
   '/api/assistant': typeof ApiAssistantRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/studio-import': typeof ApiStudioImportRoute
   '/api/studio-upload': typeof ApiStudioUploadRoute
   '/api/upload': typeof ApiUploadRoute
   '/api/media/$id': typeof ApiMediaIdRoute
@@ -156,6 +165,7 @@ export interface FileRouteTypes {
     | '/studio'
     | '/api/assistant'
     | '/api/health'
+    | '/api/studio-import'
     | '/api/studio-upload'
     | '/api/upload'
     | '/api/media/$id'
@@ -172,6 +182,7 @@ export interface FileRouteTypes {
     | '/studio'
     | '/api/assistant'
     | '/api/health'
+    | '/api/studio-import'
     | '/api/studio-upload'
     | '/api/upload'
     | '/api/media/$id'
@@ -188,6 +199,7 @@ export interface FileRouteTypes {
     | '/studio'
     | '/api/assistant'
     | '/api/health'
+    | '/api/studio-import'
     | '/api/studio-upload'
     | '/api/upload'
     | '/api/media/$id'
@@ -205,6 +217,7 @@ export interface RootRouteChildren {
   StudioRoute: typeof StudioRoute
   ApiAssistantRoute: typeof ApiAssistantRoute
   ApiHealthRoute: typeof ApiHealthRoute
+  ApiStudioImportRoute: typeof ApiStudioImportRoute
   ApiStudioUploadRoute: typeof ApiStudioUploadRoute
   ApiUploadRoute: typeof ApiUploadRoute
   ApiMediaIdRoute: typeof ApiMediaIdRoute
@@ -277,6 +290,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiHealthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/studio-import': {
+      id: '/api/studio-import'
+      path: '/api/studio-import'
+      fullPath: '/api/studio-import'
+      preLoaderRoute: typeof ApiStudioImportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/studio-upload': {
       id: '/api/studio-upload'
       path: '/api/studio-upload'
@@ -325,6 +345,7 @@ const rootRouteChildren: RootRouteChildren = {
   StudioRoute: StudioRoute,
   ApiAssistantRoute: ApiAssistantRoute,
   ApiHealthRoute: ApiHealthRoute,
+  ApiStudioImportRoute: ApiStudioImportRoute,
   ApiStudioUploadRoute: ApiStudioUploadRoute,
   ApiUploadRoute: ApiUploadRoute,
   ApiMediaIdRoute: ApiMediaIdRoute,

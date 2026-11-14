@@ -3,8 +3,9 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useState } from 'react'
 import type { StudioKind } from '@sunnygen/core'
 import { Button, cn } from '@sunnygen/ui'
-import { Plus } from 'lucide-react'
+import { PackagePlus, Plus } from 'lucide-react'
 import { PageBody, PageHeader, PageScroll } from '~/components/app-shell'
+import { StudioPackDialog } from '~/components/studio/import-dialog'
 import { StudioItemDialog } from '~/components/studio/item-dialog'
 import { StudioLibraryGrid } from '~/components/studio/library-grid'
 import { StudioLookBuilder } from '~/components/studio/look-builder'
@@ -43,6 +44,7 @@ function StudioPage() {
   const queryClient = useQueryClient()
   const [tab, setTab] = useState<Tab>('look')
   const [dialog, setDialog] = useState<{ kind: StudioKind; item: StudioItemDto | null } | null>(null)
+  const [packOpen, setPackOpen] = useState(false)
   const [preparingId, setPreparingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -89,9 +91,14 @@ function StudioPage() {
         description="Stack garments onto an avatar, pick a pose and scene, and render one generation per angle."
         actions={
           activeKind ? (
-            <Button onClick={() => setDialog({ kind: activeKind, item: null })}>
-              <Plus size={13} /> Add {activeKind}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={() => setPackOpen(true)}>
+                <PackagePlus size={13} /> Import pack
+              </Button>
+              <Button onClick={() => setDialog({ kind: activeKind, item: null })}>
+                <Plus size={13} /> Add {activeKind}
+              </Button>
+            </div>
           ) : null
         }
       />
@@ -166,6 +173,15 @@ function StudioPage() {
           kind={dialog.kind}
           item={dialog.item}
           onSaved={() => queryClient.invalidateQueries({ queryKey: ['studio'] })}
+        />
+      ) : null}
+
+      {packOpen && activeKind ? (
+        <StudioPackDialog
+          open
+          onOpenChange={setPackOpen}
+          kind={activeKind}
+          onImported={() => queryClient.invalidateQueries({ queryKey: ['studio'] })}
         />
       ) : null}
     </PageScroll>
