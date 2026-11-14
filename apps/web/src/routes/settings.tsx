@@ -46,7 +46,7 @@ function SettingsPage() {
             <CardHeader>
               <CardTitle>Providers</CardTitle>
               <p className="text-ink/50 text-[12px]">
-                One key per provider. Generations run on your account.
+                One key per provider. Generations run on your account. Keys are encrypted at rest.
               </p>
             </CardHeader>
             <CardContent className="flex flex-col gap-5">
@@ -79,7 +79,8 @@ function SettingsPage() {
               <CardHeader>
                 <CardTitle>Assistant</CardTitle>
                 <p className="text-ink/50 text-[12px]">
-                  OpenRouter powers prompt help and the canvas assistant. It is never used for generation.
+                  OpenRouter powers prompt help and the canvas assistant. It is never used for generation. The
+                  key is encrypted at rest.
                 </p>
               </CardHeader>
               <CardContent>

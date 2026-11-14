@@ -43,12 +43,12 @@ Cobalt (Docker)
   --cobalt            Start the cobalt container
   --cobalt-status     Show cobalt container state
 
-macOS login service (launchd)
-  --install-service   Install dev.sunnygen.server and start it now
+Login service (launchd on macOS, systemd --user on Linux)
+  --install-service   Install the service and start it now
   --service-status    Show service and cobalt state
-  --restart-service   Restart the launchd job
-  --stop-service      Stop the job until the next login
-  --uninstall-service Remove the job and its plist
+  --restart-service   Restart the service
+  --stop-service      Stop it until the next login or boot
+  --uninstall-service Remove the service
 
   -h, --help          Show this help
 
@@ -58,7 +58,7 @@ Environment
   SUNNYGEN_DATA_DIR   SQLite location      SUNNYGEN_MEDIA_DIR  media location
   CLOUDFLARE_TUNNEL_TOKEN  Connector token when --tunnel is used
 
-Only one server may run at a time. The launchd job blocks manual starts while loaded.
+Only one server may run at a time. The installed service blocks manual starts while loaded.
 `
 
 function parse(argv) {
@@ -229,7 +229,7 @@ async function main() {
   }
   if (options.stop) {
     if (serviceLoaded()) {
-      throw new Error('SunnyGen is running as the launchd service — use ./sunnygen --stop-service.')
+      throw new Error('SunnyGen is running as the login service — use ./sunnygen --stop-service.')
     }
     await stopBackground()
     return

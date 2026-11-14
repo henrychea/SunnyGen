@@ -40,13 +40,28 @@ export function originGuard(request: Request): Response | null {
   }
   const origin = request.headers.get('origin')
   if (origin === null) return null
+
   let expected: string
   try {
-    expected = new URL(request.url).origin
+    // Cloudflare Tunnel terminates TLS and forwards plain HTTP while keeping
+    // the public Host, so rebuild the browser-visible origin from proxy headers.
+    const url = new URL(request.url)
+    const protocol =
+      request.headers.get('x-forwarded-proto')?.split(',')[0]?.trim() || url.protocol.slice(0, -1)
+    const host = request.headers.get('x-forwarded-host')?.split(',')[0]?.trim() || url.host
+    if (protocol !== 'http' && protocol !== 'https') {
+      return new Response('Forbidden origin', { status: 403 })
+    }
+    expected = new URL(`${protocol}://${host}`).origin
   } catch {
     return new Response('Forbidden origin', { status: 403 })
   }
-  return origin === expected ? null : new Response('Forbidden origin', { status: 403 })
+
+  try {
+    return new URL(origin).origin === expected ? null : new Response('Forbidden origin', { status: 403 })
+  } catch {
+    return new Response('Forbidden origin', { status: 403 })
+  }
 }
 
 /** Rejects oversized bodies before they are buffered in memory. */

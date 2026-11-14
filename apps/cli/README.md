@@ -23,14 +23,24 @@ The launcher uses Node built-ins only — no build step, no dependencies.
 
 ## Login service
 
-`--install-service` writes `~/Library/LaunchAgents/dev.sunnygen.server.plist`.
-The job runs this launcher with `SUNNYGEN_SERVICE=1`, `KeepAlive` on unsuccessful
-exits, and logs in `~/Library/Logs/sunnygen.log` / `sunnygen.err.log`. Its `PATH`
-includes the active Node binary, fnm shims, and Homebrew bins.
+`--install-service` registers a service that starts at login (macOS) or boot (Linux)
+and restarts after a crash.
+
+- **macOS:** writes `~/Library/LaunchAgents/dev.sunnygen.server.plist`. The job runs
+  this launcher with `SUNNYGEN_SERVICE=1`, `KeepAlive` on unsuccessful exits, and logs
+  in `~/Library/Logs/sunnygen.log` / `sunnygen.err.log`. Its `PATH` includes the active
+  Node binary, fnm shims, and Homebrew bins.
+- **Linux:** writes `~/.config/systemd/user/sunnygen.service` and enables lingering so
+  the user manager starts it at boot. `ExecStart` runs the production entry directly
+  (`node apps/web/.output/server/index.mjs`) on `0.0.0.0:$PORT`, so the service needs a
+  build but no pnpm. Logs: `journalctl --user -u sunnygen.service -f`.
+  It also writes `sunnygen-cobalt.service` (oneshot: `docker compose up -d cobalt`,
+  `ExecStop`: `docker compose down`), enabled but only able to start once the Docker
+  daemon is reachable by this user.
 
 The build is refreshed automatically when sources are newer than the production
 entry; `--build` forces it. Only one server runs at a time — the launcher refuses
-a manual start while the launchd job is loaded and refuses a second process on
+a manual start while the service is loaded and refuses a second process on
 the same port.
 
 ## Files
