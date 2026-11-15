@@ -144,9 +144,7 @@ export function HomeComposer() {
   const canAddReferences = model.supportsImages
   const targetMax = Math.min(MAX_TARGETS, MAX_BATCH, model.maxImages)
   const referenceMax = isEdit ? Math.max(0, model.maxImages - editTargets.length) : model.maxImages
-  const referenceSlots = canAddReferences
-    ? Math.max(0, referenceMax - referenceImageCount(references))
-    : 0
+  const referenceSlots = canAddReferences ? Math.max(0, referenceMax - referenceImageCount(references)) : 0
   const editReferenceSlots = Math.max(0, referenceMax - referenceImageCount(editReferences))
 
   useEffect(() => {
@@ -525,8 +523,8 @@ export function HomeComposer() {
                 onRemove={(id) => setEditReferences((current) => current.filter((entry) => entry.id !== id))}
               />
               <p className="text-ink/30 px-3 pt-1 text-[9px] leading-snug">
-                Avatars use their clean sheet and 4x4 panel for face and body. Extra references are
-                supporting only.
+                Avatars use their clean sheet and 4x4 panel for face and body. Extra references are supporting
+                only.
               </p>
             </>
           ) : null}

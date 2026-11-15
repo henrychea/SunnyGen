@@ -142,12 +142,7 @@ export async function submitFalQueue(
   }
   if (!created.request_id) throw new ProviderError('fal', 'fal returned no request id')
   return {
-    providerJobId: encodeFalJob(
-      endpoint,
-      created.request_id,
-      created.status_url,
-      created.response_url,
-    ),
+    providerJobId: encodeFalJob(endpoint, created.request_id, created.status_url, created.response_url),
     status: 'running',
   }
 }

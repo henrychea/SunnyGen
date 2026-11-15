@@ -247,7 +247,9 @@ export function WallModal({
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  const outputs = cards.filter((card): card is Extract<WallCard, { type: 'output' }> => card.type === 'output')
+  const outputs = cards.filter(
+    (card): card is Extract<WallCard, { type: 'output' }> => card.type === 'output',
+  )
   const jobs = cards.length - outputs.length
 
   return (
@@ -348,7 +350,8 @@ function CollectionModal({
           <div className="min-w-0">
             <h2 className="font-display text-ink truncate text-[14px] font-semibold">{title}</h2>
             <p className="text-ink/35 mt-0.5 text-[10.5px]">
-              {visible.length} {visible.length === 1 ? 'image' : 'images'} · {safeIndex + 1} / {visible.length}
+              {visible.length} {visible.length === 1 ? 'image' : 'images'} · {safeIndex + 1} /{' '}
+              {visible.length}
             </p>
           </div>
           <button
@@ -401,10 +404,7 @@ function CollectionModal({
         </div>
       </div>
       {showReferences ? (
-        <ReferencesModal
-          references={generation.inputAssets}
-          onClose={() => setShowReferences(false)}
-        />
+        <ReferencesModal references={generation.inputAssets} onClose={() => setShowReferences(false)} />
       ) : null}
     </div>
   )
@@ -435,7 +435,7 @@ function OutputModal({
   return (
     <div
       onClick={(event) => event.stopPropagation()}
-      className="border-line bg-surface flex max-h-[90dvh] w-fit min-w-[min(92vw,420px)] max-w-[min(92vw,1200px)] flex-col overflow-hidden rounded-2xl border shadow-2xl"
+      className="border-line bg-surface flex max-h-[90dvh] w-fit max-w-[min(92vw,1200px)] min-w-[min(92vw,420px)] flex-col overflow-hidden rounded-2xl border shadow-2xl"
     >
       <div className="border-line border-b px-4 py-2.5">
         <div className="flex items-center gap-2">
@@ -469,10 +469,7 @@ function OutputModal({
         <PreviewDetails generation={generation} output={output} className="mt-3" />
       </div>
       {showReferences ? (
-        <ReferencesModal
-          references={generation.inputAssets}
-          onClose={() => setShowReferences(false)}
-        />
+        <ReferencesModal references={generation.inputAssets} onClose={() => setShowReferences(false)} />
       ) : null}
     </div>
   )

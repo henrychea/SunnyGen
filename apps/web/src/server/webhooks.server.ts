@@ -1,10 +1,5 @@
 import { PROVIDER_IDS, getModel, type ProviderId } from '@sunnygen/core'
-import {
-  deleteJob,
-  findGenerationByProviderRequest,
-  getGeneration,
-  updateGeneration,
-} from '@sunnygen/db'
+import { deleteJob, findGenerationByProviderRequest, getGeneration, updateGeneration } from '@sunnygen/db'
 import { getWebhook } from '@sunnygen/providers'
 import { adapterFor, providerContext, storeProviderOutputs } from './generation.server'
 import { webhookTokenMatches } from './webhook-config.server'

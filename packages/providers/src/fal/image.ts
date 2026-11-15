@@ -127,10 +127,7 @@ function falSizeName(aspectRatio: string, allowed: string[]): string | undefined
   return allowed.includes(fallback) ? fallback : undefined
 }
 
-async function fetchFalSchema(
-  context: AdapterContext,
-  endpoint: string,
-): Promise<FalRequestSchema | null> {
+async function fetchFalSchema(context: AdapterContext, endpoint: string): Promise<FalRequestSchema | null> {
   const cached = schemaCache.get(endpoint)
   if (cached) return cached
 

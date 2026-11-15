@@ -243,9 +243,10 @@ test('registers webhook callbacks on submit', async () => {
   assert.equal(new URL(falQueue?.url as string).searchParams.get('fal_webhook'), falUrl)
 })
 
-function falQueueContext(
-  handler: (url: string) => Response | Promise<Response>,
-): { context: AdapterContext; calls: string[] } {
+function falQueueContext(handler: (url: string) => Response | Promise<Response>): {
+  context: AdapterContext
+  calls: string[]
+} {
   const calls: string[] = []
   return {
     calls,

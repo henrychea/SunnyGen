@@ -51,9 +51,7 @@ test('extra references stay subordinate to the first three images', () => {
 })
 
 test('avatar prompt uses both the clean sheet and the 4x4 panel', () => {
-  const prompt = buildEditPrompt('', [
-    { id: 'sheet', assetIds: ['sheet', 'panel'], avatar: true },
-  ])
+  const prompt = buildEditPrompt('', [{ id: 'sheet', assetIds: ['sheet', 'panel'], avatar: true }])
   assert.match(prompt, /<<<image 1>>> — the attached character reference sheet/)
   assert.match(prompt, /<<<image 2>>> — the attached 4x4 character panel/)
   assert.match(prompt, /Replace the person in <<<image 3>>>/)

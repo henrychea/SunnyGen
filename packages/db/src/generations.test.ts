@@ -8,9 +8,8 @@ const dataDir = mkdtempSync(join(tmpdir(), 'sunnygen-generations-'))
 process.env.SUNNYGEN_DATA_DIR = dataDir
 
 const { closeDb } = await import('./database')
-const { createGeneration, deleteFailedGenerations, getGeneration, updateGeneration } = await import(
-  './repositories/generations'
-)
+const { createGeneration, deleteFailedGenerations, getGeneration, updateGeneration } =
+  await import('./repositories/generations')
 
 after(() => {
   closeDb()
