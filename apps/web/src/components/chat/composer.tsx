@@ -8,8 +8,27 @@ import {
 } from '@sunnygen/core'
 import { Button } from '@sunnygen/ui'
 import { Send, Square } from 'lucide-react'
+import { ModelCombobox, type ModelOption } from '../model-combobox'
 
 const MODE_GROUPS: readonly AssistantModeGroup[] = ['Basic', 'Refusal reduction']
+
+const MODEL_OPTIONS: ModelOption[] = ASSISTANT_MODELS.map((entry) => ({
+  key: `assistant:${entry.id}`,
+  label: entry.label,
+  company: entry.id.startsWith('google/')
+    ? 'Google'
+    : entry.id.startsWith('anthropic/')
+      ? 'Anthropic'
+      : 'OpenRouter',
+  provider: 'openrouter',
+  providerLabel: 'OpenRouter',
+  providers: [{ id: 'openrouter', label: 'OpenRouter' }],
+  kind: 'text',
+  price: null,
+  sourceId: entry.id,
+  supported: true,
+  modelId: entry.id,
+}))
 
 const selectClass =
   'h-8 max-w-[11rem] truncate rounded-lg border border-line bg-surface px-2 text-[11.5px] text-ink/65 outline-none transition-colors hover:text-ink focus-visible:border-accent/45 focus-visible:ring-2 focus-visible:ring-accent/15 disabled:cursor-not-allowed disabled:opacity-50'
@@ -102,22 +121,17 @@ export function Composer({
               })}
             </select>
 
-            <label className="sr-only" htmlFor="chat-model">
-              Model
-            </label>
-            <select
-              id="chat-model"
+            <ModelCombobox
               value={model}
-              onChange={(event) => onModelChange(event.target.value)}
+              options={MODEL_OPTIONS}
+              size="sm"
               disabled={streaming}
-              className={selectClass}
-            >
-              {ASSISTANT_MODELS.map((entry) => (
-                <option key={entry.id} value={entry.id} title={entry.note}>
-                  {entry.label}
-                </option>
-              ))}
-            </select>
+              className="max-w-[11rem]"
+              ariaLabel="Model"
+              onChange={(entry) => {
+                if (entry.modelId) onModelChange(entry.modelId)
+              }}
+            />
 
             <div className="ml-auto flex items-center gap-2">
               {streaming ? (

@@ -123,7 +123,7 @@ function SidebarBody({ onNavigate, onClose }: { onNavigate?: () => void; onClose
 
 export function Sidebar() {
   return (
-    <aside className="border-line/80 bg-surface/55 hidden w-[228px] shrink-0 flex-col border-r md:flex">
+    <aside className="border-line/80 bg-surface/95 relative z-[55] hidden w-[228px] shrink-0 flex-col border-r md:flex">
       <SidebarBody />
     </aside>
   )
@@ -168,7 +168,7 @@ export function MobileNav() {
         onClick={() => setOpen(false)}
         aria-hidden={!open}
         className={cn(
-          'bg-ink/35 fixed inset-0 z-40 backdrop-blur-[1px] transition-opacity md:hidden',
+          'bg-ink/35 fixed inset-0 z-[60] backdrop-blur-[1px] transition-opacity md:hidden',
           open ? 'opacity-100' : 'pointer-events-none opacity-0',
         )}
       />
@@ -177,7 +177,7 @@ export function MobileNav() {
         aria-hidden={!open}
         inert={!open}
         className={cn(
-          'pwa-safe-top pwa-safe-bottom border-line bg-surface fixed inset-y-0 left-0 z-50 flex w-[82vw] max-w-[290px] flex-col border-r shadow-2xl transition-transform duration-200 md:hidden',
+          'pwa-safe-top pwa-safe-bottom border-line bg-surface fixed inset-y-0 left-0 z-[65] flex w-[82vw] max-w-[290px] flex-col border-r shadow-2xl transition-transform duration-200 md:hidden',
           open ? 'translate-x-0' : '-translate-x-full',
         )}
       >

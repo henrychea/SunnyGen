@@ -1,153 +1,642 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
-import { APP_NAME } from '@sunnygen/core'
-import { Badge, Card } from '@sunnygen/ui'
-import { ArrowUpRight, Images, LayoutGrid, MessageSquare, Shirt, Upload } from 'lucide-react'
-import { PageBody, PageHeader, PageScroll } from '~/components/app-shell'
-import { GalleryCard } from '~/components/gallery-card'
+import { useQuery } from '@tanstack/react-query'
+import { createFileRoute } from '@tanstack/react-router'
+import { cn } from '@sunnygen/ui'
+import { Download, FileAudio, Images, Play, Search, Upload, X } from 'lucide-react'
+import { useEffect, useState, type ReactNode } from 'react'
+import { CleanupFailedButton } from '~/components/cleanup-failed'
+import { HomeComposer } from '~/components/home/composer'
+import {
+  GroupCard,
+  JobCard,
+  OutputCard,
+  WallModal,
+  WALL_CARD_HEIGHT,
+  WALL_FIXED_WIDTH,
+  type WallCard,
+  type WallOutput,
+} from '~/components/home/wall-cards'
+import { PageScroll } from '~/components/app-shell'
+import { formatBytes } from '~/lib/format'
 import { loadDashboard } from '~/server/dashboard.functions'
+import {
+  loadAssets,
+  loadFolders,
+  loadGenerationWall,
+  type FolderNode,
+  type GenerationWallItem,
+} from '~/server/library.functions'
+import type { PublicAsset } from '~/server/media.server'
+
+type HomeTab = 'generated' | 'uploaded'
+type Preview =
+  | { type: 'asset'; item: PublicAsset }
+  | { type: 'folder'; folder: FolderNode; assets: PublicAsset[] }
+
+type WallEntry =
+  | {
+      type: 'output'
+      generation: GenerationWallItem
+      output: WallOutput
+      sortRank: number
+      createdAt: number
+    }
+  | { type: 'job'; generation: GenerationWallItem; sortRank: number; createdAt: number }
+  | {
+      type: 'group'
+      id: string
+      title: string
+      cards: WallCard[]
+      outputs: WallOutput[]
+      sortRank: number
+      createdAt: number
+    }
+
+type UploadEntry =
+  | { type: 'asset'; asset: PublicAsset; createdAt: number }
+  | { type: 'folder'; folder: FolderNode; assets: PublicAsset[]; createdAt: number }
+
+function statusRank(item: GenerationWallItem): number {
+  if (item.status === 'running') return 0
+  if (item.status === 'queued') return 1
+  if (item.status === 'failed') return 2
+  return 3
+}
+
+function generationCards(items: GenerationWallItem[]): WallCard[] {
+  return items.flatMap((generation): WallCard[] => {
+    if (generation.status !== 'succeeded') return [{ type: 'job', generation }]
+    return generation.outputs.map((output) => ({ type: 'output', generation, output }))
+  })
+}
 
 export const Route = createFileRoute('/')({
-  loader: () => loadDashboard(),
+  loader: async () => {
+    const [dashboard, generations, uploads, folders] = await Promise.all([
+      loadDashboard(),
+      loadGenerationWall(),
+      loadAssets({ data: { source: 'all', limit: 120 } }),
+      loadFolders(),
+    ])
+    return { dashboard, generations, uploads, folders }
+  },
   component: HomePage,
 })
 
 function HomePage() {
   const data = Route.useLoaderData()
+  const [tab, setTab] = useState<HomeTab>('generated')
+  const [query, setQuery] = useState('')
+  const [preview, setPreview] = useState<Preview | null>(null)
+  const [groupModal, setGroupModal] = useState<{ title: string; cards: WallCard[] } | null>(null)
+
+  const wall = useQuery({
+    queryKey: ['home-generations'],
+    queryFn: () => loadGenerationWall(),
+    initialData: data.generations,
+    refetchInterval: (query) => {
+      const items = query.state.data ?? []
+      return items.some((item) => item.status === 'queued' || item.status === 'running') ? 3000 : false
+    },
+  })
+  const uploads = useQuery({
+    queryKey: ['home-uploads'],
+    queryFn: () => loadAssets({ data: { source: 'all', limit: 120 } }),
+    initialData: data.uploads,
+  })
+  const folders = useQuery({
+    queryKey: ['folders'],
+    queryFn: () => loadFolders(),
+    initialData: data.folders,
+  })
+
+  const needle = query.trim().toLowerCase()
+  const generations = (wall.data ?? []).filter((item) =>
+    needle.length === 0
+      ? true
+      : `${item.prompt} ${item.model} ${item.provider}`.toLowerCase().includes(needle),
+  )
+  const files = uploads.data ?? []
+  const folderById = new Map((folders.data ?? []).map((folder) => [folder.id, folder]))
+  const entries: WallEntry[] = []
+  const generationFolders = new Map<string, GenerationWallItem[]>()
+  const individual: GenerationWallItem[] = []
+
+  for (const generation of generations) {
+    if (generation.folderId && folderById.has(generation.folderId)) {
+      const current = generationFolders.get(generation.folderId) ?? []
+      current.push(generation)
+      generationFolders.set(generation.folderId, current)
+    } else {
+      individual.push(generation)
+    }
+  }
+
+  const addGroup = (items: GenerationWallItem[], title: string, id: string) => {
+    const cards = generationCards(items)
+    if (cards.length === 0) return
+    const outputs = items.flatMap((generation) => generation.outputs)
+    entries.push({
+      type: 'group',
+      id,
+      title,
+      cards,
+      outputs,
+      sortRank: Math.min(...items.map(statusRank)),
+      createdAt: Math.max(...items.map((generation) => generation.createdAt)),
+    })
+  }
+
+  for (const [folderId, items] of generationFolders) {
+    const folder = folderById.get(folderId)
+    if (!folder) continue
+    if (items.length === 1) individual.push(items[0] as GenerationWallItem)
+    else addGroup(items, folder.name, `folder:${folderId}`)
+  }
+
+  for (const generation of individual) {
+    if (generation.status !== 'succeeded') {
+      entries.push({
+        type: 'job',
+        generation,
+        sortRank: statusRank(generation),
+        createdAt: generation.createdAt,
+      })
+      continue
+    }
+    if (generation.outputs.length === 0) continue
+    if (generation.outputs.length === 1) {
+      entries.push({
+        type: 'output',
+        generation,
+        output: generation.outputs[0] as WallOutput,
+        sortRank: statusRank(generation),
+        createdAt: generation.createdAt,
+      })
+    } else {
+      addGroup([generation], generation.prompt || generation.model, `generation:${generation.id}`)
+    }
+  }
+
+  entries.sort((left, right) => left.sortRank - right.sortRank || right.createdAt - left.createdAt)
+
+  const uploadEntries: UploadEntry[] = []
+  const uploadFolders = new Map<string, PublicAsset[]>()
+  for (const asset of files) {
+    if (asset.folderId && folderById.has(asset.folderId)) {
+      const current = uploadFolders.get(asset.folderId) ?? []
+      current.push(asset)
+      uploadFolders.set(asset.folderId, current)
+    } else {
+      uploadEntries.push({ type: 'asset', asset, createdAt: asset.createdAt })
+    }
+  }
+  for (const [folderId, assets] of uploadFolders) {
+    const folder = folderById.get(folderId)
+    if (!folder) continue
+    if (assets.length === 1) {
+      uploadEntries.push({
+        type: 'asset',
+        asset: assets[0] as PublicAsset,
+        createdAt: (assets[0] as PublicAsset).createdAt,
+      })
+    } else {
+      uploadEntries.push({
+        type: 'folder',
+        folder,
+        assets,
+        createdAt: Math.max(...assets.map((asset) => asset.createdAt)),
+      })
+    }
+  }
+  uploadEntries.sort((left, right) => right.createdAt - left.createdAt)
+
+  const renderCount = generations
+    .filter((generation) => generation.status === 'succeeded')
+    .reduce((total, generation) => total + generation.outputs.length, 0)
+  const activeCount = generations.filter(
+    (generation) => generation.status === 'queued' || generation.status === 'running',
+  ).length
+  const failedCount = (wall.data ?? []).filter((generation) => generation.status === 'failed').length
 
   return (
-    <PageScroll>
-      <PageHeader
-        eyebrow="Workspace"
-        title={`Welcome to ${APP_NAME}`}
-        description="Local-first image and video studio. Your models, keys, and renders stay on this machine."
-        actions={
-          <Badge tone={data.configuredProviders > 0 ? 'success' : 'warning'}>
-            {data.configuredProviders > 0
-              ? `${data.configuredProviders} provider${data.configuredProviders === 1 ? '' : 's'} ready`
-              : 'Add a provider key'}
-          </Badge>
-        }
-      />
-      <PageBody>
-        <div className="grid gap-4 lg:grid-cols-[1.5fr_1fr]">
-          <Card className="relative overflow-hidden p-6">
-            <div
-              className="pointer-events-none absolute -top-24 -right-20 size-72 rounded-full opacity-70 blur-3xl"
-              style={{ background: 'radial-gradient(circle, rgba(163,22,33,0.18), transparent 65%)' }}
-            />
-            <p className="text-accent/75 text-[10.5px] font-semibold tracking-[0.14em] uppercase">
-              Start here
-            </p>
-            <h2 className="font-display mt-2 max-w-md text-[28px] leading-[1.08] font-semibold tracking-tight">
-              Make the next frame.
-            </h2>
-            <p className="text-ink/50 mt-2 max-w-md text-[12.5px] leading-relaxed">
-              Build a pipeline on the canvas, or let Studio dress an avatar for a full lookbook.
-            </p>
-            <div className="mt-5 flex flex-wrap gap-2">
-              <Link
-                to="/canvas"
-                className="bg-accent inline-flex h-10 items-center gap-2 rounded-xl px-4 text-[12.5px] font-medium text-white"
-              >
-                <LayoutGrid size={14} /> Open canvas
-              </Link>
-              <Link
-                to="/studio"
-                className="border-line bg-surface inline-flex h-10 items-center gap-2 rounded-xl border px-4 text-[12.5px] font-medium"
-              >
-                <Shirt size={14} /> Build a look
-              </Link>
+    <>
+      <PageScroll>
+        <h1 className="sr-only">SunnyGen home</h1>
+        <div className="border-line/70 bg-canvas/85 sticky top-0 z-20 border-b backdrop-blur-xl">
+          <div className="flex flex-wrap items-center gap-2 px-3 py-2.5 md:px-6">
+            <div className="border-line bg-surface/70 flex items-center rounded-xl border p-0.5">
+              <TabButton
+                active={tab === 'generated'}
+                onClick={() => setTab('generated')}
+                icon={<Images size={12} />}
+                label="Generated"
+              />
+              <TabButton
+                active={tab === 'uploaded'}
+                onClick={() => setTab('uploaded')}
+                icon={<Upload size={12} />}
+                label="Uploaded"
+              />
             </div>
-          </Card>
 
-          <div className="grid grid-cols-2 gap-4">
-            <Stat
-              label="Renders"
-              value={data.renders}
-              detail={`${data.images} images · ${data.videos} videos`}
+            <div className="text-ink/35 hidden text-[10.5px] sm:block">
+              {tab === 'generated'
+                ? `${renderCount} ${renderCount === 1 ? 'render' : 'renders'}${
+                    activeCount > 0 ? ` · ${activeCount} active` : ''
+                  }`
+                : `${uploadEntries.length} ${uploadEntries.length === 1 ? 'item' : 'items'}`}
+            </div>
+
+            <div className="ml-auto flex w-full items-center gap-2 sm:w-auto">
+              <div className="text-ink/40 hidden items-center gap-1.5 text-[10.5px] sm:flex">
+                <span
+                  className={cn(
+                    'size-1.5 rounded-full',
+                    data.dashboard.configuredProviders > 0 ? 'bg-success' : 'bg-warning',
+                  )}
+                />
+                {data.dashboard.configuredProviders > 0
+                  ? `${data.dashboard.configuredProviders} provider${data.dashboard.configuredProviders === 1 ? '' : 's'}`
+                  : 'No provider key'}
+              </div>
+              {tab === 'generated' ? <CleanupFailedButton count={failedCount} /> : null}
+              {tab === 'generated' ? (
+                <label className="border-line bg-surface text-ink/45 focus-within:border-accent/40 flex h-9 w-full items-center gap-1.5 rounded-xl border px-2.5 transition-colors sm:w-[min(52vw,220px)]">
+                  <Search size={13} className="shrink-0" />
+                  <input
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder="Search renders"
+                    aria-label="Search renders"
+                    className="text-ink placeholder:text-ink/30 min-w-0 flex-1 bg-transparent text-[11.5px] outline-none"
+                  />
+                  {query ? (
+                    <button
+                      type="button"
+                      onClick={() => setQuery('')}
+                      aria-label="Clear search"
+                      className="text-ink/35 hover:text-ink"
+                    >
+                      <X size={12} />
+                    </button>
+                  ) : null}
+                </label>
+              ) : null}
+            </div>
+          </div>
+        </div>
+
+        <div className="px-3 pt-3 pb-64 md:px-6 md:pb-56">
+          {tab === 'generated' ? (
+            entries.length > 0 ? (
+              <div className="flex flex-wrap content-start gap-3">
+                {entries.map((entry) => {
+                  if (entry.type === 'job') {
+                    return <JobCard key={entry.generation.id} generation={entry.generation} />
+                  }
+                  if (entry.type === 'group') {
+                    return (
+                      <GroupCard
+                        key={entry.id}
+                        title={entry.title}
+                        count={entry.cards.length}
+                        failed={
+                          entry.cards.filter(
+                            (card) => card.type === 'job' && card.generation.status === 'failed',
+                          ).length
+                        }
+                        outputs={entry.outputs}
+                        onOpen={() => setGroupModal({ title: entry.title, cards: entry.cards })}
+                      />
+                    )
+                  }
+                  return (
+                    <OutputCard
+                      key={entry.output.id}
+                      generation={entry.generation}
+                      output={entry.output}
+                      onOpen={() =>
+                        setGroupModal({
+                          title: entry.generation.prompt || entry.generation.model,
+                          cards: [
+                            {
+                              type: 'output',
+                              generation: entry.generation,
+                              output: entry.output,
+                            },
+                          ],
+                        })
+                      }
+                    />
+                  )
+                })}
+              </div>
+            ) : (
+              <EmptyWall
+                title={needle ? 'No renders match that search.' : 'The wall is waiting.'}
+                body={
+                  needle
+                    ? 'Try a different prompt, model, or provider.'
+                    : 'Describe a scene in the prompt bar below. Finished renders land here.'
+                }
+              />
+            )
+          ) : uploadEntries.length > 0 ? (
+            <div className="flex flex-wrap content-start gap-3">
+              {uploadEntries.map((entry) =>
+                entry.type === 'folder' ? (
+                  <UploadFolderCard
+                    key={entry.folder.id}
+                    folder={entry.folder}
+                    assets={entry.assets}
+                    onOpen={() => setPreview({ type: 'folder', folder: entry.folder, assets: entry.assets })}
+                  />
+                ) : (
+                  <UploadTile
+                    key={entry.asset.id}
+                    item={entry.asset}
+                    onOpen={() => setPreview({ type: 'asset', item: entry.asset })}
+                  />
+                ),
+              )}
+            </div>
+          ) : (
+            <EmptyWall
+              title="No uploads yet."
+              body="Add files in Assets, import a Cobalt link, or attach a reference image to the prompt below."
             />
-            <Stat label="Assets" value={data.assets} detail="uploads and references" />
-            <Stat label="Avatars" value={data.avatars} detail={`${data.garments} garments`} />
-            <Stat
-              label="Libraries"
-              value={data.poses + data.scenes}
-              detail={`${data.poses} poses · ${data.scenes} scenes`}
-            />
-          </div>
+          )}
         </div>
+      </PageScroll>
 
-        <div className="mt-8 flex items-end justify-between">
-          <div>
-            <h2 className="font-display text-[17px] font-semibold tracking-tight">Recent renders</h2>
-            <p className="text-ink/45 mt-1 text-[12px]">The last six finished generations.</p>
-          </div>
-          <Link
-            to="/gallery"
-            className="text-ink/50 hover:text-ink inline-flex items-center gap-1 text-[11.5px] font-medium"
-          >
-            View gallery <ArrowUpRight size={12} />
-          </Link>
-        </div>
+      <HomeComposer />
 
-        {data.recent.length === 0 ? (
-          <div className="border-line bg-surface/40 mt-4 rounded-2xl border border-dashed px-6 py-12 text-center">
-            <p className="text-ink/45 text-[12.5px]">Nothing rendered yet. The canvas is waiting.</p>
-          </div>
-        ) : (
-          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-            {data.recent.map((item) => (
-              <GalleryCard key={item.id} item={item} onOpen={() => undefined} />
-            ))}
-          </div>
-        )}
+      {groupModal ? (
+        <WallModal title={groupModal.title} cards={groupModal.cards} onClose={() => setGroupModal(null)} />
+      ) : null}
 
-        <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <QuickLink to="/gallery" icon={Images} label="Gallery" detail="Every finished render" />
-          <QuickLink to="/assets" icon={Upload} label="Assets" detail="Uploads and references" />
-          <QuickLink to="/studio" icon={Shirt} label="Studio" detail="Avatars, wardrobe, looks" />
-          <QuickLink to="/chat" icon={MessageSquare} label="Assistant" detail="Prompt help and ideas" />
-        </div>
-      </PageBody>
-    </PageScroll>
+      {preview ? <PreviewOverlay preview={preview} onClose={() => setPreview(null)} /> : null}
+    </>
   )
 }
 
-function Stat({ label, value, detail }: { label: string; value: number; detail: string }) {
-  return (
-    <Card className="flex flex-col justify-between p-4">
-      <p className="text-ink/40 text-[10px] font-semibold tracking-[0.1em] uppercase">{label}</p>
-      <div>
-        <p className="font-display text-[26px] leading-none font-semibold tracking-tight">{value}</p>
-        <p className="text-ink/40 mt-1.5 text-[10.5px]">{detail}</p>
-      </div>
-    </Card>
-  )
-}
-
-function QuickLink({
-  to,
-  icon: Icon,
+function TabButton({
+  active,
+  onClick,
+  icon,
   label,
-  detail,
 }: {
-  to: string
-  icon: typeof Images
+  active: boolean
+  onClick: () => void
+  icon: ReactNode
   label: string
-  detail: string
 }) {
   return (
-    <Link
-      to={to}
-      className="border-line bg-surface hover:border-ink/20 group flex items-center gap-3 rounded-xl border px-3.5 py-3 transition-colors"
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={cn(
+        'flex h-8 items-center gap-1.5 rounded-[10px] px-2.5 text-[11px] font-medium transition-colors',
+        active ? 'bg-ink text-canvas' : 'text-ink/50 hover:text-ink',
+      )}
     >
-      <span className="bg-accent/[0.07] text-accent grid size-8 place-items-center rounded-lg">
-        <Icon size={15} />
+      {icon}
+      {label}
+    </button>
+  )
+}
+
+function EmptyWall({ title, body }: { title: string; body: string }) {
+  return (
+    <div className="border-line bg-surface/35 mx-auto mt-[12vh] max-w-md rounded-3xl border border-dashed px-8 py-12 text-center">
+      <p className="text-accent/75 text-[10px] font-semibold tracking-[0.16em] uppercase">Empty wall</p>
+      <h2 className="font-display text-ink mt-2 text-[21px] font-semibold tracking-tight">{title}</h2>
+      <p className="text-ink/45 mt-2 text-[12.5px] leading-relaxed">{body}</p>
+    </div>
+  )
+}
+
+function UploadTile({ item, onOpen }: { item: PublicAsset; onOpen: () => void }) {
+  const ratio = item.width && item.height ? `${item.width} / ${item.height}` : '4 / 5'
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      style={item.kind === 'audio' ? undefined : { aspectRatio: ratio }}
+      className={cn(
+        'group border-line bg-surface hover:border-ink/25 relative shrink-0 overflow-hidden rounded-xl border text-left transition-colors',
+        WALL_CARD_HEIGHT,
+        item.kind === 'audio' && WALL_FIXED_WIDTH,
+      )}
+    >
+      {item.kind === 'video' ? (
+        <video src={item.url} muted loop playsInline preload="metadata" className="size-full object-cover" />
+      ) : item.kind === 'audio' ? (
+        <div className="text-ink/30 bg-ink/[0.04] grid size-full place-items-center">
+          <FileAudio size={26} />
+        </div>
+      ) : (
+        <img
+          src={item.url}
+          alt=""
+          loading="lazy"
+          className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+        />
+      )}
+      <span className="bg-ink/70 text-canvas absolute top-2 left-2 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[9px] font-semibold tracking-[0.06em] uppercase backdrop-blur">
+        {item.kind === 'video' ? <Play size={8} fill="currentColor" /> : null}
+        {item.kind}
       </span>
-      <span className="min-w-0">
-        <span className="text-ink/80 block text-[12px] font-medium">{label}</span>
-        <span className="text-ink/40 block truncate text-[10.5px]">{detail}</span>
+      {item.source === 'social' ? (
+        <span className="bg-accent/85 text-canvas absolute top-2 right-2 rounded px-1.5 py-0.5 text-[9px] font-semibold tracking-[0.05em] uppercase backdrop-blur">
+          Cobalt
+        </span>
+      ) : null}
+      <span className="bg-ink/60 text-canvas absolute right-2 bottom-2 rounded px-1.5 py-0.5 text-[9px] font-medium backdrop-blur">
+        {formatBytes(item.byteSize)}
       </span>
-      <ArrowUpRight size={13} className="text-ink/25 group-hover:text-ink/55 ml-auto transition-colors" />
-    </Link>
+    </button>
+  )
+}
+
+function UploadFolderCard({
+  folder,
+  assets,
+  onOpen,
+}: {
+  folder: FolderNode
+  assets: PublicAsset[]
+  onOpen: () => void
+}) {
+  const previews = assets.slice(0, 4)
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className={cn(
+        'group border-line bg-surface hover:border-ink/25 relative flex shrink-0 flex-col overflow-hidden rounded-xl border text-left transition-colors',
+        WALL_CARD_HEIGHT,
+        WALL_FIXED_WIDTH,
+      )}
+    >
+      <div className="relative min-h-0 flex-1 overflow-hidden">
+        <div
+          className={cn(
+            'grid size-full gap-0.5',
+            previews.length === 2 ? 'grid-cols-2' : 'grid-cols-2 grid-rows-2',
+          )}
+        >
+          {previews.map((asset, index) => (
+            <div
+              key={asset.id}
+              className={cn('overflow-hidden', previews.length === 3 && index === 0 && 'row-span-2')}
+            >
+              {asset.kind === 'video' ? (
+                <video
+                  src={asset.url}
+                  muted
+                  loop
+                  playsInline
+                  preload="metadata"
+                  className="size-full object-cover"
+                />
+              ) : (
+                <img src={asset.url} alt="" loading="lazy" className="size-full object-cover" />
+              )}
+            </div>
+          ))}
+        </div>
+        <span className="bg-ink/70 text-canvas absolute top-2 right-2 rounded px-1.5 py-0.5 text-[9px] font-semibold backdrop-blur">
+          {assets.length}
+        </span>
+      </div>
+      <div className="flex items-center gap-1.5 px-2.5 py-2">
+        <span className="text-ink/40 shrink-0 text-[10px]">FOLDER</span>
+        <span className="text-ink/65 truncate text-[10.5px] font-medium">{folder.name}</span>
+      </div>
+    </button>
+  )
+}
+
+function PreviewOverlay({ preview, onClose }: { preview: Preview; onClose: () => void }) {
+  const [index, setIndex] = useState(0)
+  const items = preview.type === 'folder' ? preview.assets : [preview.item]
+  const safeIndex = Math.min(index, items.length - 1)
+  const current = items[safeIndex] ?? items[0]
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  if (!current) return null
+
+  return (
+    <div
+      className="bg-ink/70 fixed inset-0 z-[60] flex items-center justify-center p-3 backdrop-blur-sm md:p-8"
+      onClick={onClose}
+    >
+      <div
+        onClick={(event) => event.stopPropagation()}
+        className="border-line bg-surface flex max-h-full w-full max-w-5xl flex-col overflow-hidden rounded-2xl border shadow-2xl"
+      >
+        <div className="border-line flex items-center gap-2 border-b px-3 py-2">
+          <span className="text-ink/40 text-[10px] font-semibold tracking-[0.1em] uppercase">
+            {preview.type === 'folder' ? 'Folder' : 'Upload'}
+          </span>
+          {preview.type === 'folder' ? (
+            <span className="text-ink/60 truncate text-[11px] font-medium">{preview.folder.name}</span>
+          ) : null}
+          <div className="ml-auto flex items-center gap-1">
+            <a
+              href={current.url}
+              download
+              className="text-ink/45 hover:bg-ink/5 hover:text-ink grid size-8 place-items-center rounded-lg"
+              aria-label="Download"
+            >
+              <Download size={14} />
+            </a>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close preview"
+              className="text-ink/45 hover:bg-ink/5 hover:text-ink grid size-8 place-items-center rounded-lg"
+            >
+              <X size={15} />
+            </button>
+          </div>
+        </div>
+
+        <div className="bg-ink/[0.03] min-h-0 flex-1 overflow-hidden p-2">
+          {current.kind === 'video' ? (
+            <video
+              key={current.url}
+              src={current.url}
+              controls
+              autoPlay
+              loop
+              playsInline
+              className="mx-auto max-h-[68vh] w-full rounded-xl object-contain"
+            />
+          ) : current.kind === 'audio' ? (
+            <div className="grid min-h-40 place-items-center">
+              <audio key={current.url} src={current.url} controls autoPlay className="w-full max-w-md" />
+            </div>
+          ) : (
+            <img
+              key={current.url}
+              src={current.url}
+              alt=""
+              className="mx-auto max-h-[68vh] w-full rounded-xl object-contain"
+            />
+          )}
+        </div>
+
+        {items.length > 1 ? (
+          <div className="flex gap-1.5 overflow-x-auto px-3 pt-2 pb-1">
+            {items.map((item, itemIndex) => (
+              <button
+                key={`${item.id}-${itemIndex}`}
+                type="button"
+                onClick={() => setIndex(itemIndex)}
+                className={cn(
+                  'size-12 shrink-0 overflow-hidden rounded-lg border transition-colors',
+                  itemIndex === safeIndex ? 'border-accent' : 'border-line hover:border-ink/25',
+                )}
+              >
+                {item.kind === 'video' ? (
+                  <video src={item.url} muted preload="metadata" className="size-full object-cover" />
+                ) : item.kind === 'audio' ? (
+                  <span className="text-ink/35 grid size-full place-items-center">
+                    <FileAudio size={16} />
+                  </span>
+                ) : (
+                  <img src={item.url} alt="" className="size-full object-cover" />
+                )}
+              </button>
+            ))}
+          </div>
+        ) : null}
+
+        <div className="min-h-0 overflow-y-auto px-4 py-3">
+          {preview.type === 'folder' ? (
+            <p className="text-ink/55 mb-2 text-[11px]">{preview.assets.length} items in this folder</p>
+          ) : null}
+          <div className="text-ink/40 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10.5px]">
+            <span className="uppercase">{current.kind}</span>
+            <span>·</span>
+            <span>{current.mime}</span>
+            <span>·</span>
+            <span>{formatBytes(current.byteSize)}</span>
+            <span>·</span>
+            <span>{new Date(current.createdAt).toLocaleString()}</span>
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }

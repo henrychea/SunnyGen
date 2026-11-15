@@ -3,7 +3,9 @@ import { Badge, Button, Dialog, DialogSurface, Input, Label, Select, Textarea, c
 import { FolderOpen, ImagePlus, Loader2, Sparkles, X } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { MediaPicker } from './media-picker'
+import { ModelCombobox } from './model-combobox'
 import { getGenerationView, submitGeneration } from '~/server/generation.functions'
+import { useModelChoices } from '~/lib/use-model-choices'
 
 type Phase = 'idle' | 'submitting' | 'running' | 'failed'
 
@@ -45,9 +47,16 @@ export function GenerateDialog({
   const [generationId, setGenerationId] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const pollToken = useRef(0)
+  const { choices, catalogOnly } = useModelChoices()
+  const allChoices = [...choices, ...catalogOnly]
 
   const models = kind === 'image' ? IMAGE_MODELS : VIDEO_MODELS
-  const model: ModelDefinition | undefined = models.find((entry) => entry.id === modelId) ?? models[0]
+  const modelOptions = allChoices.filter((entry) => entry.kind === kind)
+  const model: ModelDefinition | undefined =
+    modelOptions.find((entry) => entry.modelId === modelId)?.definition ??
+    models.find((entry) => entry.id === modelId) ??
+    models[0]
+  const selectedChoice = modelOptions.find((entry) => entry.modelId === model?.id)
 
   const resetSession = () => {
     pollToken.current += 1
@@ -81,7 +90,9 @@ export function GenerateDialog({
   }
 
   const changeModel = (id: string) => {
-    const next = models.find((entry) => entry.id === id)
+    const next =
+      modelOptions.find((entry) => entry.modelId === id)?.definition ??
+      models.find((entry) => entry.id === id)
     if (!next) return
     setModelId(next.id)
     setProvider('auto')
@@ -252,24 +263,21 @@ export function GenerateDialog({
                   </button>
                 ))}
               </div>
-              {model ? <Badge tone="neutral">{model.price}</Badge> : null}
+              {model ? <Badge tone="neutral">{selectedChoice?.price ?? model.price}</Badge> : null}
             </div>
 
             <div className="grid gap-2 sm:grid-cols-2">
-              <label className="flex flex-col gap-1.5">
+              <div className="flex flex-col gap-1.5">
                 <Label>Model</Label>
-                <Select
+                <ModelCombobox
                   value={model?.id ?? ''}
-                  onChange={(event) => changeModel(event.target.value)}
+                  options={modelOptions}
                   disabled={busy}
-                >
-                  {models.map((entry) => (
-                    <option key={entry.id} value={entry.id}>
-                      {entry.label} · {entry.providerLabel}
-                    </option>
-                  ))}
-                </Select>
-              </label>
+                  onChange={(entry) => {
+                    if (entry.modelId) changeModel(entry.modelId)
+                  }}
+                />
+              </div>
               <label className="flex flex-col gap-1.5">
                 <Label>Provider</Label>
                 <Select
