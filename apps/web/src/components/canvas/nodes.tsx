@@ -9,8 +9,10 @@ import { Badge, Button, cn, Input, Select, Textarea } from '@sunnygen/ui'
 import { Image as ImageIcon, Loader2, Minus, Play, Plus, Sparkles, StickyNote, Video, X } from 'lucide-react'
 import { useRef, useState, type ReactNode } from 'react'
 import { MediaPicker } from '../media-picker'
+import { ModelCombobox } from '../model-combobox'
 import { useCanvasActions } from './context'
 import type { CanvasNode, NodeStatus } from '~/lib/workflow'
+import { useModelChoices } from '~/lib/use-model-choices'
 
 const STATUS_TONES: Record<NodeStatus, 'neutral' | 'accent' | 'success' | 'error'> = {
   idle: 'neutral',
@@ -203,14 +205,22 @@ export function GenerateNode({ id, data, selected, type }: NodeProps<CanvasNode>
   const [pickerOpen, setPickerOpen] = useState(false)
   const video = type === 'generate-video'
   const models = video ? VIDEO_MODELS : IMAGE_MODELS
-  const model = models.find((entry) => entry.id === data.model) ?? models[0]
+  const { choices, catalogOnly } = useModelChoices()
+  const allChoices = [...choices, ...catalogOnly]
+  const modelOptions = allChoices.filter((entry) => entry.kind === (video ? 'video' : 'image'))
+  const model =
+    modelOptions.find((entry) => entry.modelId === data.model)?.definition ??
+    models.find((entry) => entry.id === data.model) ??
+    models[0]
   const isRunning = running.has(id)
   const status = data.status ?? 'idle'
   const refIds = Array.isArray(data.assetIds) ? data.assetIds : []
   const outputIds = Array.isArray(data.outputAssetIds) ? data.outputAssetIds : []
 
   const updateModel = (modelId: string) => {
-    const next = models.find((entry) => entry.id === modelId)
+    const next =
+      modelOptions.find((entry) => entry.modelId === modelId)?.definition ??
+      models.find((entry) => entry.id === modelId)
     if (!next) return
     if (next.kind === 'video') {
       updateNodeData(id, {
@@ -242,20 +252,18 @@ export function GenerateNode({ id, data, selected, type }: NodeProps<CanvasNode>
       }
     >
       <div className="grid grid-cols-2 gap-2">
-        <label className="col-span-2 flex flex-col gap-1">
+        <div className="col-span-2 flex flex-col gap-1">
           <span className="text-ink/40 text-[9.5px] font-semibold tracking-[0.08em] uppercase">Model</span>
-          <Select
+          <ModelCombobox
+            className="nodrag"
+            size="sm"
             value={model?.id ?? ''}
-            onChange={(event) => updateModel(event.target.value)}
-            className="nodrag h-8 text-[11.5px]"
-          >
-            {models.map((entry) => (
-              <option key={entry.id} value={entry.id}>
-                {entry.label}
-              </option>
-            ))}
-          </Select>
-        </label>
+            options={modelOptions}
+            onChange={(entry) => {
+              if (entry.modelId) updateModel(entry.modelId)
+            }}
+          />
+        </div>
 
         <label className="flex flex-col gap-1">
           <span className="text-ink/40 text-[9.5px] font-semibold tracking-[0.08em] uppercase">Ratio</span>

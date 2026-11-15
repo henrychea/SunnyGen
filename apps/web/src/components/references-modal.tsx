@@ -1,0 +1,104 @@
+import { useEffect, useState } from 'react'
+import { MediaCard, MediaThumbStrip } from '~/components/media-preview'
+import type { InputAsset } from '~/server/media.server'
+
+export function ReferencesModal({
+  references,
+  onClose,
+}: {
+  references: InputAsset[]
+  onClose: () => void
+}) {
+  const [index, setIndex] = useState(0)
+  const safeIndex = Math.min(index, references.length - 1)
+  const current = references[safeIndex]
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      event.stopImmediatePropagation()
+      onClose()
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
+  }, [onClose])
+
+  if (!current) return null
+
+  return (
+    <div
+      className="bg-ink/70 fixed inset-0 z-[80] flex items-center justify-center p-3 backdrop-blur-sm md:p-8"
+      onClick={(event) => {
+        event.stopPropagation()
+        onClose()
+      }}
+    >
+      <div
+        onClick={(event) => event.stopPropagation()}
+        className="border-line bg-surface flex max-h-[90dvh] w-fit min-w-[min(92vw,420px)] max-w-[min(92vw,1000px)] flex-col overflow-hidden rounded-2xl border shadow-2xl"
+      >
+        <div className="border-line flex items-center gap-3 border-b px-4 py-2.5">
+          <div className="min-w-0">
+            <h2 className="font-display text-ink text-[14px] font-semibold">References</h2>
+            <p className="text-ink/35 mt-0.5 text-[10.5px]">
+              {references.length} {references.length === 1 ? 'reference' : 'references'} ·{' '}
+              {safeIndex + 1} / {references.length}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close references"
+            className="text-ink/40 hover:bg-ink/5 hover:text-ink ml-auto grid size-8 shrink-0 place-items-center rounded-lg"
+          >
+            ×
+          </button>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto p-3 md:p-4">
+          <MediaCard
+            url={current.url}
+            kind={current.kind}
+            alt={`Reference ${safeIndex + 1}`}
+            mediaClassName="max-h-[calc(90dvh-18rem)]"
+          />
+          {references.length > 1 ? (
+            <MediaThumbStrip
+              items={references}
+              index={safeIndex}
+              onSelect={setIndex}
+              label="Choose a reference"
+            />
+          ) : null}
+          <div className="border-line bg-canvas/40 mt-3 rounded-xl border p-3.5">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              <div className="border-line/70 bg-surface/60 min-w-0 rounded-lg border px-2.5 py-2">
+                <p className="text-ink/35 text-[9.5px] font-semibold tracking-[0.08em] uppercase">
+                  Reference
+                </p>
+                <p className="text-ink/70 mt-0.5 text-[11.5px]">
+                  {safeIndex + 1} of {references.length}
+                </p>
+              </div>
+              <div className="border-line/70 bg-surface/60 min-w-0 rounded-lg border px-2.5 py-2">
+                <p className="text-ink/35 text-[9.5px] font-semibold tracking-[0.08em] uppercase">
+                  Kind
+                </p>
+                <p className="text-ink/70 mt-0.5 text-[11.5px]">{current.kind}</p>
+              </div>
+              {current.width && current.height ? (
+                <div className="border-line/70 bg-surface/60 min-w-0 rounded-lg border px-2.5 py-2">
+                  <p className="text-ink/35 text-[9.5px] font-semibold tracking-[0.08em] uppercase">
+                    Size
+                  </p>
+                  <p className="text-ink/70 mt-0.5 text-[11.5px]">
+                    {current.width}×{current.height}
+                  </p>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}

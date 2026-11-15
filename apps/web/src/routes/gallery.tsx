@@ -2,11 +2,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { cn, Select } from '@sunnygen/ui'
-import { Columns3, Download, LayoutGrid, RefreshCw, Sparkles, Trash2, X } from 'lucide-react'
+import { Columns3, LayoutGrid, RefreshCw, Sparkles, X } from 'lucide-react'
 import { PageBody, PageHeader, PageScroll } from '~/components/app-shell'
 import { GalleryCard, GalleryWallTile } from '~/components/gallery-card'
+import { CleanupFailedButton } from '~/components/cleanup-failed'
+import { FailureActions } from '~/components/failure-actions'
 import { GenerateDialog } from '~/components/generate-dialog'
-import { getGenerationView, submitGeneration } from '~/server/generation.functions'
+import { MediaActionBar } from '~/components/media-action-bar'
+import { ReferencesModal } from '~/components/references-modal'
 import {
   deleteLibraryItemFn,
   loadFailedGenerations,
@@ -31,6 +34,7 @@ function GalleryPage() {
   const navigate = useNavigate()
   const [kind, setKind] = useState<KindFilter>('all')
   const [open, setOpen] = useState<GalleryItem | null>(null)
+  const [referencesFor, setReferencesFor] = useState<string | null>(null)
   const [composerOpen, setComposerOpen] = useState(false)
   const [folderId, setFolderId] = useState('all')
   const queryClient = useQueryClient()
@@ -62,49 +66,6 @@ function GalleryPage() {
     mutationFn: (item: GalleryItem) => deleteLibraryItemFn({ data: { type: 'generation', id: item.id } }),
     onSuccess: async () => {
       setOpen(null)
-      await queryClient.invalidateQueries({ queryKey: ['gallery'] })
-    },
-  })
-
-  const retry = useMutation({
-    mutationFn: async (generation: {
-      id: string
-      kind: 'image' | 'video'
-      model: string
-      provider: 'sunra' | 'fal' | 'azure' | 'codex'
-      prompt: string
-      params: Record<string, unknown>
-      inputAssetIds: string[]
-      folderId: string | null
-    }) => {
-      const view = await submitGeneration({
-        data: {
-          kind: generation.kind,
-          model: generation.model,
-          prompt: generation.prompt,
-          assetIds: generation.inputAssetIds,
-          params: generation.params,
-          provider: generation.provider,
-          folderId: generation.folderId,
-        },
-      })
-      await deleteLibraryItemFn({ data: { type: 'generation', id: generation.id } })
-      if (view.generation.status === 'queued' || view.generation.status === 'running') {
-        void (async () => {
-          for (let attempt = 0; attempt < 480; attempt += 1) {
-            await new Promise((resolve) => setTimeout(resolve, 3_000))
-            const current = await getGenerationView({ data: { id: view.generation.id } })
-            if (!current) break
-            if (current.generation.status !== 'queued' && current.generation.status !== 'running') break
-          }
-          await queryClient.invalidateQueries({ queryKey: ['gallery'] })
-          await queryClient.invalidateQueries({ queryKey: ['failures'] })
-        })()
-      }
-      return view
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['failures'] })
       await queryClient.invalidateQueries({ queryKey: ['gallery'] })
     },
   })
@@ -151,40 +112,35 @@ function GalleryPage() {
                 <p className="text-error/80 text-[11px] font-semibold tracking-[0.08em] uppercase">
                   Failed lately
                 </p>
-                <p className="text-error/50 text-[10px]">{failures.data?.length} unfinished</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-error/50 text-[10px]">{failures.data?.length} unfinished</p>
+                  <CleanupFailedButton count={failures.data?.length ?? 0} />
+                </div>
               </div>
               <div className="flex flex-col gap-1.5">
                 {(failures.data ?? []).slice(0, 4).map((failure) => (
-                  <div
-                    key={failure.id}
-                    className="bg-surface/70 flex items-center gap-2 rounded-lg px-2.5 py-2"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="text-ink/65 truncate text-[11px] font-medium">
-                        {failure.model} · {failure.prompt || 'No prompt'}
-                      </p>
-                      <p className="text-error/70 truncate text-[10px]">
-                        {failure.error ?? 'Generation failed'}
-                      </p>
+                  <div key={failure.id} className="bg-surface/70 rounded-lg px-2.5 py-2">
+                    <div className="flex items-start gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-ink/65 truncate text-[11px] font-medium">
+                          {failure.model} · {failure.prompt || 'No prompt'}
+                        </p>
+                        <p className="text-error/70 line-clamp-2 text-[10px] leading-snug">
+                          {failure.error ?? 'Generation failed'}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await deleteLibraryItemFn({ data: { type: 'generation', id: failure.id } })
+                          await queryClient.invalidateQueries({ queryKey: ['failures'] })
+                        }}
+                        className="text-ink/35 hover:text-ink shrink-0 rounded-md px-2 py-1 text-[10px]"
+                      >
+                        Dismiss
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => retry.mutate(failure)}
-                      disabled={retry.isPending}
-                      className="border-line text-ink/60 hover:text-ink rounded-md border px-2 py-1 text-[10px] font-medium"
-                    >
-                      Retry
-                    </button>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        await deleteLibraryItemFn({ data: { type: 'generation', id: failure.id } })
-                        await queryClient.invalidateQueries({ queryKey: ['failures'] })
-                      }}
-                      className="text-ink/35 hover:text-ink rounded-md px-2 py-1 text-[10px]"
-                    >
-                      Dismiss
-                    </button>
+                    <FailureActions generation={failure} className="mt-1.5" />
                   </div>
                 ))}
               </div>
@@ -305,41 +261,36 @@ function GalleryPage() {
       />
 
       {open ? (
-        <div className="bg-ink/55 fixed inset-0 z-40 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="border-line bg-surface relative flex max-h-[92dvh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border shadow-2xl">
-            <div className="border-line flex items-center justify-between gap-3 border-b px-4 py-3">
-              <div className="min-w-0">
-                <p className="text-ink/75 truncate text-[12px] font-medium">{open.model}</p>
-                <p className="text-ink/40 text-[10.5px]">
-                  {open.provider} · {new Date(open.createdAt).toLocaleString()}
-                </p>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <a
-                  href={`${open.url}?download=1`}
-                  download
-                  className="text-ink/50 hover:bg-ink/5 hover:text-ink inline-flex size-8 items-center justify-center rounded-lg"
-                  aria-label="Download"
-                >
-                  <Download size={14} />
-                </a>
-                <button
-                  type="button"
-                  onClick={() => remove.mutate(open)}
-                  className="text-ink/50 hover:bg-error/10 hover:text-error inline-flex size-8 items-center justify-center rounded-lg"
-                  aria-label="Delete"
-                >
-                  <Trash2 size={14} />
-                </button>
+        <div className="bg-ink/55 fixed inset-0 z-[70] flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="border-line bg-surface relative flex max-h-[92dvh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border shadow-2xl">
+            <div className="border-line border-b px-4 py-3">
+              <div className="flex items-center gap-3">
+                <div className="min-w-0">
+                  <p className="text-ink/75 truncate text-[12px] font-medium">{open.model}</p>
+                  <p className="text-ink/40 text-[10.5px]">
+                    {open.provider} · {new Date(open.createdAt).toLocaleString()}
+                  </p>
+                </div>
                 <button
                   type="button"
                   onClick={() => setOpen(null)}
-                  className="text-ink/50 hover:bg-ink/5 hover:text-ink inline-flex size-8 items-center justify-center rounded-lg"
+                  className="text-ink/50 hover:bg-ink/5 hover:text-ink ml-auto inline-flex size-8 shrink-0 items-center justify-center rounded-lg"
                   aria-label="Close"
                 >
                   <X size={15} />
                 </button>
               </div>
+              <MediaActionBar
+                prompt={open.prompt}
+                url={open.url}
+                image={open.kind === 'image'}
+                referenceCount={open.inputAssets.length}
+                onShowReferences={() => setReferencesFor(open.id)}
+                onDelete={async () => {
+                  await remove.mutateAsync(open)
+                }}
+                className="mt-2"
+              />
             </div>
             <div className="grid min-h-0 flex-1 gap-0 overflow-y-auto md:grid-cols-[1.4fr_1fr]">
               <div className="bg-ink/[0.04] flex items-center justify-center p-4">
@@ -349,7 +300,7 @@ function GalleryPage() {
                   <img
                     src={open.url}
                     alt={open.prompt || 'Generated image'}
-                    className="max-h-[64dvh] w-full rounded-lg object-contain"
+                    className="max-h-[72dvh] w-full rounded-lg object-contain"
                   />
                 )}
               </div>
@@ -416,6 +367,12 @@ function GalleryPage() {
               </div>
             </div>
           </div>
+          {referencesFor === open.id ? (
+            <ReferencesModal
+              references={open.inputAssets}
+              onClose={() => setReferencesFor(null)}
+            />
+          ) : null}
         </div>
       ) : null}
     </>

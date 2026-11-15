@@ -1,5 +1,4 @@
 import {
-  IMAGE_MODELS,
   SLOT_LABELS,
   STUDIO_ANGLES,
   STUDIO_ANGLE_LABELS,
@@ -17,6 +16,8 @@ import { useRef, useState } from 'react'
 import type { StudioItemDto, StudioLibrary } from '~/server/studio.functions'
 import { getGenerationView, submitGeneration } from '~/server/generation.functions'
 import { createFolderFn } from '~/server/library.functions'
+import { ModelCombobox } from '~/components/model-combobox'
+import { useModelChoices } from '~/lib/use-model-choices'
 
 interface AngleResult {
   angle: StudioAngle
@@ -70,10 +71,14 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
   const validation = validateStudioLook(garmentInputs)
 
   const referenceCount = (avatar ? 1 : 0) + orderedGarments.length + (pose ? 1 : 0) + (hasSceneImage ? 1 : 0)
-  const fittingModels = IMAGE_MODELS.filter(
-    (model) => model.supportsImages && model.maxImages >= Math.max(1, referenceCount),
+  const { choices, catalogOnly } = useModelChoices()
+  const modelOptions = [...choices, ...catalogOnly].filter(
+    (entry) =>
+      entry.kind === 'image' &&
+      Boolean(entry.definition?.supportsImages) &&
+      (entry.definition?.maxImages ?? 0) >= Math.max(1, referenceCount),
   )
-  const model = fittingModels.find((entry) => entry.id === modelId) ?? fittingModels[0] ?? null
+  const model = modelOptions.find((entry) => entry.modelId === modelId)?.definition ?? null
 
   const blocking = !avatar
     ? 'Pick an avatar.'
@@ -345,28 +350,23 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
           </div>
 
           <div className="mt-3 flex flex-col gap-2">
-            <label className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-1.5">
               <span className="text-ink/40 text-[9.5px] font-semibold tracking-[0.08em] uppercase">
                 Model
               </span>
-              <Select
+              <ModelCombobox
                 value={model?.id ?? ''}
-                onChange={(event) => {
-                  const next = fittingModels.find((entry) => entry.id === event.target.value)
-                  if (!next) return
+                options={modelOptions}
+                disabled={modelOptions.length === 0}
+                onChange={(entry) => {
+                  const next = entry.definition
+                  if (!next || next.kind !== 'image') return
                   setModelId(next.id)
                   setRatio(next.ratios.includes('3:4') ? '3:4' : (next.ratios[0] ?? '1:1'))
                   setQuality(next.defaultQuality)
                 }}
-                disabled={fittingModels.length === 0}
-              >
-                {fittingModels.map((entry) => (
-                  <option key={entry.id} value={entry.id}>
-                    {entry.label} · {entry.maxImages} refs
-                  </option>
-                ))}
-              </Select>
-            </label>
+              />
+            </div>
             <div className="grid grid-cols-2 gap-2">
               <label className="flex flex-col gap-1.5">
                 <span className="text-ink/40 text-[9.5px] font-semibold tracking-[0.08em] uppercase">
