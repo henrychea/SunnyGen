@@ -24,6 +24,7 @@ import { Route as ApiUploadRouteImport } from './routes/api/upload'
 import { Route as ApiMediaIdRouteImport } from './routes/api/media/$id'
 import { Route as ApiSocialResolveRouteImport } from './routes/api/social/resolve'
 import { Route as ApiSocialStatusRouteImport } from './routes/api/social/status'
+import { Route as ApiWebhooksProviderTokenRouteImport } from './routes/api/webhooks/$provider.$token'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -100,6 +101,12 @@ const ApiSocialStatusRoute = ApiSocialStatusRouteImport.update({
   path: '/api/social/status',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiWebhooksProviderTokenRoute =
+  ApiWebhooksProviderTokenRouteImport.update({
+    id: '/api/webhooks/$provider/$token',
+    path: '/api/webhooks/$provider/$token',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -117,6 +124,7 @@ export interface FileRoutesByFullPath {
   '/api/media/$id': typeof ApiMediaIdRoute
   '/api/social/resolve': typeof ApiSocialResolveRoute
   '/api/social/status': typeof ApiSocialStatusRoute
+  '/api/webhooks/$provider/$token': typeof ApiWebhooksProviderTokenRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -134,6 +142,7 @@ export interface FileRoutesByTo {
   '/api/media/$id': typeof ApiMediaIdRoute
   '/api/social/resolve': typeof ApiSocialResolveRoute
   '/api/social/status': typeof ApiSocialStatusRoute
+  '/api/webhooks/$provider/$token': typeof ApiWebhooksProviderTokenRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -152,6 +161,7 @@ export interface FileRoutesById {
   '/api/media/$id': typeof ApiMediaIdRoute
   '/api/social/resolve': typeof ApiSocialResolveRoute
   '/api/social/status': typeof ApiSocialStatusRoute
+  '/api/webhooks/$provider/$token': typeof ApiWebhooksProviderTokenRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -171,6 +181,7 @@ export interface FileRouteTypes {
     | '/api/media/$id'
     | '/api/social/resolve'
     | '/api/social/status'
+    | '/api/webhooks/$provider/$token'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -188,6 +199,7 @@ export interface FileRouteTypes {
     | '/api/media/$id'
     | '/api/social/resolve'
     | '/api/social/status'
+    | '/api/webhooks/$provider/$token'
   id:
     | '__root__'
     | '/'
@@ -205,6 +217,7 @@ export interface FileRouteTypes {
     | '/api/media/$id'
     | '/api/social/resolve'
     | '/api/social/status'
+    | '/api/webhooks/$provider/$token'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -223,6 +236,7 @@ export interface RootRouteChildren {
   ApiMediaIdRoute: typeof ApiMediaIdRoute
   ApiSocialResolveRoute: typeof ApiSocialResolveRoute
   ApiSocialStatusRoute: typeof ApiSocialStatusRoute
+  ApiWebhooksProviderTokenRoute: typeof ApiWebhooksProviderTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -332,6 +346,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSocialStatusRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/webhooks/$provider/$token': {
+      id: '/api/webhooks/$provider/$token'
+      path: '/api/webhooks/$provider/$token'
+      fullPath: '/api/webhooks/$provider/$token'
+      preLoaderRoute: typeof ApiWebhooksProviderTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -351,6 +372,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiMediaIdRoute: ApiMediaIdRoute,
   ApiSocialResolveRoute: ApiSocialResolveRoute,
   ApiSocialStatusRoute: ApiSocialStatusRoute,
+  ApiWebhooksProviderTokenRoute: ApiWebhooksProviderTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

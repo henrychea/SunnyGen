@@ -1,19 +1,39 @@
 import type { ModelDefinition, ProviderId } from '@sunnygen/core'
-import { azureAdapter } from './azure'
-import { codexAdapter } from './codex'
-import { falAdapter } from './fal'
-import { sunraAdapter } from './sunra'
-import type { ProviderAdapter } from './types'
+import { azureModule } from './azure'
+import { codexModule } from './codex'
+import { falModule } from './fal'
+import { sunraModule } from './sunra'
+import type { ProviderAdapter, ProviderModule, ProviderWebhook } from './types'
 
-const ADAPTERS: Record<ProviderId, ProviderAdapter> = {
-  sunra: sunraAdapter,
-  fal: falAdapter,
-  azure: azureAdapter,
-  codex: codexAdapter,
+export const PROVIDER_MODULES: Record<ProviderId, ProviderModule> = {
+  sunra: sunraModule,
+  fal: falModule,
+  azure: azureModule,
+  codex: codexModule,
+}
+
+export function getProviderModule(provider: ProviderId): ProviderModule {
+  return PROVIDER_MODULES[provider]
 }
 
 export function getAdapter(provider: ProviderId): ProviderAdapter {
-  return ADAPTERS[provider]
+  return PROVIDER_MODULES[provider].adapter
+}
+
+export function providerFlows(provider: ProviderId): ProviderModule['flows'] {
+  return PROVIDER_MODULES[provider].flows
+}
+
+export function getWebhook(provider: ProviderId): ProviderWebhook | undefined {
+  return PROVIDER_MODULES[provider].webhook
+}
+
+export function providerSupportsWebhooks(provider: ProviderId): boolean {
+  return Boolean(PROVIDER_MODULES[provider].webhook)
+}
+
+export function listProviderModules(): ProviderModule[] {
+  return Object.values(PROVIDER_MODULES)
 }
 
 export function adapterSupports(provider: ProviderId, model: ModelDefinition): boolean {

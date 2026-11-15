@@ -9,7 +9,7 @@ import {
   readSetting,
 } from '@sunnygen/db'
 import { ensurePoller } from './generation-poller.server'
-import { assetUrl } from './media.server'
+import { assetUrl, toInputAssets } from './media.server'
 import type { GalleryItem } from './library.functions'
 
 export interface DashboardData {
@@ -29,10 +29,10 @@ export const loadDashboard = createServerFn({ method: 'GET' }).handler((): Dashb
   ensurePoller()
   const recentGenerations = listGenerations({ status: 'succeeded', limit: 6 })
   const outputAssets = new Map(
-    getAssetsByIds(recentGenerations.flatMap((generation) => generation.outputAssetIds)).map((asset) => [
-      asset.id,
-      asset,
-    ]),
+    getAssetsByIds([
+      ...recentGenerations.flatMap((generation) => generation.outputAssetIds),
+      ...recentGenerations.flatMap((generation) => generation.inputAssetIds),
+    ]).map((asset) => [asset.id, asset]),
   )
 
   const recent = recentGenerations.flatMap((generation): GalleryItem[] => {
@@ -55,6 +55,7 @@ export const loadDashboard = createServerFn({ method: 'GET' }).handler((): Dashb
         provider: generation.provider,
         model: generation.model,
         outputCount: outputs.length,
+        inputAssets: toInputAssets(generation.inputAssetIds, outputAssets),
         folderId: generation.folderId,
         createdAt: generation.createdAt,
       },

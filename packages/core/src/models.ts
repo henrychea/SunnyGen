@@ -12,6 +12,10 @@ export interface ModelBase {
   qualityOptions: string[]
   defaultQuality: string
   price?: string
+  sourceId?: string
+  editSourceId?: string
+  schemaUrl?: string
+  dynamic?: boolean
 }
 
 export interface ImageModelDefinition extends ModelBase {

@@ -1,4 +1,4 @@
-export const SCHEMA_VERSION = 1
+export const SCHEMA_VERSION = 2
 
 export const MIGRATIONS: readonly string[] = [
   `
@@ -100,5 +100,10 @@ export const MIGRATIONS: readonly string[] = [
     updated_at INTEGER NOT NULL
   ) STRICT;
   CREATE INDEX chats_updated ON chats(updated_at DESC);
+  `,
+  `
+  ALTER TABLE generations ADD COLUMN error_code TEXT;
+  ALTER TABLE generations ADD COLUMN error_reason TEXT;
+  ALTER TABLE generations ADD COLUMN error_retryable INTEGER;
   `,
 ]

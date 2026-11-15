@@ -7,6 +7,7 @@
   "type": "module",
   "sideEffects": false,
   "exports": {
+    "./models": "./src/models.ts",
     ".": "./src/index.ts"
   },
   "scripts": {

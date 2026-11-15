@@ -18,10 +18,11 @@ import {
   saveJob,
   updateGeneration,
 } from '@sunnygen/db'
-import { ProviderError } from '@sunnygen/providers'
 import { toPublicAsset, type PublicAsset } from './media.server'
 import { adapterFor, prepareGeneration, providerContext, storeProviderOutputs } from './generation.server'
 import { ensurePoller } from './generation-poller.server'
+import { buildModelCatalog } from './model-catalog.server'
+import { catalogModelDefinition } from '~/lib/catalog-model'
 
 const submitSchema = z.object({
   kind: z.enum(GENERATION_KINDS),
@@ -38,10 +39,22 @@ export interface GenerationView {
   outputs: PublicAsset[]
 }
 
+function resolveModel(id: string) {
+  const builtIn = getModel(id)
+  if (builtIn) return builtIn
+  const entry = buildModelCatalog().entries.find((candidate) => candidate.key === id)
+  if (entry && !entry.available) {
+    throw new Error(
+      `${entry.label} needs inputs SunnyGen does not collect${entry.limitation ? ` (${entry.limitation})` : ''}.`,
+    )
+  }
+  return entry ? catalogModelDefinition(entry) : undefined
+}
+
 export const submitGeneration = createServerFn({ method: 'POST', strict: false })
   .validator(submitSchema)
   .handler(async ({ data }): Promise<GenerationView> => {
-    const model = getModel(data.model)
+    const model = resolveModel(data.model)
     if (!model) throw new Error(`Unknown model: ${data.model}`)
     if (model.kind !== data.kind) throw new Error(`${model.label} does not generate ${data.kind}s`)
 
@@ -123,8 +136,7 @@ export const submitGeneration = createServerFn({ method: 'POST', strict: false }
       ensurePoller()
       return { generation: updated, outputs: [] }
     } catch (error) {
-      const message =
-        error instanceof ProviderError || error instanceof Error ? error.message : 'Generation failed'
+      const message = error instanceof Error ? error.message : 'Generation failed'
       const failed = updateGeneration(generation.id, { status: 'failed', error: message }) as GenerationRecord
       return { generation: failed, outputs: [] }
     }

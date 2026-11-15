@@ -157,7 +157,8 @@ export interface FalImageSpec {
 
 export const FAL_IMAGE_SPECS: Record<string, FalImageSpec> = {
   'gpt-image-2': {
-    endpoint: 'fal-ai/gpt-image-2',
+    endpoint: 'openai/gpt-image-2',
+    editEndpoint: 'openai/gpt-image-2/edit',
     imageKey: 'image_urls',
     imageMode: 'array',
     supportsSafetyChecker: true,
