@@ -2,13 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Trash2 } from 'lucide-react'
 import { cleanupFailedGenerations } from '~/server/library.functions'
 
-export function CleanupFailedButton({
-  count,
-  className,
-}: {
-  count: number
-  className?: string
-}) {
+export function CleanupFailedButton({ count, className }: { count: number; className?: string }) {
   const queryClient = useQueryClient()
   const cleanup = useMutation({
     mutationFn: () => cleanupFailedGenerations(),

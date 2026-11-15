@@ -65,16 +65,17 @@ directories.
 
 ## Before opening a pull request
 
-Run the same checks CI uses:
+CI runs these checks on every pull request against `main`:
 
 ```bash
-pnpm test
-pnpm typecheck
-pnpm lint
 pnpm format:check
+pnpm lint
+pnpm test
+pnpm build
 ```
 
-Add `pnpm format` if the formatter reports changes. For UI work, include a screenshot or
+Run `pnpm typecheck` too when you change shared types or contracts. Add
+`pnpm format` if the formatter reports changes. For UI work, include a screenshot or
 a short recording. For server work, include the request or command you used to verify the
 change.
 

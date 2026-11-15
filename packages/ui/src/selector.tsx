@@ -254,7 +254,9 @@ export function Selector({
             {selected?.label ?? placeholder}
           </span>
           {selected && showTriggerDescription && (selected.triggerDescription ?? selected.description) ? (
-            <span className={cn('text-ink/40 block truncate', size === 'sm' ? 'text-[10.5px]' : 'text-[11px]')}>
+            <span
+              className={cn('text-ink/40 block truncate', size === 'sm' ? 'text-[10.5px]' : 'text-[11px]')}
+            >
               {selected.triggerDescription ?? selected.description}
             </span>
           ) : null}

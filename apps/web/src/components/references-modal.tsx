@@ -2,13 +2,7 @@ import { useEffect, useState } from 'react'
 import { MediaCard, MediaThumbStrip } from '~/components/media-preview'
 import type { InputAsset } from '~/server/media.server'
 
-export function ReferencesModal({
-  references,
-  onClose,
-}: {
-  references: InputAsset[]
-  onClose: () => void
-}) {
+export function ReferencesModal({ references, onClose }: { references: InputAsset[]; onClose: () => void }) {
   const [index, setIndex] = useState(0)
   const safeIndex = Math.min(index, references.length - 1)
   const current = references[safeIndex]
@@ -35,14 +29,14 @@ export function ReferencesModal({
     >
       <div
         onClick={(event) => event.stopPropagation()}
-        className="border-line bg-surface flex max-h-[90dvh] w-fit min-w-[min(92vw,420px)] max-w-[min(92vw,1000px)] flex-col overflow-hidden rounded-2xl border shadow-2xl"
+        className="border-line bg-surface flex max-h-[90dvh] w-fit max-w-[min(92vw,1000px)] min-w-[min(92vw,420px)] flex-col overflow-hidden rounded-2xl border shadow-2xl"
       >
         <div className="border-line flex items-center gap-3 border-b px-4 py-2.5">
           <div className="min-w-0">
             <h2 className="font-display text-ink text-[14px] font-semibold">References</h2>
             <p className="text-ink/35 mt-0.5 text-[10.5px]">
-              {references.length} {references.length === 1 ? 'reference' : 'references'} ·{' '}
-              {safeIndex + 1} / {references.length}
+              {references.length} {references.length === 1 ? 'reference' : 'references'} · {safeIndex + 1} /{' '}
+              {references.length}
             </p>
           </div>
           <button
@@ -80,16 +74,12 @@ export function ReferencesModal({
                 </p>
               </div>
               <div className="border-line/70 bg-surface/60 min-w-0 rounded-lg border px-2.5 py-2">
-                <p className="text-ink/35 text-[9.5px] font-semibold tracking-[0.08em] uppercase">
-                  Kind
-                </p>
+                <p className="text-ink/35 text-[9.5px] font-semibold tracking-[0.08em] uppercase">Kind</p>
                 <p className="text-ink/70 mt-0.5 text-[11.5px]">{current.kind}</p>
               </div>
               {current.width && current.height ? (
                 <div className="border-line/70 bg-surface/60 min-w-0 rounded-lg border px-2.5 py-2">
-                  <p className="text-ink/35 text-[9.5px] font-semibold tracking-[0.08em] uppercase">
-                    Size
-                  </p>
+                  <p className="text-ink/35 text-[9.5px] font-semibold tracking-[0.08em] uppercase">Size</p>
                   <p className="text-ink/70 mt-0.5 text-[11.5px]">
                     {current.width}×{current.height}
                   </p>

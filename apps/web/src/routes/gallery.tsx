@@ -368,10 +368,7 @@ function GalleryPage() {
             </div>
           </div>
           {referencesFor === open.id ? (
-            <ReferencesModal
-              references={open.inputAssets}
-              onClose={() => setReferencesFor(null)}
-            />
+            <ReferencesModal references={open.inputAssets} onClose={() => setReferencesFor(null)} />
           ) : null}
         </div>
       ) : null}

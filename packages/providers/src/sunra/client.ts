@@ -194,7 +194,11 @@ export async function pollSunra(context: AdapterContext, job: ProviderJob): Prom
   }
 
   if (state === 'CANCELED' || state === 'CANCELLED') {
-    return { status: 'failed', error: 'Generation canceled', failure: { code: null, reason: 'canceled', retryable: false } }
+    return {
+      status: 'failed',
+      error: 'Generation canceled',
+      failure: { code: null, reason: 'canceled', retryable: false },
+    }
   }
   if (state === 'FAILED' || state === 'ERROR') {
     return {
