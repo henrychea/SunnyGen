@@ -5,8 +5,10 @@ import { join } from 'node:path'
 import { CODEX_SIZE_MAP } from './sizes'
 import {
   ProviderError,
+  createAdapterFromFlows,
   type AdapterContext,
-  type ProviderAdapter,
+  type ProviderFlow,
+  type ProviderModule,
   type ProviderRequest,
   type ProviderSubmit,
 } from './types'
@@ -98,7 +100,20 @@ async function submit(_context: AdapterContext, request: ProviderRequest): Promi
   }
 }
 
-export const codexAdapter: ProviderAdapter = {
-  id: 'codex',
+export const codexImageFlow: ProviderFlow = {
+  id: 'codex.image',
+  kind: 'image',
+  matches: (model) => model.kind === 'image',
   submit,
+}
+
+const flows = [codexImageFlow]
+
+export const codexAdapter = createAdapterFromFlows('codex', flows)
+
+export const codexModule: ProviderModule = {
+  id: 'codex',
+  label: 'Codex CLI',
+  adapter: codexAdapter,
+  flows,
 }

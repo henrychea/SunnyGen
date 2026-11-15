@@ -38,6 +38,14 @@ const MIME_EXTENSIONS: Record<string, string> = {
   'audio/ogg': '.ogg',
 }
 
+export interface InputAsset {
+  id: string
+  kind: AssetKind
+  url: string
+  width: number | null
+  height: number | null
+}
+
 export interface PublicAsset {
   id: string
   kind: AssetKind
@@ -48,11 +56,35 @@ export interface PublicAsset {
   byteSize: number
   source: AssetSource
   url: string
+  folderId: string | null
   createdAt: number
 }
 
 export function assetUrl(assetId: string): string {
   return `/api/media/${assetId}`
+}
+
+export function toInputAsset(asset: AssetRecord): InputAsset {
+  return {
+    id: asset.id,
+    kind: asset.kind,
+    url: assetUrl(asset.id),
+    width: asset.width,
+    height: asset.height,
+  }
+}
+
+export function toInputAssets(ids: string[], assets: Map<string, AssetRecord>): InputAsset[] {
+  const seen = new Set<string>()
+  const result: InputAsset[] = []
+  for (const id of ids) {
+    if (seen.has(id)) continue
+    const asset = assets.get(id)
+    if (!asset) continue
+    seen.add(id)
+    result.push(toInputAsset(asset))
+  }
+  return result
 }
 
 export function toPublicAsset(asset: AssetRecord): PublicAsset {
@@ -66,6 +98,7 @@ export function toPublicAsset(asset: AssetRecord): PublicAsset {
     byteSize: asset.byteSize,
     source: asset.source,
     url: assetUrl(asset.id),
+    folderId: asset.folderId,
     createdAt: asset.createdAt,
   }
 }

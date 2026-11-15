@@ -1,19 +1,30 @@
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
+import type { GenerationStatus, ProviderId } from '@sunnygen/core'
 import {
   createFolder,
   deleteAsset,
   deleteFolder,
+  deleteFailedGenerations,
   deleteGeneration,
   getAssetsByIds,
   listAssets,
   listFolders,
   listGenerations,
+  listStudioItems,
   moveAssetToFolder,
   moveGenerationToFolder,
   updateFolder,
 } from '@sunnygen/db'
-import { assetUrl, removeAssetFile, toPublicAsset, type PublicAsset } from './media.server'
+import {
+  assetUrl,
+  removeAssetFile,
+  toInputAssets,
+  toPublicAsset,
+  type InputAsset,
+  type PublicAsset,
+} from './media.server'
+import { referenceAvatar, type ReferenceAvatar } from '~/lib/reference-avatar'
 
 export interface GalleryItem {
   id: string
@@ -28,6 +39,7 @@ export interface GalleryItem {
   provider: string
   model: string
   outputCount: number
+  inputAssets: InputAsset[]
   folderId: string | null
   createdAt: number
 }
@@ -40,6 +52,105 @@ export interface FolderNode {
   sortIndex: number
   createdAt: number
 }
+
+export interface GenerationWallItem {
+  id: string
+  generationId: string
+  kind: 'image' | 'video'
+  status: GenerationStatus
+  prompt: string
+  provider: ProviderId
+  model: string
+  params: Record<string, unknown>
+  inputAssetIds: string[]
+  inputAssets: InputAsset[]
+  url: string
+  urls: string[]
+  outputs: Array<{
+    id: string
+    url: string
+    width: number | null
+    height: number | null
+    duration: number | null
+    kind: 'image' | 'video' | 'audio'
+  }>
+  width: number | null
+  height: number | null
+  duration: number | null
+  outputCount: number
+  folderId: string | null
+  error: string | null
+  errorCode: string | null
+  errorReason: string | null
+  errorRetryable: boolean | null
+  createdAt: number
+  updatedAt: number
+}
+
+export const loadGenerationWall = createServerFn({ method: 'GET', strict: false }).handler(
+  (): GenerationWallItem[] => {
+    const generations = [
+      ...listGenerations({ status: 'running', limit: 30 }),
+      ...listGenerations({ status: 'queued', limit: 30 }),
+      ...listGenerations({ status: 'failed', limit: 20 }),
+      ...listGenerations({ status: 'succeeded', limit: 80 }),
+    ]
+    const outputIds = generations.flatMap((generation) => generation.outputAssetIds)
+    const inputIds = generations.flatMap((generation) => generation.inputAssetIds)
+    const assets = new Map(getAssetsByIds([...outputIds, ...inputIds]).map((asset) => [asset.id, asset]))
+    const priority: Record<string, number> = {
+      running: 0,
+      queued: 1,
+      failed: 2,
+      succeeded: 3,
+    }
+
+    return generations
+      .map((generation): GenerationWallItem => {
+        const outputs = generation.outputAssetIds
+          .map((id) => assets.get(id))
+          .filter((asset) => asset !== undefined)
+        const first = outputs[0]
+        return {
+          id: generation.id,
+          generationId: generation.id,
+          kind: generation.kind,
+          status: generation.status,
+          prompt: generation.prompt,
+          provider: generation.provider,
+          model: generation.model,
+          params: generation.params,
+          inputAssetIds: generation.inputAssetIds,
+          inputAssets: toInputAssets(generation.inputAssetIds, assets),
+          url: first ? assetUrl(first.id) : '',
+          urls: outputs.map((asset) => assetUrl(asset.id)),
+          outputs: outputs.map((asset) => ({
+            id: asset.id,
+            url: assetUrl(asset.id),
+            width: asset.width,
+            height: asset.height,
+            duration: asset.duration,
+            kind: asset.kind,
+          })),
+          width: first?.width ?? null,
+          height: first?.height ?? null,
+          duration: first?.duration ?? null,
+          outputCount: outputs.length,
+          folderId: generation.folderId,
+          error: generation.error,
+          errorCode: generation.errorCode,
+          errorReason: generation.errorReason,
+          errorRetryable: generation.errorRetryable,
+          createdAt: generation.createdAt,
+          updatedAt: generation.updatedAt,
+        }
+      })
+      .sort(
+        (left, right) =>
+          (priority[left.status] ?? 9) - (priority[right.status] ?? 9) || right.createdAt - left.createdAt,
+      )
+  },
+)
 
 const galleryInput = z.object({
   kind: z.enum(['all', 'image', 'video']).default('all'),
@@ -60,7 +171,8 @@ export const loadGallery = createServerFn({ method: 'GET' })
     })
 
     const outputIds = generations.flatMap((generation) => generation.outputAssetIds)
-    const assets = new Map(getAssetsByIds(outputIds).map((asset) => [asset.id, asset]))
+    const inputIds = generations.flatMap((generation) => generation.inputAssetIds)
+    const assets = new Map(getAssetsByIds([...outputIds, ...inputIds]).map((asset) => [asset.id, asset]))
 
     return generations.flatMap((generation) => {
       const outputs = generation.outputAssetIds
@@ -82,6 +194,7 @@ export const loadGallery = createServerFn({ method: 'GET' })
           provider: generation.provider,
           model: generation.model,
           outputCount: outputs.length,
+          inputAssets: toInputAssets(generation.inputAssetIds, assets),
           folderId: generation.folderId,
           createdAt: generation.createdAt,
         },
@@ -124,6 +237,29 @@ export const loadMediaAssets = createServerFn({ method: 'GET', strict: false })
       limit: 200,
     }).map(toPublicAsset),
   )
+
+export interface ReferenceLibrary {
+  avatars: ReferenceAvatar[]
+  assets: PublicAsset[]
+}
+
+export const loadReferenceLibrary = createServerFn({ method: 'GET', strict: false }).handler(
+  (): ReferenceLibrary => ({
+    avatars: listStudioItems('avatar').flatMap((item) => {
+      const reference = referenceAvatar(item)
+      return reference ? [{ ...reference, url: assetUrl(reference.id) }] : []
+    }),
+    assets: listAssets({
+      kind: 'image',
+      sources: ['upload', 'social', 'generated', 'studio'],
+      limit: 120,
+    }).map(toPublicAsset),
+  }),
+)
+
+export const cleanupFailedGenerations = createServerFn({ method: 'POST', strict: false }).handler(
+  (): { deleted: number } => ({ deleted: deleteFailedGenerations() }),
+)
 
 export const loadFolders = createServerFn({ method: 'GET' }).handler((): FolderNode[] => {
   return listFolders().map((folder) => ({

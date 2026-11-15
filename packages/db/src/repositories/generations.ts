@@ -21,6 +21,9 @@ interface GenerationRow {
   output_asset_ids: string
   provider_job_id: string | null
   error: string | null
+  error_code: string | null
+  error_reason: string | null
+  error_retryable: number | null
   folder_id: string | null
   created_at: number
   updated_at: number
@@ -47,6 +50,9 @@ function toRecord(row: GenerationRow): GenerationRecord {
     outputAssetIds: parseJson<string[]>(row.output_asset_ids, []),
     providerJobId: row.provider_job_id,
     error: row.error,
+    errorCode: row.error_code,
+    errorReason: row.error_reason,
+    errorRetryable: row.error_retryable === null ? null : row.error_retryable === 1,
     folderId: row.folder_id,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -93,6 +99,9 @@ export interface UpdateGenerationPatch {
   outputAssetIds?: string[]
   providerJobId?: string | null
   error?: string | null
+  errorCode?: string | null
+  errorReason?: string | null
+  errorRetryable?: boolean | null
   folderId?: string | null
   model?: string
   prompt?: string
@@ -110,7 +119,19 @@ export function updateGeneration(id: string, patch: UpdateGenerationPatch): Gene
   if (patch.status !== undefined) push('status', patch.status)
   if (patch.outputAssetIds !== undefined) push('output_asset_ids', JSON.stringify(patch.outputAssetIds))
   if (patch.providerJobId !== undefined) push('provider_job_id', patch.providerJobId)
-  if (patch.error !== undefined) push('error', patch.error)
+  if (patch.error !== undefined) {
+    push('error', patch.error)
+    if (patch.error === null) {
+      push('error_code', null)
+      push('error_reason', null)
+      push('error_retryable', null)
+    }
+  }
+  if (patch.errorCode !== undefined) push('error_code', patch.errorCode)
+  if (patch.errorReason !== undefined) push('error_reason', patch.errorReason)
+  if (patch.errorRetryable !== undefined) {
+    push('error_retryable', patch.errorRetryable === null ? null : patch.errorRetryable ? 1 : 0)
+  }
   if (patch.folderId !== undefined) push('folder_id', patch.folderId)
   if (patch.model !== undefined) push('model', patch.model)
   if (patch.prompt !== undefined) push('prompt', patch.prompt)
@@ -134,6 +155,24 @@ export function findGenerationByProviderJob(providerJobId: string): GenerationRe
   const row = getDb()
     .prepare('SELECT * FROM generations WHERE provider_job_id = ? ORDER BY created_at DESC LIMIT 1')
     .get(providerJobId) as GenerationRow | undefined
+  return row ? toRecord(row) : null
+}
+
+/**
+ * Webhooks carry only the provider request id. fal stores `endpoint|requestId`
+ * in `provider_job_id`, so match either an exact id or a `<endpoint>|<id>` suffix.
+ */
+export function findGenerationByProviderRequest(
+  provider: ProviderId,
+  requestId: string,
+): GenerationRecord | null {
+  const row = getDb()
+    .prepare(
+      `SELECT * FROM generations
+       WHERE provider = ? AND (provider_job_id = ? OR provider_job_id LIKE ?)
+       ORDER BY created_at DESC LIMIT 1`,
+    )
+    .get(provider, requestId, `%|${requestId}`) as GenerationRow | undefined
   return row ? toRecord(row) : null
 }
 
@@ -214,6 +253,11 @@ export function listPendingGenerations(): GenerationRecord[] {
 export function deleteGeneration(id: string): boolean {
   const result = getDb().prepare('DELETE FROM generations WHERE id = ?').run(id)
   return result.changes > 0
+}
+
+export function deleteFailedGenerations(): number {
+  const result = getDb().prepare("DELETE FROM generations WHERE status = 'failed'").run()
+  return Number(result.changes)
 }
 
 export function moveGenerationToFolder(id: string, folderId: string | null): boolean {

@@ -34,6 +34,9 @@ export interface GenerationRecord {
   outputAssetIds: string[]
   providerJobId: string | null
   error: string | null
+  errorCode: string | null
+  errorReason: string | null
+  errorRetryable: boolean | null
   folderId: string | null
   createdAt: number
   updatedAt: number

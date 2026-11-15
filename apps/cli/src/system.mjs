@@ -196,6 +196,13 @@ async function installLaunchdService({ port, name, mdns, tunnel }) {
   else args.push('--no-mdns')
   if (tunnel) args.push('--tunnel')
 
+  const publicUrl = process.env.SUNNYGEN_PUBLIC_URL?.trim()
+  const publicUrlXml = publicUrl
+    ? `    <key>SUNNYGEN_PUBLIC_URL</key>
+    <string>${xmlEscape(publicUrl)}</string>
+`
+    : ''
+
   const argumentXml = args.map((argument) => `    <string>${xmlEscape(argument)}</string>`).join('\n')
 
   const plist = `<?xml version="1.0" encoding="UTF-8"?>
@@ -218,7 +225,7 @@ ${argumentXml}
     <string>${port}</string>
     <key>SUNNYGEN_SERVICE</key>
     <string>1</string>
-  </dict>
+${publicUrlXml}  </dict>
   <key>RunAtLoad</key>
   <true/>
   <key>KeepAlive</key>
@@ -279,6 +286,8 @@ async function installSystemdService({ port }) {
   await waitForPortRelease(port)
 
   const node = serviceNode()
+  const publicUrl = process.env.SUNNYGEN_PUBLIC_URL?.trim()
+  const publicUrlEnv = publicUrl ? `Environment=SUNNYGEN_PUBLIC_URL=${publicUrl}\n` : ''
   const unit = `[Unit]
 Description=SunnyGen
 Documentation=file://${ROOT}/README.md
@@ -291,7 +300,7 @@ Environment=PORT=${port}
 Environment=HOST=0.0.0.0
 Environment=NITRO_PORT=${port}
 Environment=NITRO_HOST=0.0.0.0
-ExecStart="${node}" "${SERVER_ENTRY}"
+${publicUrlEnv}ExecStart="${node}" "${SERVER_ENTRY}"
 Restart=always
 RestartSec=3
 # The Nitro node server closes its listener on SIGTERM but keeps the event loop

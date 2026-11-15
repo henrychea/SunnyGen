@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import type { AssetKind } from '@sunnygen/core'
+import { createFolder } from '@sunnygen/db'
 import { storeRemoteAsset, toPublicAsset, type PublicAsset } from './media.server'
 
 const pickerSchema = z.object({
@@ -110,16 +111,60 @@ export async function resolveSocialPost(url: string): Promise<SocialItem[]> {
 export async function importSocialPost(url: string): Promise<PublicAsset[]> {
   const items = (await resolveSocialPost(url)).slice(0, 10)
   const cobaltHost = new URL(cobaltBaseUrl()).hostname
+  const folderId = items.length > 1 ? createFolder({ name: socialFolderName(url) }).id : null
   const assets: PublicAsset[] = []
   for (const item of items) {
     const asset = await storeRemoteAsset(item.url, {
       kind: item.kind,
       source: 'social',
+      folderId,
       allowHosts: [cobaltHost],
     })
     assets.push(toPublicAsset(asset))
   }
   return assets
+}
+
+export interface SocialImportErrors {
+  url: string
+  error: string
+}
+
+export interface SocialImportResult {
+  assets: PublicAsset[]
+  errors: SocialImportErrors[]
+}
+
+export async function importSocialLinks(urls: string[]): Promise<SocialImportResult> {
+  const assets: PublicAsset[] = []
+  const errors: SocialImportErrors[] = []
+  for (const url of urls) {
+    try {
+      assets.push(...(await importSocialPost(url)))
+    } catch (error) {
+      errors.push({
+        url,
+        error: error instanceof Error ? error.message : 'Import failed',
+      })
+    }
+  }
+  return { assets, errors }
+}
+
+function socialFolderName(url: string): string {
+  let host = 'Cobalt'
+  try {
+    host = new URL(url).hostname.replace(/^www\./, '')
+  } catch {
+    // Keep the generic label.
+  }
+  const stamp = new Date().toLocaleString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+  return `${host} · ${stamp}`.slice(0, 80)
 }
 
 export async function cobaltOnline(): Promise<boolean> {

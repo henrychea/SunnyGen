@@ -1,9 +1,16 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { z } from 'zod'
-import { importSocialPost } from '~/server/social.server'
+import { importSocialLinks, importSocialPost } from '~/server/social.server'
 import { payloadTooLarge } from '~/server/guards.server'
 
-const bodySchema = z.object({ url: z.string().url() })
+const bodySchema = z
+  .object({
+    url: z.string().url().optional(),
+    urls: z.array(z.string().url()).min(1).max(10).optional(),
+  })
+  .refine((value) => Boolean(value.url) || Boolean(value.urls?.length), {
+    message: 'A valid http(s) URL is required',
+  })
 
 export const Route = createFileRoute('/api/social/resolve')({
   server: {
@@ -23,6 +30,13 @@ export const Route = createFileRoute('/api/social/resolve')({
           return Response.json({ error: 'A valid http(s) URL is required' }, { status: 400 })
         }
         try {
+          if (parsed.data.urls) {
+            const result = await importSocialLinks(parsed.data.urls)
+            return Response.json(result)
+          }
+          if (!parsed.data.url) {
+            return Response.json({ error: 'A valid http(s) URL is required' }, { status: 400 })
+          }
           const assets = await importSocialPost(parsed.data.url)
           return Response.json({ assets })
         } catch (error) {

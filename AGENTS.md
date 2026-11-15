@@ -39,6 +39,8 @@ apps/cli                 sunnygen launcher
 - Routes import shared UI from `@sunnygen/ui`, data contracts from `@sunnygen/core`.
 - Media is stored under `data/media` and served from `/api/media/<assetId>`.
 - Generation jobs persist in `generations` + `jobs`; one poller per process.
+- Terminal status arrives by webhook when `SUNNYGEN_PUBLIC_URL` is set; providers expose
+  callback parsing through `ProviderModule.webhook`, and polling remains the fallback.
 - Dialogs use Base UI primitives in `@sunnygen/ui` and render through `DialogSurface`.
 - The theme is warm light: canvas `#FAF6EF`, surface `#FFFDF8`, ink `#2A1E17`,
   accent `#A31621`. Use theme classes (`bg-canvas`, `text-ink`, `border-line`).

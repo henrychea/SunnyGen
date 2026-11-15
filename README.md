@@ -204,6 +204,12 @@ Keys are stored in your local SQLite database and only sent to the provider you 
 Environment fallbacks: `SUNRA_API_KEY`, `FAL_KEY`, `AZURE_API_KEY`,
 `OPENROUTER_API_KEY`.
 
+Sunra.ai and fal.ai can push finished jobs to SunnyGen instead of waiting for the next
+poll. Set `SUNNYGEN_PUBLIC_URL` to the origin providers can reach (for example a
+Cloudflare Tunnel hostname) and submissions register a token-scoped
+`/api/webhooks/<provider>/<token>` callback. Polling stays enabled as the fallback, and
+no callback is registered while the variable is unset.
+
 If the selected provider is not configured, SunnyGen falls back to another configured
 provider that supports the same model.
 

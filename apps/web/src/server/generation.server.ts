@@ -9,12 +9,14 @@ import { getAssetsByIds, readSetting } from '@sunnygen/db'
 import {
   getAdapter,
   isCodexAvailable,
+  providerSupportsWebhooks,
   type AdapterContext,
   type ProviderAsset,
   type ProviderOutput,
 } from '@sunnygen/providers'
 import sharp from 'sharp'
 import { readAssetBuffer, storeBuffer } from './media.server'
+import { providerWebhookUrl } from './webhook-config.server'
 
 const PLACEHOLDER = /^your_.*_here$/i
 
@@ -96,10 +98,17 @@ async function fitImageForProvider(buffer: Buffer, mime: string): Promise<{ buff
 export async function loadProviderAssets(assetIds: string[]): Promise<ProviderAsset[]> {
   if (assetIds.length === 0) return []
   const records = getAssetsByIds(assetIds)
+  if (records.length !== assetIds.length) {
+    const found = new Set(records.map((record) => record.id))
+    const missing = assetIds.filter((id) => !found.has(id))
+    throw new Error(
+      `${missing.length} selected input ${missing.length === 1 ? 'image is' : 'images are'} not in the media library (${missing.join(', ')}). Re-select the references and try again.`,
+    )
+  }
   const assets: ProviderAsset[] = []
   for (const record of records) {
     const read = await readAssetBuffer(record.id)
-    if (!read) continue
+    if (!read) throw new Error(`Input image ${record.id} is missing from disk. Re-select it and try again.`)
     const fitted = await fitImageForProvider(read.buffer, record.mime)
     const extension = fitted.mime.split('/')[1] ?? 'bin'
     assets.push({
@@ -141,6 +150,7 @@ export interface PreparedGeneration {
     prompt: string
     params: GenerationParams
     assets: ProviderAsset[]
+    webhookUrl?: string | null
   }
   provider: ProviderId
 }
@@ -163,6 +173,7 @@ export async function prepareGeneration(input: {
       prompt: input.prompt,
       params: input.params,
       assets,
+      webhookUrl: providerSupportsWebhooks(provider) ? providerWebhookUrl(provider) : null,
     },
   }
 }

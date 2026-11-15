@@ -3,8 +3,10 @@ import { downloadOutput } from './http'
 import { azureSize } from './sizes'
 import {
   ProviderError,
+  createAdapterFromFlows,
   type AdapterContext,
-  type ProviderAdapter,
+  type ProviderFlow,
+  type ProviderModule,
   type ProviderRequest,
   type ProviderSubmit,
 } from './types'
@@ -119,7 +121,20 @@ async function submit(context: AdapterContext, request: ProviderRequest): Promis
   throw new ProviderError('azure', 'Azure returned no image data')
 }
 
-export const azureAdapter: ProviderAdapter = {
-  id: 'azure',
+export const azureImageFlow: ProviderFlow = {
+  id: 'azure.image',
+  kind: 'image',
+  matches: (model) => model.kind === 'image',
   submit,
+}
+
+const flows = [azureImageFlow]
+
+export const azureAdapter = createAdapterFromFlows('azure', flows)
+
+export const azureModule: ProviderModule = {
+  id: 'azure',
+  label: 'Azure AI Foundry',
+  adapter: azureAdapter,
+  flows,
 }
