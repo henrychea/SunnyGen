@@ -1,6 +1,7 @@
 import { QueryClientProvider, type QueryClient } from '@tanstack/react-query'
 import { HeadContent, Outlet, Scripts, createRootRouteWithContext, Link } from '@tanstack/react-router'
 import { APP_NAME, APP_TAGLINE } from '@sunnygen/core'
+import { MotionConfig } from 'motion/react'
 import { AppShell } from '~/components/app-shell'
 import { PwaRegister } from '~/components/pwa-register'
 import '../styles.css'
@@ -46,11 +47,13 @@ function RootComponent() {
       </head>
       <body>
         <PwaRegister />
-        <QueryClientProvider client={queryClient}>
-          <AppShell>
-            <Outlet />
-          </AppShell>
-        </QueryClientProvider>
+        <MotionConfig reducedMotion="user">
+          <QueryClientProvider client={queryClient}>
+            <AppShell>
+              <Outlet />
+            </AppShell>
+          </QueryClientProvider>
+        </MotionConfig>
         <Scripts />
       </body>
     </html>

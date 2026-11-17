@@ -13,6 +13,7 @@ import {
   Sparkles,
   X,
 } from 'lucide-react'
+import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import { submitGeneration } from '~/server/generation.functions'
 import { createFolderFn } from '~/server/library.functions'
@@ -460,24 +461,42 @@ export function HomeComposer() {
               onClick={() => changeMode('generate')}
               aria-pressed={mode === 'generate'}
               className={cn(
-                'flex h-8 items-center gap-1.5 rounded-lg px-3 text-[11.5px] font-medium transition-colors',
-                mode === 'generate' ? 'bg-ink text-canvas' : 'text-ink/45 hover:bg-ink/[0.05] hover:text-ink',
+                'relative flex h-8 items-center gap-1.5 rounded-lg px-3 text-[11.5px] font-medium transition-colors',
+                mode === 'generate' ? 'text-canvas' : 'text-ink/45 hover:bg-ink/[0.05] hover:text-ink',
               )}
             >
-              <Sparkles size={12} />
-              Generate
+              {mode === 'generate' ? (
+                <motion.span
+                  layoutId="composer-mode"
+                  transition={{ type: 'spring', stiffness: 400, damping: 40 }}
+                  className="bg-ink absolute inset-0 rounded-lg"
+                />
+              ) : null}
+              <span className="relative flex items-center gap-1.5">
+                <Sparkles size={12} />
+                Generate
+              </span>
             </button>
             <button
               type="button"
               onClick={() => changeMode('edit')}
               aria-pressed={mode === 'edit'}
               className={cn(
-                'flex h-8 items-center gap-1.5 rounded-lg px-3 text-[11.5px] font-medium transition-colors',
-                mode === 'edit' ? 'bg-ink text-canvas' : 'text-ink/45 hover:bg-ink/[0.05] hover:text-ink',
+                'relative flex h-8 items-center gap-1.5 rounded-lg px-3 text-[11.5px] font-medium transition-colors',
+                mode === 'edit' ? 'text-canvas' : 'text-ink/45 hover:bg-ink/[0.05] hover:text-ink',
               )}
             >
-              <Replace size={12} />
-              Edit
+              {mode === 'edit' ? (
+                <motion.span
+                  layoutId="composer-mode"
+                  transition={{ type: 'spring', stiffness: 400, damping: 40 }}
+                  className="bg-ink absolute inset-0 rounded-lg"
+                />
+              ) : null}
+              <span className="relative flex items-center gap-1.5">
+                <Replace size={12} />
+                Edit
+              </span>
             </button>
           </div>
 
@@ -772,34 +791,48 @@ function SelectionBox({
         </span>
       </div>
       <div className="mt-1 flex flex-wrap items-start gap-1.5">
-        {items.map((item) => (
-          <div key={item.id} className="border-line group relative overflow-hidden rounded-lg border">
-            <img src={item.url} alt="" className="size-12 object-cover" />
-            <button
-              type="button"
-              onClick={() => onRemove(item.id)}
-              aria-label={`Remove ${item.name}`}
-              className="bg-ink/75 text-canvas absolute top-0.5 right-0.5 grid size-4 place-items-center rounded opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100"
+        <AnimatePresence initial={false}>
+          {items.map((item) => (
+            <motion.div
+              key={item.id}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ duration: 0.18, ease: 'easeOut' }}
+              className="border-line group relative overflow-hidden rounded-lg border"
             >
-              <X size={9} />
-            </button>
-          </div>
-        ))}
-        {remaining > 0 ? (
-          <button
-            type="button"
-            onClick={onAdd}
-            disabled={busy}
-            aria-label={`Add ${label.toLowerCase()}`}
-            className="border-line bg-canvas/50 text-ink/45 hover:border-accent/35 hover:text-accent flex size-12 flex-col items-center justify-center gap-0.5 rounded-lg border border-dashed transition-colors disabled:opacity-40"
-          >
-            <ImagePlus size={13} />
-            <span className="text-[7.5px] font-semibold tracking-[0.04em]">{tileLabel}</span>
-            {Number.isFinite(remaining) ? (
-              <span className="text-[7.5px] opacity-60">{remaining} left</span>
-            ) : null}
-          </button>
-        ) : null}
+              <img src={item.url} alt="" className="size-12 object-cover" />
+              <button
+                type="button"
+                onClick={() => onRemove(item.id)}
+                aria-label={`Remove ${item.name}`}
+                className="bg-ink/75 text-canvas absolute top-0.5 right-0.5 grid size-4 place-items-center rounded opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100"
+              >
+                <X size={9} />
+              </button>
+            </motion.div>
+          ))}
+          {remaining > 0 ? (
+            <motion.button
+              key="add"
+              type="button"
+              onClick={onAdd}
+              disabled={busy}
+              aria-label={`Add ${label.toLowerCase()}`}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ duration: 0.18, ease: 'easeOut' }}
+              className="border-line bg-canvas/50 text-ink/45 hover:border-accent/35 hover:text-accent flex size-12 flex-col items-center justify-center gap-0.5 rounded-lg border border-dashed transition-colors disabled:opacity-40"
+            >
+              <ImagePlus size={13} />
+              <span className="text-[7.5px] font-semibold tracking-[0.04em]">{tileLabel}</span>
+              {Number.isFinite(remaining) ? (
+                <span className="text-[7.5px] opacity-60">{remaining} left</span>
+              ) : null}
+            </motion.button>
+          ) : null}
+        </AnimatePresence>
       </div>
     </div>
   )

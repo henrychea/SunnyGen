@@ -1,7 +1,8 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { Badge, cn } from '@sunnygen/ui'
 import { AlertCircle, Clock, FileAudio, Folder, Loader2 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { motion } from 'motion/react'
+import { useEffect, useState, type Ref } from 'react'
 import { FailureActions } from '~/components/failure-actions'
 import { MediaActionBar } from '~/components/media-action-bar'
 import { MediaCard, MediaThumbStrip } from '~/components/media-preview'
@@ -10,6 +11,14 @@ import { deleteLibraryItemFn, type GenerationWallItem } from '~/server/library.f
 
 export const WALL_CARD_HEIGHT = 'h-[180px] md:h-[230px]'
 export const WALL_FIXED_WIDTH = 'w-[280px] md:w-[320px]'
+
+const cardMotion = {
+  layout: 'position',
+  initial: { opacity: 0, y: 8 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0 },
+  transition: { duration: 0.2, ease: 'easeOut' },
+} as const
 
 export type WallOutput = GenerationWallItem['outputs'][number]
 export type WallCard =
@@ -26,15 +35,19 @@ export function OutputCard({
   output,
   onOpen,
   showCount = true,
+  ref,
 }: {
   generation: GenerationWallItem
   output: WallOutput
   onOpen?: () => void
   showCount?: boolean
+  ref?: Ref<HTMLButtonElement>
 }) {
   const ratio = outputRatio(output)
   return (
-    <button
+    <motion.button
+      {...cardMotion}
+      ref={ref}
       type="button"
       onClick={onOpen}
       data-wall-card="output"
@@ -79,15 +92,17 @@ export function OutputCard({
           {generation.prompt || generation.model}
         </p>
       </div>
-    </button>
+    </motion.button>
   )
 }
 
-export function JobCard({ generation }: { generation: GenerationWallItem }) {
+export function JobCard({ generation, ref }: { generation: GenerationWallItem; ref?: Ref<HTMLDivElement> }) {
   const failed = generation.status === 'failed'
   const running = generation.status === 'running'
   return (
-    <div
+    <motion.div
+      {...cardMotion}
+      ref={ref}
       data-wall-card="job"
       className={cn(
         'border-line bg-surface relative flex shrink-0 flex-col overflow-hidden rounded-xl border',
@@ -142,7 +157,7 @@ export function JobCard({ generation }: { generation: GenerationWallItem }) {
           </p>
         </div>
       )}
-    </div>
+    </motion.div>
   )
 }
 
@@ -152,16 +167,20 @@ export function GroupCard({
   failed,
   outputs,
   onOpen,
+  ref,
 }: {
   title: string
   count: number
   failed: number
   outputs: WallOutput[]
   onOpen: () => void
+  ref?: Ref<HTMLButtonElement>
 }) {
   const previews = outputs.slice(0, 4)
   return (
-    <button
+    <motion.button
+      {...cardMotion}
+      ref={ref}
       type="button"
       onClick={onOpen}
       data-wall-card="group"
@@ -226,7 +245,7 @@ export function GroupCard({
         <Folder size={12} className="text-ink/40 shrink-0" />
         <span className="text-ink/65 truncate text-[10.5px] font-medium">{title}</span>
       </div>
-    </button>
+    </motion.button>
   )
 }
 

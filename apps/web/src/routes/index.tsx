@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { cn } from '@sunnygen/ui'
 import { Download, FileAudio, Images, Play, Search, Upload, X } from 'lucide-react'
+import { AnimatePresence } from 'motion/react'
 import { useEffect, useState, type ReactNode } from 'react'
 import { CleanupFailedButton } from '~/components/cleanup-failed'
 import { HomeComposer } from '~/components/home/composer'
@@ -289,47 +290,49 @@ function HomePage() {
         <div className="px-3 pt-3 pb-64 md:px-6 md:pb-56">
           {tab === 'generated' ? (
             entries.length > 0 ? (
-              <div className="flex flex-wrap content-start gap-3">
-                {entries.map((entry) => {
-                  if (entry.type === 'job') {
-                    return <JobCard key={entry.generation.id} generation={entry.generation} />
-                  }
-                  if (entry.type === 'group') {
+              <div className="relative flex flex-wrap content-start gap-3">
+                <AnimatePresence initial={false} mode="popLayout">
+                  {entries.map((entry) => {
+                    if (entry.type === 'job') {
+                      return <JobCard key={entry.generation.id} generation={entry.generation} />
+                    }
+                    if (entry.type === 'group') {
+                      return (
+                        <GroupCard
+                          key={entry.id}
+                          title={entry.title}
+                          count={entry.cards.length}
+                          failed={
+                            entry.cards.filter(
+                              (card) => card.type === 'job' && card.generation.status === 'failed',
+                            ).length
+                          }
+                          outputs={entry.outputs}
+                          onOpen={() => setGroupModal({ title: entry.title, cards: entry.cards })}
+                        />
+                      )
+                    }
                     return (
-                      <GroupCard
-                        key={entry.id}
-                        title={entry.title}
-                        count={entry.cards.length}
-                        failed={
-                          entry.cards.filter(
-                            (card) => card.type === 'job' && card.generation.status === 'failed',
-                          ).length
+                      <OutputCard
+                        key={entry.output.id}
+                        generation={entry.generation}
+                        output={entry.output}
+                        onOpen={() =>
+                          setGroupModal({
+                            title: entry.generation.prompt || entry.generation.model,
+                            cards: [
+                              {
+                                type: 'output',
+                                generation: entry.generation,
+                                output: entry.output,
+                              },
+                            ],
+                          })
                         }
-                        outputs={entry.outputs}
-                        onOpen={() => setGroupModal({ title: entry.title, cards: entry.cards })}
                       />
                     )
-                  }
-                  return (
-                    <OutputCard
-                      key={entry.output.id}
-                      generation={entry.generation}
-                      output={entry.output}
-                      onOpen={() =>
-                        setGroupModal({
-                          title: entry.generation.prompt || entry.generation.model,
-                          cards: [
-                            {
-                              type: 'output',
-                              generation: entry.generation,
-                              output: entry.output,
-                            },
-                          ],
-                        })
-                      }
-                    />
-                  )
-                })}
+                  })}
+                </AnimatePresence>
               </div>
             ) : (
               <EmptyWall
