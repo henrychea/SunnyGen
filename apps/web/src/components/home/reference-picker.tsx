@@ -350,7 +350,9 @@ export function ReferencePicker({
               onChange={(event) => void uploadFiles(event.target.files)}
             />
             <p className="text-ink/40 text-[10.5px]">
-              {picked.length} selected · {pickedCount} of {max} image slot{max === 1 ? '' : 's'} used
+              {Number.isFinite(max)
+                ? `${picked.length} selected · ${pickedCount} of ${max} image slot${max === 1 ? '' : 's'} used`
+                : `${picked.length} selected`}
             </p>
             <div className="ml-auto flex items-center gap-2">
               <button
