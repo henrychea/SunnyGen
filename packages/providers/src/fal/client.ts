@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import type { GenerationKind } from '@sunnygen/core'
 import { downloadOutput, errorMessage, responseError } from '../http'
 import {
   ProviderError,
@@ -147,7 +148,7 @@ export async function submitFalQueue(
   }
 }
 
-function extractUrls(result: Record<string, unknown>, kind: 'image' | 'video'): string[] {
+function extractUrls(result: Record<string, unknown>, kind: GenerationKind): string[] {
   const urls: string[] = []
   const push = (value: unknown) => {
     if (typeof value === 'string' && value) {
@@ -162,7 +163,9 @@ function extractUrls(result: Record<string, unknown>, kind: 'image' | 'video'): 
       urls.push(value.url)
     }
   }
-  if (kind === 'video') {
+  if (kind === 'lora') {
+    push(result.diffusers_lora_file)
+  } else if (kind === 'video') {
     push(result.video)
     push(result.videos)
     push(result.video_url)
@@ -253,6 +256,12 @@ export async function pollFal(context: AdapterContext, job: ProviderJob): Promis
 
   const urls = extractUrls(result, job.kind)
   if (urls.length === 0) return { status: 'failed', error: 'fal returned no output' }
-  const outputs: ProviderOutput[] = await Promise.all(urls.map((url) => downloadOutput(url)))
+  const outputs: ProviderOutput[] = await Promise.all(
+    urls.map(async (url) => {
+      const output = await downloadOutput(url)
+      if (job.kind !== 'lora') return output
+      return { ...output, mime: 'application/octet-stream', fileName: 'lora.safetensors', sourceUrl: url }
+    }),
+  )
   return { status: 'succeeded', outputs }
 }

@@ -1,4 +1,4 @@
-import type { ImageModelDefinition } from '@sunnygen/core'
+import { LORA_SCALE_DEFAULT, type ImageModelDefinition } from '@sunnygen/core'
 import { FAL_IMAGE_SPECS } from '../models'
 import { gptImageSize } from '../sizes'
 import { ProviderError, type AdapterContext, type ProviderFlow, type ProviderRequest } from '../types'
@@ -15,6 +15,15 @@ const FAL_IMAGE_FIELDS = [
   'input_image',
   'image',
 ] as const
+
+const FAL_SIZE_NAMES = [
+  'square_hd',
+  'square',
+  'landscape_4_3',
+  'portrait_4_3',
+  'landscape_16_9',
+  'portrait_16_9',
+]
 
 const MAX_SIDE = 3840
 const MAX_PIXELS = 8_294_400
@@ -192,7 +201,15 @@ function buildFallbackBody(
   }
   if (spec?.supportsSafetyChecker) body.enable_safety_checker = false
   const aspectRatio = request.params.aspectRatio
-  if (aspectRatio && aspectRatio !== 'auto') body.aspect_ratio = aspectRatio
+  if (aspectRatio && aspectRatio !== 'auto') {
+    const name = spec?.sizeNameKey ? falSizeName(aspectRatio, FAL_SIZE_NAMES) : undefined
+    if (spec?.sizeNameKey) {
+      if (name) body[spec.sizeNameKey] = name
+    } else {
+      body.aspect_ratio = aspectRatio
+    }
+  }
+  applyLoraWeights(body, request)
   return body
 }
 
@@ -250,7 +267,16 @@ function buildSchemaBody(
     const array = isArrayProperty(properties[field], components) || /(urls|images)$/.test(field)
     body[field] = array ? urls.slice(0, model.maxImages) : urls[0]
   }
+  applyLoraWeights(body, request)
   return body
+}
+
+function applyLoraWeights(body: Record<string, unknown>, request: ProviderRequest): void {
+  if (!request.model.supportsLora) return
+  const lora = request.params.lora as { path?: unknown; scale?: unknown } | undefined
+  if (!lora || typeof lora.path !== 'string' || !lora.path) return
+  const scale = Number(lora.scale)
+  body.loras = [{ path: lora.path, scale: Number.isFinite(scale) && scale > 0 ? scale : LORA_SCALE_DEFAULT }]
 }
 
 export const falImageFlow: ProviderFlow = {
