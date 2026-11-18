@@ -5,9 +5,20 @@ import {
   type ImageModelDefinition,
   type VideoModelDefinition,
 } from '@sunnygen/core'
-import { Badge, Button, cn, Input, Select, Textarea } from '@sunnygen/ui'
+import {
+  Badge,
+  Button,
+  cn,
+  Input,
+  Select,
+  Textarea,
+  motionFade,
+  motionPop,
+  motionTransition,
+} from '@sunnygen/ui'
 import { Image as ImageIcon, Loader2, Minus, Play, Plus, Sparkles, StickyNote, Video, X } from 'lucide-react'
 import { useRef, useState, type ReactNode } from 'react'
+import { AnimatePresence, motion } from 'motion/react'
 import { MediaPicker } from '../media-picker'
 import { ModelCombobox } from '../model-combobox'
 import { useCanvasActions } from './context'
@@ -40,34 +51,52 @@ function NodeShell({
   outputs?: ReactNode
 }) {
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0, scale: 0.97 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={motionTransition}
       style={{ width }}
       className={cn(
         'bg-surface overflow-hidden rounded-xl border shadow-[0_16px_44px_-30px_rgba(42,30,23,0.55)]',
+        'transition-[border-color,box-shadow] duration-150 ease-out',
         selected ? 'border-accent/50 ring-accent/12 ring-2' : 'border-line',
       )}
     >
       <div className="border-line/80 flex items-center gap-2 border-b px-3 py-2">
         <span className="text-accent/80">{icon}</span>
         <span className="font-display text-ink/80 text-[11.5px] font-semibold tracking-tight">{title}</span>
-        {status && status !== 'idle' ? (
-          <Badge tone={STATUS_TONES[status]} className="ml-auto">
-            {status}
-          </Badge>
-        ) : null}
+        <AnimatePresence initial={false} mode="popLayout">
+          {status && status !== 'idle' ? (
+            <motion.span
+              key={status}
+              variants={motionPop}
+              initial="hidden"
+              animate="visible"
+              exit="hidden"
+              className="ml-auto"
+            >
+              <Badge tone={STATUS_TONES[status]}>{status}</Badge>
+            </motion.span>
+          ) : null}
+        </AnimatePresence>
       </div>
       <div className="flex flex-col gap-2.5 p-3">
         {children}
         {outputs}
       </div>
-    </div>
+    </motion.div>
   )
 }
 
 function OutputThumbs({ ids, kind }: { ids: string[]; kind: 'image' | 'video' }) {
   if (ids.length === 0) return null
   return (
-    <div className="grid grid-cols-3 gap-1.5">
+    <motion.div
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={motionTransition}
+      className="grid grid-cols-3 gap-1.5"
+    >
       {ids.slice(0, 6).map((id) => (
         <a
           key={id}
@@ -83,7 +112,7 @@ function OutputThumbs({ ids, kind }: { ids: string[]; kind: 'image' | 'video' })
           )}
         </a>
       ))}
-    </div>
+    </motion.div>
   )
 }
 
@@ -124,33 +153,47 @@ export function MediaInputNode({ id, data, selected, type }: NodeProps<CanvasNod
       selected={selected}
     >
       <div className="grid grid-cols-3 gap-1.5">
-        {ids.map((assetId) => (
-          <div
-            key={assetId}
-            className="border-line bg-canvas group relative overflow-hidden rounded-md border"
-          >
-            {video ? (
-              <video src={`/api/media/${assetId}`} muted className="aspect-square w-full object-cover" />
-            ) : (
-              <img src={`/api/media/${assetId}`} alt="" className="aspect-square w-full object-cover" />
-            )}
-            <button
-              type="button"
-              className="nodrag bg-ink/70 text-canvas absolute top-0.5 right-0.5 grid size-4 place-items-center rounded opacity-0 group-hover:opacity-100"
-              onClick={() => updateNodeData(id, { assetIds: ids.filter((value) => value !== assetId) })}
-              aria-label="Remove"
+        <AnimatePresence initial={false} mode="popLayout">
+          {ids.map((assetId) => (
+            <motion.div
+              key={assetId}
+              variants={motionPop}
+              initial="hidden"
+              animate="visible"
+              exit="hidden"
+              className="border-line bg-canvas group relative overflow-hidden rounded-md border"
             >
-              <X size={9} />
-            </button>
-          </div>
-        ))}
+              {video ? (
+                <video src={`/api/media/${assetId}`} muted className="aspect-square w-full object-cover" />
+              ) : (
+                <img src={`/api/media/${assetId}`} alt="" className="aspect-square w-full object-cover" />
+              )}
+              <button
+                type="button"
+                className="nodrag bg-ink/70 text-canvas absolute top-0.5 right-0.5 grid size-4 place-items-center rounded opacity-0 transition-[opacity,transform] duration-150 ease-out group-hover:opacity-100 active:scale-[0.88]"
+                onClick={() => updateNodeData(id, { assetIds: ids.filter((value) => value !== assetId) })}
+                aria-label="Remove"
+              >
+                <X size={9} />
+              </button>
+            </motion.div>
+          ))}
+        </AnimatePresence>
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          className="nodrag border-line text-ink/35 hover:border-accent/40 hover:text-accent grid aspect-square place-items-center rounded-md border border-dashed"
+          className="nodrag border-line text-ink/35 hover:border-accent/40 hover:text-accent grid aspect-square place-items-center rounded-md border border-dashed transition-[color,border-color,transform] duration-150 ease-out active:scale-[0.94]"
           aria-label={`Add ${video ? 'video' : 'image'}`}
         >
-          {busy ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+          <motion.span
+            key={busy ? 'busy' : 'idle'}
+            variants={motionFade}
+            initial="hidden"
+            animate="visible"
+            className="inline-flex"
+          >
+            {busy ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+          </motion.span>
         </button>
       </div>
       <input
@@ -173,7 +216,7 @@ export function MediaInputNode({ id, data, selected, type }: NodeProps<CanvasNod
       <button
         type="button"
         onClick={() => setPickerOpen(true)}
-        className="nodrag border-line text-ink/45 hover:text-ink inline-flex h-7 items-center justify-center gap-1 rounded-md border text-[10px]"
+        className="nodrag border-line text-ink/45 hover:text-ink inline-flex h-7 items-center justify-center gap-1 rounded-md border text-[10px] transition-[color,border-color,transform] duration-150 ease-out active:scale-[0.97]"
       >
         <ImageIcon size={10} /> Library
       </button>
@@ -372,14 +415,23 @@ export function GenerateNode({ id, data, selected, type }: NodeProps<CanvasNode>
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          className="nodrag border-line text-ink/55 hover:border-ink/25 inline-flex h-7 items-center gap-1 rounded-md border px-2 text-[10.5px]"
+          className="nodrag border-line text-ink/55 hover:border-ink/25 inline-flex h-7 items-center gap-1 rounded-md border px-2 text-[10.5px] transition-[color,border-color,transform] duration-150 ease-out active:scale-[0.97]"
         >
-          {busy ? <Loader2 size={10} className="animate-spin" /> : <Plus size={10} />} Reference
+          <motion.span
+            key={busy ? 'busy' : 'idle'}
+            variants={motionFade}
+            initial="hidden"
+            animate="visible"
+            className="inline-flex"
+          >
+            {busy ? <Loader2 size={10} className="animate-spin" /> : <Plus size={10} />}
+          </motion.span>{' '}
+          Reference
         </button>
         <button
           type="button"
           onClick={() => setPickerOpen(true)}
-          className="nodrag border-line text-ink/55 hover:border-ink/25 inline-flex h-7 items-center gap-1 rounded-md border px-2 text-[10.5px]"
+          className="nodrag border-line text-ink/55 hover:border-ink/25 inline-flex h-7 items-center gap-1 rounded-md border px-2 text-[10.5px] transition-[color,border-color,transform] duration-150 ease-out active:scale-[0.97]"
         >
           <ImageIcon size={10} /> Library
         </button>
@@ -423,26 +475,43 @@ export function GenerateNode({ id, data, selected, type }: NodeProps<CanvasNode>
 
       {refIds.length > 0 ? (
         <div className="flex gap-1">
-          {refIds.slice(0, 5).map((assetId) => (
-            <button
-              key={assetId}
-              type="button"
-              className="nodrag border-line group relative overflow-hidden rounded border"
-              onClick={() => updateNodeData(id, { assetIds: refIds.filter((value) => value !== assetId) })}
-              title="Remove reference"
-            >
-              <img src={`/api/media/${assetId}`} alt="" className="size-8 object-cover" />
-              <span className="bg-ink/45 text-canvas absolute inset-0 grid place-items-center opacity-0 group-hover:opacity-100">
-                <Minus size={10} />
-              </span>
-            </button>
-          ))}
+          <AnimatePresence initial={false} mode="popLayout">
+            {refIds.slice(0, 5).map((assetId) => (
+              <motion.button
+                key={assetId}
+                variants={motionPop}
+                initial="hidden"
+                animate="visible"
+                exit="hidden"
+                type="button"
+                className="nodrag border-line group relative overflow-hidden rounded border transition-[border-color,transform] duration-150 ease-out active:scale-[0.94]"
+                onClick={() => updateNodeData(id, { assetIds: refIds.filter((value) => value !== assetId) })}
+                title="Remove reference"
+              >
+                <img src={`/api/media/${assetId}`} alt="" className="size-8 object-cover" />
+                <span className="bg-ink/45 text-canvas absolute inset-0 grid place-items-center opacity-0 transition-opacity duration-150 ease-out group-hover:opacity-100">
+                  <Minus size={10} />
+                </span>
+              </motion.button>
+            ))}
+          </AnimatePresence>
         </div>
       ) : null}
 
-      {data.error ? (
-        <p className="bg-error/8 text-error rounded-md px-2 py-1.5 text-[10px] leading-snug">{data.error}</p>
-      ) : null}
+      <AnimatePresence initial={false}>
+        {data.error ? (
+          <motion.p
+            key="node-error"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={motionTransition}
+            className="bg-error/8 text-error overflow-hidden rounded-md text-[10px] leading-snug"
+          >
+            <span className="block px-2 py-1.5">{data.error}</span>
+          </motion.p>
+        ) : null}
+      </AnimatePresence>
 
       <Handle
         type="target"

@@ -9,8 +9,20 @@ import {
   type StudioAngle,
   type StudioGarmentInput,
 } from '@sunnygen/core'
-import { Badge, Button, Card, Select, Textarea, cn } from '@sunnygen/ui'
-import { Camera, Check, Loader2, Play, RotateCcw } from 'lucide-react'
+import {
+  Badge,
+  Button,
+  Card,
+  FadeImage,
+  Select,
+  Textarea,
+  cn,
+  motionFade,
+  motionFast,
+  motionSpring,
+} from '@sunnygen/ui'
+import { Camera, Check, ChevronDown, Loader2, Play, RotateCcw } from 'lucide-react'
+import { AnimatePresence, motion } from 'motion/react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRef, useState } from 'react'
 import type { StudioItemDto, StudioLibrary } from '~/server/studio.functions'
@@ -44,6 +56,7 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
   const [running, setRunning] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [results, setResults] = useState<AngleResult[]>([])
+  const [previewOpen, setPreviewOpen] = useState(false)
   const runToken = useRef(0)
 
   const avatar = library.avatars.find((item) => item.id === avatarId) ?? null
@@ -220,7 +233,20 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
         <Card className="p-4">
           <div className="mb-2 flex items-center justify-between">
             <p className="text-ink/45 text-[11px] font-semibold tracking-[0.08em] uppercase">Avatar</p>
-            <span className="text-ink/35 text-[10.5px]">{library.avatars.length} saved</span>
+            <span className="text-ink/35 text-[10.5px]">
+              <AnimatePresence mode="popLayout" initial={false}>
+                <motion.span
+                  key={library.avatars.length}
+                  initial={{ opacity: 0, y: 3 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -3 }}
+                  transition={motionFast}
+                  className="inline-block"
+                >
+                  {library.avatars.length} saved
+                </motion.span>
+              </AnimatePresence>
+            </span>
           </div>
           {library.avatars.length === 0 ? (
             <p className="border-line text-ink/40 rounded-lg border border-dashed px-3 py-6 text-center text-[11.5px]">
@@ -234,14 +260,24 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
                   type="button"
                   onClick={() => setAvatarId(item.id)}
                   className={cn(
-                    'w-20 shrink-0 overflow-hidden rounded-xl border text-left',
-                    avatarId === item.id
-                      ? 'border-accent ring-accent/20 ring-2'
-                      : 'border-line hover:border-ink/25',
+                    'relative w-20 shrink-0 overflow-hidden rounded-xl border text-left transition-[border-color,scale] duration-200 ease-out active:scale-[0.97] motion-reduce:active:scale-100',
+                    avatarId === item.id ? 'border-accent/60' : 'border-line hover:border-ink/25',
                   )}
                 >
+                  {avatarId === item.id ? (
+                    <motion.span
+                      layoutId="studio-avatar-ring"
+                      transition={motionSpring}
+                      className="border-accent pointer-events-none absolute inset-0 z-10 rounded-xl border-2"
+                    />
+                  ) : null}
                   {item.assetUrl ? (
-                    <img src={item.assetUrl} alt="" className="aspect-square w-full object-cover" />
+                    <FadeImage
+                      shimmer
+                      src={item.assetUrl}
+                      alt=""
+                      className="aspect-square w-full object-cover"
+                    />
                   ) : (
                     <div className="bg-ink/[0.04] aspect-square" />
                   )}
@@ -255,7 +291,20 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
         <Card className="p-4">
           <div className="mb-2 flex items-center justify-between">
             <p className="text-ink/45 text-[11px] font-semibold tracking-[0.08em] uppercase">Wardrobe</p>
-            <span className="text-ink/35 text-[10.5px]">{selectedGarments.length}/6 pieces</span>
+            <span className="text-ink/35 text-[10.5px]">
+              <AnimatePresence mode="popLayout" initial={false}>
+                <motion.span
+                  key={selectedGarments.length}
+                  initial={{ opacity: 0, y: 3 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -3 }}
+                  transition={motionFast}
+                  className="inline-block"
+                >
+                  {selectedGarments.length}/6 pieces
+                </motion.span>
+              </AnimatePresence>
+            </span>
           </div>
           {library.garments.length === 0 ? (
             <p className="border-line text-ink/40 rounded-lg border border-dashed px-3 py-6 text-center text-[11.5px]">
@@ -274,21 +323,43 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
                     disabled={disabled}
                     onClick={() => toggleGarment(item)}
                     className={cn(
-                      'relative overflow-hidden rounded-lg border text-left',
-                      selected ? 'border-accent ring-accent/20 ring-2' : 'border-line hover:border-ink/25',
+                      'relative overflow-hidden rounded-lg border text-left transition-[border-color,opacity,scale] duration-200 ease-out active:scale-[0.97] motion-reduce:active:scale-100',
+                      selected ? 'border-accent/60' : 'border-line hover:border-ink/25',
                       disabled && 'opacity-40',
                     )}
                   >
+                    {selected ? (
+                      <motion.span
+                        layoutId="studio-garment-ring"
+                        transition={motionSpring}
+                        className="border-accent pointer-events-none absolute inset-0 z-10 rounded-lg border-2"
+                      />
+                    ) : null}
                     {image ? (
-                      <img src={image} alt="" className="aspect-square w-full object-cover" />
+                      <FadeImage
+                        shimmer
+                        src={image}
+                        alt=""
+                        shimmerClassName="inset-x-0 top-0 aspect-square"
+                        className="aspect-square w-full object-cover"
+                      />
                     ) : (
                       <div className="bg-ink/[0.04] aspect-square" />
                     )}
-                    {selected ? (
-                      <span className="bg-accent absolute top-1 right-1 grid size-4 place-items-center rounded-full text-white">
-                        <Check size={9} />
-                      </span>
-                    ) : null}
+                    <AnimatePresence initial={false}>
+                      {selected ? (
+                        <motion.span
+                          key="garment-check"
+                          initial={{ opacity: 0, scale: 0.5 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.5 }}
+                          transition={motionFast}
+                          className="bg-accent absolute top-1 right-1 z-20 grid size-4 place-items-center rounded-full text-white"
+                        >
+                          <Check size={9} />
+                        </motion.span>
+                      ) : null}
+                    </AnimatePresence>
                     <p className="text-ink/55 truncate px-1.5 py-1 text-[9.5px]">
                       {SLOT_LABELS[(item.data.slot as StudioGarmentInput['slot']) ?? 'top']} · {item.name}
                     </p>
@@ -328,7 +399,18 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
         <Card className="p-4">
           <div className="flex items-center justify-between">
             <p className="text-ink/45 text-[11px] font-semibold tracking-[0.08em] uppercase">Shot</p>
-            <Badge tone={blocking ? 'warning' : 'success'}>{blocking ? 'Not ready' : 'Ready'}</Badge>
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.span
+                key={blocking ? 'not-ready' : 'ready'}
+                initial={{ opacity: 0, scale: 0.96 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.96 }}
+                transition={motionFast}
+                className="inline-flex"
+              >
+                <Badge tone={blocking ? 'warning' : 'success'}>{blocking ? 'Not ready' : 'Ready'}</Badge>
+              </motion.span>
+            </AnimatePresence>
           </div>
 
           <div className="mt-3 grid grid-cols-2 gap-2">
@@ -338,10 +420,10 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
                 type="button"
                 onClick={() => toggleAngle(angle)}
                 className={cn(
-                  'h-8 rounded-lg border text-[10.5px] font-medium',
+                  'h-8 rounded-lg border text-[10.5px] font-medium transition-[border-color,background-color,color,scale] duration-150 ease-out active:scale-[0.97] motion-reduce:active:scale-100',
                   angles.includes(angle)
                     ? 'border-accent bg-accent/[0.07] text-accent'
-                    : 'border-line text-ink/45 hover:text-ink',
+                    : 'border-line text-ink/45 hover:border-ink/25 hover:text-ink',
                 )}
               >
                 {STUDIO_ANGLE_LABELS[angle]}
@@ -408,18 +490,77 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
 
           <div className="text-ink/40 mt-3 flex items-center justify-between text-[10.5px]">
             <span>
-              {referenceCount} reference image{referenceCount === 1 ? '' : 's'}
+              <AnimatePresence mode="popLayout" initial={false}>
+                <motion.span
+                  key={`refs-${referenceCount}`}
+                  initial={{ opacity: 0, y: 3 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -3 }}
+                  transition={motionFast}
+                  className="inline-block"
+                >
+                  {referenceCount} reference image{referenceCount === 1 ? '' : 's'}
+                </motion.span>
+              </AnimatePresence>
             </span>
             <span>
-              {angles.length} generation{angles.length === 1 ? '' : 's'}
+              <AnimatePresence mode="popLayout" initial={false}>
+                <motion.span
+                  key={`gens-${angles.length}`}
+                  initial={{ opacity: 0, y: 3 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -3 }}
+                  transition={motionFast}
+                  className="inline-block"
+                >
+                  {angles.length} generation{angles.length === 1 ? '' : 's'}
+                </motion.span>
+              </AnimatePresence>
             </span>
           </div>
 
-          {blocking ? <p className="text-warning mt-2 text-[11px]">{blocking}</p> : null}
-          {validation.warnings.length > 0 ? (
-            <p className="text-ink/45 mt-1 text-[10.5px] leading-snug">{validation.warnings[0]}</p>
-          ) : null}
-          {error ? <p className="text-error mt-2 text-[11px]">{error}</p> : null}
+          <AnimatePresence initial={false}>
+            {blocking ? (
+              <motion.p
+                key="blocking"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={motionFast}
+                className="text-warning mt-2 overflow-hidden text-[11px]"
+              >
+                {blocking}
+              </motion.p>
+            ) : null}
+          </AnimatePresence>
+          <AnimatePresence initial={false}>
+            {validation.warnings.length > 0 ? (
+              <motion.p
+                key={validation.warnings[0]}
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={motionFast}
+                className="text-ink/45 mt-1 overflow-hidden text-[10.5px] leading-snug"
+              >
+                {validation.warnings[0]}
+              </motion.p>
+            ) : null}
+          </AnimatePresence>
+          <AnimatePresence initial={false}>
+            {error ? (
+              <motion.p
+                key="look-error"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={motionFast}
+                className="text-error mt-2 overflow-hidden text-[11px]"
+              >
+                {error}
+              </motion.p>
+            ) : null}
+          </AnimatePresence>
 
           <div className="mt-3 flex gap-2">
             <Button
@@ -431,62 +572,157 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
               <Play size={12} />
               {running ? 'Rendering…' : `Generate ${angles.length} angle${angles.length === 1 ? '' : 's'}`}
             </Button>
-            {running ? (
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  runToken.current += 1
-                  setRunning(false)
-                }}
-              >
-                Cancel
-              </Button>
-            ) : null}
+            <AnimatePresence initial={false}>
+              {running ? (
+                <motion.div
+                  key="cancel-run"
+                  initial={{ opacity: 0, width: 0 }}
+                  animate={{ opacity: 1, width: 'auto' }}
+                  exit={{ opacity: 0, width: 0 }}
+                  transition={motionFast}
+                  className="overflow-hidden"
+                >
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      runToken.current += 1
+                      setRunning(false)
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </motion.div>
+              ) : null}
+            </AnimatePresence>
           </div>
 
-          <details className="mt-3">
-            <summary className="text-ink/40 cursor-pointer text-[10.5px]">Prompt preview</summary>
-            <pre className="bg-canvas text-ink/55 mt-2 max-h-48 overflow-auto rounded-lg p-2 text-[10px] leading-relaxed whitespace-pre-wrap">
-              {buildStudioPrompt(promptInput)}
-            </pre>
-          </details>
+          <div className="mt-3">
+            <button
+              type="button"
+              onClick={() => setPreviewOpen((current) => !current)}
+              aria-expanded={previewOpen}
+              className="text-ink/40 hover:text-ink flex items-center gap-1 text-[10.5px] transition-[color,scale] duration-150 ease-out active:scale-[0.98] motion-reduce:active:scale-100"
+            >
+              <ChevronDown
+                size={11}
+                className={cn('transition-transform duration-200 ease-out', previewOpen && 'rotate-180')}
+              />
+              Prompt preview
+            </button>
+            <AnimatePresence initial={false}>
+              {previewOpen ? (
+                <motion.div
+                  key="prompt-preview"
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={motionFast}
+                  className="overflow-hidden"
+                >
+                  <pre className="bg-canvas text-ink/55 mt-2 max-h-48 overflow-auto rounded-lg p-2 text-[10px] leading-relaxed whitespace-pre-wrap">
+                    {buildStudioPrompt(promptInput)}
+                  </pre>
+                </motion.div>
+              ) : null}
+            </AnimatePresence>
+          </div>
         </Card>
 
         <Card className="p-4">
           <p className="text-ink/45 text-[11px] font-semibold tracking-[0.08em] uppercase">Angles</p>
-          {results.length === 0 ? (
-            <p className="text-ink/40 mt-3 text-[11.5px]">Renders appear here, one per angle.</p>
-          ) : (
-            <div className="mt-3 flex flex-col gap-2">
-              {results.map((result) => (
-                <div key={result.angle} className="border-line flex items-center gap-2 rounded-lg border p-2">
-                  <div className="bg-ink/[0.04] grid size-9 place-items-center overflow-hidden rounded-md">
-                    {result.status === 'done' && result.url ? (
-                      <img src={result.url} alt="" className="size-full object-cover" />
-                    ) : result.status === 'failed' ? (
-                      <span className="text-error">!</span>
-                    ) : (
-                      <Loader2 size={13} className="text-ink/35 animate-spin" />
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-ink/70 text-[11px] font-medium">{STUDIO_ANGLE_LABELS[result.angle]}</p>
-                    <p className="text-ink/40 truncate text-[10px]">{result.error ?? result.status}</p>
-                  </div>
-                  {result.status === 'failed' ? (
-                    <button
-                      type="button"
-                      onClick={() => void generate()}
-                      className="text-ink/40 hover:bg-ink/5 grid size-7 place-items-center rounded-md"
-                      aria-label="Retry"
+          <AnimatePresence mode="wait" initial={false}>
+            {results.length === 0 ? (
+              <motion.p
+                key="results-empty"
+                variants={motionFade}
+                initial="hidden"
+                animate="visible"
+                exit="hidden"
+                className="text-ink/40 mt-3 text-[11.5px]"
+              >
+                Renders appear here, one per angle.
+              </motion.p>
+            ) : (
+              <motion.div
+                key="results-list"
+                variants={motionFade}
+                initial="hidden"
+                animate="visible"
+                exit="hidden"
+                className="mt-3 flex flex-col gap-2"
+              >
+                <AnimatePresence initial={false}>
+                  {results.map((result) => (
+                    <motion.div
+                      key={result.angle}
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.98 }}
+                      transition={motionFast}
+                      className="border-line flex items-center gap-2 rounded-lg border p-2"
                     >
-                      <RotateCcw size={12} />
-                    </button>
-                  ) : null}
-                </div>
-              ))}
-            </div>
-          )}
+                      <div className="bg-ink/[0.04] relative grid size-9 place-items-center overflow-hidden rounded-md">
+                        <AnimatePresence mode="wait" initial={false}>
+                          <motion.span
+                            key={result.status}
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                            transition={motionFast}
+                            className="grid size-full place-items-center"
+                          >
+                            {result.status === 'done' && result.url ? (
+                              <FadeImage shimmer src={result.url} alt="" className="size-full object-cover" />
+                            ) : result.status === 'failed' ? (
+                              <span className="text-error">!</span>
+                            ) : (
+                              <Loader2 size={13} className="text-ink/35 animate-spin" />
+                            )}
+                          </motion.span>
+                        </AnimatePresence>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-ink/70 text-[11px] font-medium">
+                          {STUDIO_ANGLE_LABELS[result.angle]}
+                        </p>
+                        <p className="text-ink/40 truncate text-[10px]">
+                          <AnimatePresence mode="popLayout" initial={false}>
+                            <motion.span
+                              key={`${result.status}-${result.error ?? ''}`}
+                              initial={{ opacity: 0, y: 3 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -3 }}
+                              transition={motionFast}
+                              className="inline-block"
+                            >
+                              {result.error ?? result.status}
+                            </motion.span>
+                          </AnimatePresence>
+                        </p>
+                      </div>
+                      <AnimatePresence initial={false}>
+                        {result.status === 'failed' ? (
+                          <motion.button
+                            key="retry"
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                            transition={motionFast}
+                            type="button"
+                            onClick={() => void generate()}
+                            className="text-ink/40 hover:bg-ink/5 grid size-7 place-items-center rounded-md transition-[color,background-color,scale] duration-150 ease-out active:scale-[0.92] motion-reduce:active:scale-100"
+                            aria-label="Retry"
+                          >
+                            <RotateCcw size={12} />
+                          </motion.button>
+                        ) : null}
+                      </AnimatePresence>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </Card>
         <p className="text-ink/35 flex items-center gap-1.5 text-[10px]">
           <Camera size={11} /> One generation per angle, all over the same reference list.

@@ -14,7 +14,16 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { APP_NAME } from '@sunnygen/core'
-import { Button, cn, DropdownMenu, DropdownMenuContent, DropdownMenuItem } from '@sunnygen/ui'
+import {
+  Button,
+  cn,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  motionFade,
+  motionMountRise,
+  motionTransition,
+} from '@sunnygen/ui'
 import {
   Image as ImageIcon,
   LayoutGrid,
@@ -28,6 +37,7 @@ import {
   Video,
 } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { AnimatePresence, motion } from 'motion/react'
 import {
   defaultGraph,
   modelForNode,
@@ -335,10 +345,24 @@ function CanvasInner({ latest, workflows }: WorkflowEditorProps) {
   }, [fitView, setEdges, setNodes])
 
   const actions = { runNode, running, uploadToNode }
+  const statusLabel =
+    saveState === 'saving'
+      ? 'Saving…'
+      : saveState === 'saved'
+        ? 'Saved'
+        : saveState === 'error'
+          ? 'Save failed'
+          : `${nodes.length} nodes`
+  const runLabel = running.size > 0 ? 'Running' : 'Run all'
 
   return (
     <CanvasActionsContext.Provider value={actions}>
-      <div className="flex h-full flex-col">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={motionTransition}
+        className="flex h-full flex-col"
+      >
         <header className="border-line/80 bg-surface/70 flex flex-wrap items-center gap-2 border-b px-4 py-2.5">
           <div className="flex items-center gap-2">
             <span className="bg-accent/10 text-accent grid size-7 place-items-center rounded-lg">
@@ -347,25 +371,27 @@ function CanvasInner({ latest, workflows }: WorkflowEditorProps) {
             <input
               value={name}
               onChange={(event) => setName(event.target.value)}
-              className="font-display text-ink hover:border-line focus:border-line w-48 rounded-lg border border-transparent bg-transparent px-1.5 py-1 text-[13px] font-semibold outline-none"
+              className="font-display text-ink hover:border-line focus:border-line w-48 rounded-lg border border-transparent bg-transparent px-1.5 py-1 text-[13px] font-semibold transition-colors duration-150 ease-out outline-none"
               aria-label="Workflow name"
             />
           </div>
 
           <span className="text-ink/35 text-[10.5px]">
-            {saveState === 'saving'
-              ? 'Saving…'
-              : saveState === 'saved'
-                ? 'Saved'
-                : saveState === 'error'
-                  ? 'Save failed'
-                  : `${nodes.length} nodes`}
+            <motion.span
+              key={statusLabel}
+              variants={motionFade}
+              initial="hidden"
+              animate="visible"
+              className="inline-block"
+            >
+              {statusLabel}
+            </motion.span>
           </span>
 
           <div className="ml-auto flex items-center gap-1.5">
             {workflows.length > 0 ? (
               <DropdownMenu.Root>
-                <DropdownMenu.Trigger className="border-line text-ink/60 hover:text-ink inline-flex h-8 items-center rounded-lg border px-2.5 text-[11.5px]">
+                <DropdownMenu.Trigger className="border-line text-ink/60 hover:text-ink inline-flex h-8 items-center rounded-lg border px-2.5 text-[11.5px] transition-[color,border-color,transform] duration-150 ease-out active:scale-[0.97]">
                   Open
                 </DropdownMenu.Trigger>
                 <DropdownMenuContent>
@@ -386,21 +412,56 @@ function CanvasInner({ latest, workflows }: WorkflowEditorProps) {
               <Plus size={12} /> New
             </Button>
             <Button variant="outline" size="sm" onClick={() => void persist({ manual: true })}>
-              {saveState === 'saving' ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}{' '}
+              <motion.span
+                key={saveState === 'saving' ? 'saving' : 'save'}
+                variants={motionFade}
+                initial="hidden"
+                animate="visible"
+                className="inline-flex"
+              >
+                {saveState === 'saving' ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+              </motion.span>
               Save
             </Button>
             <Button size="sm" onClick={() => void runAll()} disabled={running.size > 0}>
-              {running.size > 0 ? <Loader2 size={12} className="animate-spin" /> : <Play size={12} />}
-              {running.size > 0 ? 'Running' : 'Run all'}
+              <motion.span
+                key={running.size > 0 ? 'running' : 'idle'}
+                variants={motionFade}
+                initial="hidden"
+                animate="visible"
+                className="inline-flex"
+              >
+                {running.size > 0 ? <Loader2 size={12} className="animate-spin" /> : <Play size={12} />}
+              </motion.span>
+              <motion.span
+                key={runLabel}
+                variants={motionFade}
+                initial="hidden"
+                animate="visible"
+                className="inline-flex"
+              >
+                {runLabel}
+              </motion.span>
             </Button>
           </div>
         </header>
 
-        {banner ? (
-          <div className="border-error/20 bg-error/5 text-error border-b px-4 py-2 text-[11.5px]">
-            {banner}
-          </div>
-        ) : null}
+        <AnimatePresence initial={false}>
+          {banner ? (
+            <motion.div
+              key="canvas-banner"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={motionTransition}
+              className="overflow-hidden"
+            >
+              <div className="border-error/20 bg-error/5 text-error border-b px-4 py-2 text-[11.5px]">
+                {banner}
+              </div>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
 
         <div className="relative min-h-0 flex-1">
           <ReactFlow
@@ -424,7 +485,12 @@ function CanvasInner({ latest, workflows }: WorkflowEditorProps) {
               showInteractive={false}
               className="!border-line !bg-surface !rounded-xl !border !shadow-sm"
             />
-            <div className="border-line bg-surface/95 absolute top-3 left-3 z-10 flex flex-col gap-1 rounded-xl border p-1.5 shadow-sm backdrop-blur">
+            <div
+              className={cn(
+                'border-line bg-surface/95 absolute top-3 left-3 z-10 flex flex-col gap-1 rounded-xl border p-1.5 shadow-sm backdrop-blur',
+                motionMountRise,
+              )}
+            >
               {PALETTE.map((item) => {
                 const Icon = item.icon
                 return (
@@ -435,6 +501,7 @@ function CanvasInner({ latest, workflows }: WorkflowEditorProps) {
                     className={cn(
                       'text-ink/55 flex items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[11px] font-medium',
                       'hover:bg-ink/[0.05] hover:text-ink',
+                      'transition-[color,background-color,transform] duration-150 ease-out active:scale-[0.97]',
                     )}
                   >
                     <Icon size={12} className="text-ink/35" />
@@ -446,7 +513,7 @@ function CanvasInner({ latest, workflows }: WorkflowEditorProps) {
             </div>
           </ReactFlow>
         </div>
-      </div>
+      </motion.div>
     </CanvasActionsContext.Provider>
   )
 }

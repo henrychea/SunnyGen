@@ -6,8 +6,9 @@ import {
   type AssistantModeGroup,
   type AssistantModeId,
 } from '@sunnygen/core'
-import { Button } from '@sunnygen/ui'
+import { Button, motionFade, motionPop } from '@sunnygen/ui'
 import { Send, Square } from 'lucide-react'
+import { AnimatePresence, motion } from 'motion/react'
 import { ModelCombobox, type ModelOption } from '../model-combobox'
 
 const MODE_GROUPS: readonly AssistantModeGroup[] = ['Basic', 'Refusal reduction']
@@ -81,7 +82,7 @@ export function Composer({
   return (
     <div className="border-line/70 bg-surface/55 shrink-0 border-t px-3 py-3 md:px-6">
       <div className="mx-auto w-full max-w-3xl">
-        <div className="border-line bg-surface focus-within:border-ink/20 rounded-2xl border p-2 shadow-[0_10px_30px_-24px_rgba(42,30,23,0.4)]">
+        <div className="border-line bg-surface focus-within:border-ink/20 rounded-2xl border p-2 shadow-[0_10px_30px_-24px_rgba(42,30,23,0.4)] transition-colors duration-150 ease-out">
           <textarea
             ref={textarea}
             value={value}
@@ -90,7 +91,7 @@ export function Composer({
             rows={1}
             disabled={streaming}
             placeholder="Ask anything, or paste a prompt to improve…"
-            className="text-ink placeholder:text-ink/35 max-h-[200px] min-h-11 w-full resize-none bg-transparent px-2 py-2 text-[13.5px] leading-relaxed outline-none disabled:opacity-60"
+            className="text-ink placeholder:text-ink/35 max-h-[200px] min-h-11 w-full resize-none bg-transparent px-2 py-2 text-[13.5px] leading-relaxed transition-[height,opacity] duration-150 ease-out outline-none disabled:opacity-60 motion-reduce:transition-none"
             aria-label="Message"
           />
 
@@ -134,21 +135,51 @@ export function Composer({
             />
 
             <div className="ml-auto flex items-center gap-2">
-              {streaming ? (
-                <Button variant="outline" size="sm" onClick={onStop} aria-label="Stop generating">
-                  <Square size={11} fill="currentColor" /> Stop
-                </Button>
-              ) : (
-                <Button size="sm" onClick={onSend} disabled={!canSend} aria-label="Send message">
-                  <Send size={13} />
-                </Button>
-              )}
+              <AnimatePresence initial={false} mode="popLayout">
+                {streaming ? (
+                  <motion.div
+                    key="stop"
+                    variants={motionPop}
+                    initial="hidden"
+                    animate="visible"
+                    exit="hidden"
+                  >
+                    <Button variant="outline" size="sm" onClick={onStop} aria-label="Stop generating">
+                      <Square size={11} fill="currentColor" /> Stop
+                    </Button>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="send"
+                    variants={motionPop}
+                    initial="hidden"
+                    animate="visible"
+                    exit="hidden"
+                  >
+                    <Button size="sm" onClick={onSend} disabled={!canSend} aria-label="Send message">
+                      <Send size={13} />
+                    </Button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
         </div>
 
         <p className="text-ink/35 mt-1.5 hidden px-1 text-[10.5px] leading-relaxed sm:block">
-          Enter sends · Shift+Enter adds a line · {definition.description}
+          Enter sends · Shift+Enter adds a line ·{' '}
+          <AnimatePresence initial={false} mode="wait">
+            <motion.span
+              key={mode}
+              variants={motionFade}
+              initial="hidden"
+              animate="visible"
+              exit="hidden"
+              className="inline-block"
+            >
+              {definition.description}
+            </motion.span>
+          </AnimatePresence>
         </p>
       </div>
     </div>
