@@ -1,5 +1,7 @@
 import { useEffect, useRef } from 'react'
 import type { ErrorComponentProps } from '@tanstack/react-router'
+import { motionFadeRise } from '@sunnygen/ui'
+import { motion } from 'motion/react'
 
 const RELOAD_KEY = 'sunnygen:chunk-reload-at'
 const RELOAD_COOLDOWN_MS = 15_000
@@ -64,7 +66,12 @@ export function RouteError({ error, reset }: ErrorComponentProps) {
 
   return (
     <div className="grid h-full place-items-center px-6">
-      <div className="max-w-sm text-center">
+      <motion.div
+        variants={motionFadeRise}
+        initial="hidden"
+        animate="visible"
+        className="max-w-sm text-center"
+      >
         <p className="font-display text-accent text-[11px] font-semibold tracking-[0.18em] uppercase">
           {chunkError ? 'New build' : 'Error'}
         </p>
@@ -80,13 +87,13 @@ export function RouteError({ error, reset }: ErrorComponentProps) {
           <button
             type="button"
             onClick={retry}
-            className="bg-accent inline-flex h-10 items-center rounded-xl px-4 text-[13px] font-medium text-white"
+            className="bg-accent inline-flex h-10 items-center rounded-xl px-4 text-[13px] font-medium text-white transition-[background-color,transform] duration-150 ease-out active:scale-[0.97]"
           >
             Reload
           </button>
           <a
             href="/"
-            className="border-line bg-surface text-ink hover:border-ink/25 inline-flex h-10 items-center rounded-xl border px-4 text-[13px] font-medium"
+            className="border-line bg-surface text-ink hover:border-ink/25 inline-flex h-10 items-center rounded-xl border px-4 text-[13px] font-medium transition-[border-color,background-color,transform] duration-150 ease-out active:scale-[0.97]"
           >
             Return home
           </a>
@@ -99,7 +106,7 @@ export function RouteError({ error, reset }: ErrorComponentProps) {
             </pre>
           </details>
         ) : null}
-      </div>
+      </motion.div>
     </div>
   )
 }
