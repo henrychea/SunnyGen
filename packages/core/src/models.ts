@@ -1,4 +1,5 @@
 import type { ProviderId } from './domain'
+import { LORA_MODEL_ID, LORA_TRAINER_MODEL } from './lora'
 
 export interface ModelBase {
   id: string
@@ -16,6 +17,7 @@ export interface ModelBase {
   editSourceId?: string
   schemaUrl?: string
   dynamic?: boolean
+  supportsLora?: boolean
 }
 
 export interface ImageModelDefinition extends ModelBase {
@@ -130,6 +132,22 @@ export const IMAGE_MODELS: ImageModelDefinition[] = [
     qualityOptions: ['1k', '4k'],
     defaultQuality: '1k',
     price: '$0.02–$0.05 per image',
+  },
+  {
+    id: LORA_MODEL_ID,
+    label: 'FLUX.1 LoRA',
+    providerLabel: 'FLUX',
+    kind: 'image',
+    providers: ['fal'],
+    ratios: ['1:1', '4:3', '3:4', '16:9', '9:16', '3:2', '2:3', '21:9'],
+    supportsImages: false,
+    maxImages: 0,
+    supportsQuality: false,
+    qualityOptions: [],
+    defaultQuality: '',
+    supportsLora: true,
+    price: '$0.035 per megapixel',
+    sourceId: 'fal-ai/flux-lora',
   },
 ]
 
@@ -275,6 +293,7 @@ export const VIDEO_MODELS: VideoModelDefinition[] = [
 export const ALL_MODELS: ModelDefinition[] = [...IMAGE_MODELS, ...VIDEO_MODELS]
 
 export function getModel(id: string): ModelDefinition | undefined {
+  if (id === LORA_TRAINER_MODEL.id) return LORA_TRAINER_MODEL
   return ALL_MODELS.find((model) => model.id === id)
 }
 
