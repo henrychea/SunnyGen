@@ -1,6 +1,7 @@
 import {
   SLOT_LABELS,
   SOURCE_LABELS,
+  parseAvatarLora,
   type GarmentSlot,
   type GarmentSource,
   type StudioKind,
@@ -47,6 +48,7 @@ export function StudioLibraryGrid({
             !item.cleanAssetUrl &&
             (sourceKind === 'on-model' || sourceKind === 'supplier')
           const image = kind === 'garment' ? (item.cleanAssetUrl ?? item.assetUrl) : item.assetUrl
+          const lora = kind === 'avatar' ? parseAvatarLora(item.data.lora) : null
 
           return (
             <motion.div
@@ -74,6 +76,11 @@ export function StudioLibraryGrid({
                   {needsPrep ? (
                     <Badge tone="warning" className="absolute top-2 left-2">
                       Needs prep
+                    </Badge>
+                  ) : null}
+                  {lora ? (
+                    <Badge tone="accent" className="absolute top-2 right-2">
+                      LoRA v{lora.version}
                     </Badge>
                   ) : null}
                 </div>

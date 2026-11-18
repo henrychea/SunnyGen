@@ -3,6 +3,7 @@ import {
   GARMENT_SOURCES,
   SLOT_LABELS,
   SOURCE_LABELS,
+  parseAvatarLora,
   type GarmentSlot,
   type GarmentSource,
   type StudioKind,
@@ -21,7 +22,7 @@ import {
   motionFast,
   motionPop,
 } from '@sunnygen/ui'
-import { ImagePlus, Loader2, X } from 'lucide-react'
+import { ImagePlus, Loader2, Sparkles, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useRef, useState } from 'react'
 import type { StudioItemDto } from '~/server/studio.functions'
@@ -40,12 +41,14 @@ export function StudioItemDialog({
   kind,
   item,
   onSaved,
+  onTrain,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   kind: StudioKind
   item?: StudioItemDto | null
   onSaved: () => void
+  onTrain?: (item: StudioItemDto) => void
 }) {
   const [name, setName] = useState(item?.name ?? '')
   const [style, setStyle] = useState<'photoreal' | 'anime'>(
@@ -125,6 +128,7 @@ export function StudioItemDialog({
 
   const title =
     kind === 'avatar' ? 'Avatar' : kind === 'garment' ? 'Garment' : kind === 'pose' ? 'Pose' : 'Scene'
+  const lora = parseAvatarLora(item?.data.lora)
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -181,6 +185,27 @@ export function StudioItemDialog({
                   onPick={() => pick('asset')}
                 />
               </div>
+              {item && onTrain ? (
+                <div className="border-line bg-canvas/40 flex items-center gap-2 rounded-xl border px-3 py-2">
+                  <div className="min-w-0">
+                    <p className="text-ink/65 text-[11px] font-medium">
+                      {lora ? `LoRA v${lora.version} trained` : 'No LoRA yet'}
+                    </p>
+                    <p className="text-ink/35 truncate text-[10px]">
+                      {lora ? `Trigger: ${lora.triggerWord}` : 'Train on this avatar to reuse the likeness.'}
+                    </p>
+                  </div>
+                  {lora ? <Badge tone="accent">LoRA</Badge> : null}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="ml-auto h-7 text-[10.5px]"
+                    onClick={() => onTrain(item)}
+                  >
+                    <Sparkles size={10} /> {lora ? 'Retrain' : 'Train model'}
+                  </Button>
+                </div>
+              ) : null}
             </>
           ) : null}
 

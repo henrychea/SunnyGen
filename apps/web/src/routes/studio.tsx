@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import type { StudioKind } from '@sunnygen/core'
 import { Button, cn, motionFast, motionSpring, motionTransition, Skeleton } from '@sunnygen/ui'
@@ -10,15 +10,20 @@ import { StudioPackDialog } from '~/components/studio/import-dialog'
 import { StudioItemDialog } from '~/components/studio/item-dialog'
 import { StudioLibraryGrid } from '~/components/studio/library-grid'
 import { StudioLookBuilder } from '~/components/studio/look-builder'
+import { StudioModelsTab } from '~/components/studio/models-tab'
+import { StudioTrainDialog } from '~/components/studio/train-dialog'
 import {
   deleteStudioItemFn,
+  loadLoraRuns,
   loadStudioLibrary,
   prepareGarmentFn,
+  trainAvatarLora,
+  type LoraRunDto,
   type StudioItemDto,
   type StudioLibrary,
 } from '~/server/studio.functions'
 
-type Tab = 'look' | 'avatars' | 'wardrobe' | 'poses' | 'scenes'
+type Tab = 'look' | 'avatars' | 'wardrobe' | 'poses' | 'scenes' | 'models'
 
 const TABS: Array<{ id: Tab; label: string }> = [
   { id: 'look', label: 'Look' },
@@ -26,9 +31,10 @@ const TABS: Array<{ id: Tab; label: string }> = [
   { id: 'wardrobe', label: 'Wardrobe' },
   { id: 'poses', label: 'Poses' },
   { id: 'scenes', label: 'Scenes' },
+  { id: 'models', label: 'Models' },
 ]
 
-const TAB_KIND: Record<Exclude<Tab, 'look'>, StudioKind> = {
+const TAB_KIND: Record<Exclude<Tab, 'look' | 'models'>, StudioKind> = {
   avatars: 'avatar',
   wardrobe: 'garment',
   poses: 'pose',
@@ -80,18 +86,32 @@ function StudioSkeleton({ look }: { look: boolean }) {
 
 function StudioPage() {
   const initial = Route.useLoaderData()
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [tab, setTab] = useState<Tab>('look')
   const [dialog, setDialog] = useState<{ kind: StudioKind; item: StudioItemDto | null } | null>(null)
   const [packOpen, setPackOpen] = useState(false)
   const [preparingId, setPreparingId] = useState<string | null>(null)
+  const [trainAvatar, setTrainAvatar] = useState<StudioItemDto | null>(null)
+  const [retryingId, setRetryingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [dir, setDir] = useState(0)
+
+  const runs = useQuery({
+    queryKey: ['lora-runs'],
+    queryFn: () => loadLoraRuns(),
+    refetchInterval: (query) =>
+      (query.state.data ?? []).some((run) => run.status !== 'done' && run.status !== 'failed')
+        ? 4_000
+        : false,
+  })
 
   const library = useQuery({
     queryKey: ['studio'],
     queryFn: () => loadStudioLibrary(),
     initialData: initial as StudioLibrary,
+    refetchInterval: () =>
+      (runs.data ?? []).some((run) => run.status !== 'done' && run.status !== 'failed') ? 6_000 : false,
   })
 
   const remove = useMutation({
@@ -112,16 +132,43 @@ function StudioPage() {
     onSettled: () => setPreparingId(null),
   })
 
+  const retry = useMutation({
+    mutationFn: (run: LoraRunDto) =>
+      trainAvatarLora({
+        data: {
+          avatarId: run.avatarId ?? '',
+          assetIds: run.assetIds,
+          steps: run.steps,
+          triggerWord: run.triggerWord,
+          consent: true,
+        },
+      }),
+    onMutate: (run) => {
+      setRetryingId(run.id)
+      setError(null)
+    },
+    onSuccess: (result) => {
+      if (result.status === 'failed') setError(result.error ?? 'Training failed')
+      void queryClient.invalidateQueries({ queryKey: ['lora-runs'] })
+    },
+    onError: (retryError) => {
+      setError(retryError instanceof Error ? retryError.message : 'Training failed')
+    },
+    onSettled: () => setRetryingId(null),
+  })
+
   const data = library.data ?? initial
+  const runList = runs.data ?? []
   const counts: Record<Tab, number> = {
     look: 0,
     avatars: data.avatars.length,
     wardrobe: data.garments.length,
     poses: data.poses.length,
     scenes: data.scenes.length,
+    models: runList.length,
   }
 
-  const activeKind = tab === 'look' ? null : TAB_KIND[tab]
+  const activeKind = tab === 'look' || tab === 'models' ? null : TAB_KIND[tab]
   const loading = library.isPending && !data
   const refreshing = remove.isPending || prepare.isPending
 
@@ -240,6 +287,18 @@ function StudioPage() {
                 <StudioSkeleton look={tab === 'look'} />
               ) : tab === 'look' ? (
                 <StudioLookBuilder library={data} />
+              ) : tab === 'models' ? (
+                <StudioModelsTab
+                  runs={runList}
+                  avatars={data.avatars}
+                  loading={runs.isPending}
+                  busyId={retryingId}
+                  onTrain={(avatar) => setTrainAvatar(avatar)}
+                  onRetry={(run) => retry.mutate(run)}
+                  onUse={(run) => {
+                    if (run.avatarId) navigate({ to: '/', search: { avatar: run.avatarId } })
+                  }}
+                />
               ) : (
                 <StudioLibraryGrid
                   kind={TAB_KIND[tab]}
@@ -266,7 +325,9 @@ function StudioPage() {
                     ? 'On-model and supplier photos must be prepared before a shoot. Prep costs one image generation.'
                     : tab === 'avatars'
                       ? 'Use the two-sheet flow: upload a character sheet and a 4×4 panel sheet.'
-                      : 'References only guide stance and lighting. Identity and garments come from the look.'}
+                      : tab === 'models'
+                        ? 'Trained LoRAs belong to their avatar and are used from the home prompt bar in Generate mode.'
+                        : 'References only guide stance and lighting. Identity and garments come from the look.'}
                 </p>
               ) : null}
             </div>
@@ -284,6 +345,26 @@ function StudioPage() {
           kind={dialog.kind}
           item={dialog.item}
           onSaved={() => queryClient.invalidateQueries({ queryKey: ['studio'] })}
+          onTrain={(item) => {
+            setDialog(null)
+            setTrainAvatar(item)
+          }}
+        />
+      ) : null}
+
+      {trainAvatar ? (
+        <StudioTrainDialog
+          key={trainAvatar.id}
+          open
+          onOpenChange={(open) => {
+            if (!open) setTrainAvatar(null)
+          }}
+          avatar={trainAvatar}
+          onStarted={() => {
+            setTab('models')
+            void queryClient.invalidateQueries({ queryKey: ['lora-runs'] })
+            void queryClient.invalidateQueries({ queryKey: ['studio'] })
+          }}
         />
       ) : null}
 

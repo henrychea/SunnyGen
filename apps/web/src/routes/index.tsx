@@ -34,6 +34,7 @@ import {
   loadAssets,
   loadFolders,
   loadGenerationWall,
+  loadReferenceLibrary,
   type FolderNode,
   type GenerationWallItem,
 } from '~/server/library.functions'
@@ -82,13 +83,21 @@ function generationCards(items: GenerationWallItem[]): WallCard[] {
 }
 
 export const Route = createFileRoute('/')({
-  loader: async () => {
-    const [dashboard, generations, folders] = await Promise.all([
+  validateSearch: (search: Record<string, unknown>): { avatar?: string } => ({
+    avatar: typeof search.avatar === 'string' && search.avatar.length > 0 ? search.avatar : undefined,
+  }),
+  loaderDeps: ({ search }) => ({ avatar: search.avatar }),
+  loader: async ({ deps }) => {
+    const [dashboard, generations, folders, studio] = await Promise.all([
       loadDashboard(),
       loadGenerationWall(),
       loadFolders(),
+      deps.avatar ? loadReferenceLibrary() : Promise.resolve(null),
     ])
-    return { dashboard, generations, folders }
+    const initialAvatar = deps.avatar
+      ? (studio?.avatars.find((avatar) => avatar.avatarId === deps.avatar) ?? null)
+      : null
+    return { dashboard, generations, folders, initialAvatar }
   },
   component: HomePage,
 })
@@ -416,7 +425,7 @@ function HomePage() {
         </div>
       </PageScroll>
 
-      <HomeComposer />
+      <HomeComposer initialAvatar={data.initialAvatar} />
 
       <AnimatePresence>
         {groupModal ? (
