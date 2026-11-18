@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Trash2 } from 'lucide-react'
+import { Loader2, Trash2 } from 'lucide-react'
+import { cn, motionMountFade } from '@sunnygen/ui'
 import { cleanupFailedGenerations } from '~/server/library.functions'
 
 export function CleanupFailedButton({ count, className }: { count: number; className?: string }) {
@@ -24,13 +25,18 @@ export function CleanupFailedButton({ count, className }: { count: number; class
       onClick={() => cleanup.mutate()}
       disabled={cleanup.isPending}
       title="Delete all failed generations"
-      className={
+      className={cn(
         className ??
-        'border-line bg-surface text-ink/45 hover:border-error/25 hover:text-error inline-flex h-8 shrink-0 items-center gap-1 rounded-lg border px-2.5 text-[10.5px] font-medium transition-colors disabled:opacity-50'
-      }
+          'border-line bg-surface text-ink/45 hover:border-error/25 hover:text-error inline-flex h-8 shrink-0 items-center gap-1 rounded-lg border px-2.5 text-[10.5px] font-medium transition-[color,border-color,transform] active:scale-[0.97] disabled:opacity-50 motion-reduce:active:scale-100',
+        motionMountFade,
+      )}
     >
-      <Trash2 size={12} />
-      {cleanup.isPending ? 'Cleaning…' : `Clean failed (${count})`}
+      <span key={cleanup.isPending ? 'busy' : 'idle'} className="grid place-items-center">
+        {cleanup.isPending ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+      </span>
+      <span key={cleanup.isPending ? 'busy-label' : 'idle-label'} className={motionMountFade}>
+        {cleanup.isPending ? 'Cleaning…' : `Clean failed (${count})`}
+      </span>
     </button>
   )
 }

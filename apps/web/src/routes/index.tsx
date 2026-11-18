@@ -1,8 +1,19 @@
-import { useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import { cn } from '@sunnygen/ui'
+import {
+  FadeImage,
+  Skeleton,
+  cn,
+  motionFade,
+  motionFast,
+  motionMountRise,
+  motionPop,
+  motionPress,
+  motionSpring,
+  motionSwap,
+} from '@sunnygen/ui'
 import { Download, FileAudio, Images, Play, Search, Upload, X } from 'lucide-react'
-import { AnimatePresence } from 'motion/react'
+import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useState, type ReactNode } from 'react'
 import { CleanupFailedButton } from '~/components/cleanup-failed'
 import { HomeComposer } from '~/components/home/composer'
@@ -72,13 +83,12 @@ function generationCards(items: GenerationWallItem[]): WallCard[] {
 
 export const Route = createFileRoute('/')({
   loader: async () => {
-    const [dashboard, generations, uploads, folders] = await Promise.all([
+    const [dashboard, generations, folders] = await Promise.all([
       loadDashboard(),
       loadGenerationWall(),
-      loadAssets({ data: { source: 'all', limit: 120 } }),
       loadFolders(),
     ])
-    return { dashboard, generations, uploads, folders }
+    return { dashboard, generations, folders }
   },
   component: HomePage,
 })
@@ -94,6 +104,7 @@ function HomePage() {
     queryKey: ['home-generations'],
     queryFn: () => loadGenerationWall(),
     initialData: data.generations,
+    placeholderData: keepPreviousData,
     refetchInterval: (query) => {
       const items = query.state.data ?? []
       return items.some((item) => item.status === 'queued' || item.status === 'running') ? 3000 : false
@@ -102,13 +113,18 @@ function HomePage() {
   const uploads = useQuery({
     queryKey: ['home-uploads'],
     queryFn: () => loadAssets({ data: { source: 'all', limit: 120 } }),
-    initialData: data.uploads,
+    enabled: tab === 'uploaded',
+    placeholderData: keepPreviousData,
   })
   const folders = useQuery({
     queryKey: ['folders'],
     queryFn: () => loadFolders(),
     initialData: data.folders,
   })
+
+  const tabLoading = tab === 'generated' ? wall.isPending : uploads.isPending
+  const tabRefreshing =
+    tab === 'generated' ? wall.isPlaceholderData : uploads.isFetching && Boolean(uploads.data)
 
   const needle = query.trim().toLowerCase()
   const generations = (wall.data ?? []).filter((item) =>
@@ -245,14 +261,16 @@ function HomePage() {
                 ? `${renderCount} ${renderCount === 1 ? 'render' : 'renders'}${
                     activeCount > 0 ? ` · ${activeCount} active` : ''
                   }`
-                : `${uploadEntries.length} ${uploadEntries.length === 1 ? 'item' : 'items'}`}
+                : uploads.isPending
+                  ? 'Loading uploads'
+                  : `${uploadEntries.length} ${uploadEntries.length === 1 ? 'item' : 'items'}`}
             </div>
 
             <div className="ml-auto flex w-full items-center gap-2 sm:w-auto">
               <div className="text-ink/40 hidden items-center gap-1.5 text-[10.5px] sm:flex">
                 <span
                   className={cn(
-                    'size-1.5 rounded-full',
+                    'size-1.5 rounded-full transition-colors',
                     data.dashboard.configuredProviders > 0 ? 'bg-success' : 'bg-warning',
                   )}
                 />
@@ -272,14 +290,22 @@ function HomePage() {
                     className="text-ink placeholder:text-ink/30 min-w-0 flex-1 bg-transparent text-[11.5px] outline-none"
                   />
                   {query ? (
-                    <button
-                      type="button"
-                      onClick={() => setQuery('')}
-                      aria-label="Clear search"
-                      className="text-ink/35 hover:text-ink"
-                    >
-                      <X size={12} />
-                    </button>
+                    <AnimatePresence initial={false} mode="popLayout">
+                      <motion.button
+                        key="clear-search"
+                        type="button"
+                        variants={motionPop}
+                        initial="hidden"
+                        animate="visible"
+                        exit="hidden"
+                        transition={motionFast}
+                        onClick={() => setQuery('')}
+                        aria-label="Clear search"
+                        className="text-ink/35 hover:text-ink transition-[color,transform] active:scale-90"
+                      >
+                        <X size={12} />
+                      </motion.button>
+                    </AnimatePresence>
                   ) : null}
                 </label>
               ) : null}
@@ -288,97 +314,124 @@ function HomePage() {
         </div>
 
         <div className="px-3 pt-3 pb-64 md:px-6 md:pb-56">
-          {tab === 'generated' ? (
-            entries.length > 0 ? (
-              <div className="relative flex flex-wrap content-start gap-3">
-                <AnimatePresence initial={false} mode="popLayout">
-                  {entries.map((entry) => {
-                    if (entry.type === 'job') {
-                      return <JobCard key={entry.generation.id} generation={entry.generation} />
-                    }
-                    if (entry.type === 'group') {
-                      return (
-                        <GroupCard
-                          key={entry.id}
-                          title={entry.title}
-                          count={entry.cards.length}
-                          failed={
-                            entry.cards.filter(
-                              (card) => card.type === 'job' && card.generation.status === 'failed',
-                            ).length
+          <AnimatePresence initial={false} mode="popLayout">
+            <motion.div
+              key={`${tab}:${tabLoading ? 'loading' : 'ready'}`}
+              variants={motionSwap}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              transition={motionFast}
+              className="w-full"
+            >
+              <motion.div animate={{ opacity: tabRefreshing ? 0.55 : 1 }} transition={motionFast}>
+                {tabLoading ? (
+                  <WallSkeleton />
+                ) : tab === 'generated' ? (
+                  entries.length > 0 ? (
+                    <div className="relative flex flex-wrap content-start gap-3">
+                      <AnimatePresence initial={false} mode="popLayout">
+                        {entries.map((entry) => {
+                          if (entry.type === 'job') {
+                            return <JobCard key={entry.generation.id} generation={entry.generation} />
                           }
-                          outputs={entry.outputs}
-                          onOpen={() => setGroupModal({ title: entry.title, cards: entry.cards })}
+                          if (entry.type === 'group') {
+                            return (
+                              <GroupCard
+                                key={entry.id}
+                                title={entry.title}
+                                count={entry.cards.length}
+                                failed={
+                                  entry.cards.filter(
+                                    (card) => card.type === 'job' && card.generation.status === 'failed',
+                                  ).length
+                                }
+                                outputs={entry.outputs}
+                                onOpen={() => setGroupModal({ title: entry.title, cards: entry.cards })}
+                              />
+                            )
+                          }
+                          return (
+                            <OutputCard
+                              key={entry.output.id}
+                              generation={entry.generation}
+                              output={entry.output}
+                              onOpen={() =>
+                                setGroupModal({
+                                  title: entry.generation.prompt || entry.generation.model,
+                                  cards: [
+                                    {
+                                      type: 'output',
+                                      generation: entry.generation,
+                                      output: entry.output,
+                                    },
+                                  ],
+                                })
+                              }
+                            />
+                          )
+                        })}
+                      </AnimatePresence>
+                    </div>
+                  ) : (
+                    <EmptyWall
+                      title={needle ? 'No renders match that search.' : 'The wall is waiting.'}
+                      body={
+                        needle
+                          ? 'Try a different prompt, model, or provider.'
+                          : 'Describe a scene in the prompt bar below. Finished renders land here.'
+                      }
+                    />
+                  )
+                ) : uploadEntries.length > 0 ? (
+                  <div className="flex flex-wrap content-start gap-3">
+                    {uploadEntries.map((entry) =>
+                      entry.type === 'folder' ? (
+                        <UploadFolderCard
+                          key={entry.folder.id}
+                          folder={entry.folder}
+                          assets={entry.assets}
+                          onOpen={() =>
+                            setPreview({ type: 'folder', folder: entry.folder, assets: entry.assets })
+                          }
                         />
-                      )
-                    }
-                    return (
-                      <OutputCard
-                        key={entry.output.id}
-                        generation={entry.generation}
-                        output={entry.output}
-                        onOpen={() =>
-                          setGroupModal({
-                            title: entry.generation.prompt || entry.generation.model,
-                            cards: [
-                              {
-                                type: 'output',
-                                generation: entry.generation,
-                                output: entry.output,
-                              },
-                            ],
-                          })
-                        }
-                      />
-                    )
-                  })}
-                </AnimatePresence>
-              </div>
-            ) : (
-              <EmptyWall
-                title={needle ? 'No renders match that search.' : 'The wall is waiting.'}
-                body={
-                  needle
-                    ? 'Try a different prompt, model, or provider.'
-                    : 'Describe a scene in the prompt bar below. Finished renders land here.'
-                }
-              />
-            )
-          ) : uploadEntries.length > 0 ? (
-            <div className="flex flex-wrap content-start gap-3">
-              {uploadEntries.map((entry) =>
-                entry.type === 'folder' ? (
-                  <UploadFolderCard
-                    key={entry.folder.id}
-                    folder={entry.folder}
-                    assets={entry.assets}
-                    onOpen={() => setPreview({ type: 'folder', folder: entry.folder, assets: entry.assets })}
-                  />
+                      ) : (
+                        <UploadTile
+                          key={entry.asset.id}
+                          item={entry.asset}
+                          onOpen={() => setPreview({ type: 'asset', item: entry.asset })}
+                        />
+                      ),
+                    )}
+                  </div>
                 ) : (
-                  <UploadTile
-                    key={entry.asset.id}
-                    item={entry.asset}
-                    onOpen={() => setPreview({ type: 'asset', item: entry.asset })}
+                  <EmptyWall
+                    title="No uploads yet."
+                    body="Add files in Assets, import a Cobalt link, or attach a reference image to the prompt below."
                   />
-                ),
-              )}
-            </div>
-          ) : (
-            <EmptyWall
-              title="No uploads yet."
-              body="Add files in Assets, import a Cobalt link, or attach a reference image to the prompt below."
-            />
-          )}
+                )}
+              </motion.div>
+            </motion.div>
+          </AnimatePresence>
         </div>
       </PageScroll>
 
       <HomeComposer />
 
-      {groupModal ? (
-        <WallModal title={groupModal.title} cards={groupModal.cards} onClose={() => setGroupModal(null)} />
-      ) : null}
+      <AnimatePresence>
+        {groupModal ? (
+          <WallModal
+            key="wall-modal"
+            title={groupModal.title}
+            cards={groupModal.cards}
+            onClose={() => setGroupModal(null)}
+          />
+        ) : null}
+      </AnimatePresence>
 
-      {preview ? <PreviewOverlay preview={preview} onClose={() => setPreview(null)} /> : null}
+      <AnimatePresence>
+        {preview ? <PreviewOverlay key="preview" preview={preview} onClose={() => setPreview(null)} /> : null}
+      </AnimatePresence>
     </>
   )
 }
@@ -400,19 +453,46 @@ function TabButton({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        'flex h-8 items-center gap-1.5 rounded-[10px] px-2.5 text-[11px] font-medium transition-colors',
-        active ? 'bg-ink text-canvas' : 'text-ink/50 hover:text-ink',
+        'relative flex h-8 items-center gap-1.5 rounded-[10px] px-2.5 text-[11px] font-medium transition-[color,background-color,transform]',
+        motionPress,
+        active ? 'text-canvas' : 'text-ink/50 hover:text-ink',
       )}
     >
-      {icon}
-      {label}
+      {active ? (
+        <motion.span
+          layoutId="home-wall-tab"
+          transition={motionSpring}
+          className="bg-ink absolute inset-0 rounded-[10px]"
+        />
+      ) : null}
+      <span className="relative flex items-center gap-1.5">
+        {icon}
+        {label}
+      </span>
     </button>
+  )
+}
+
+const SKELETON_CARDS = [0, 1, 2, 3, 4, 5, 6, 7]
+
+function WallSkeleton() {
+  return (
+    <div aria-busy="true" aria-label="Loading wall" className="flex flex-wrap content-start gap-3">
+      {SKELETON_CARDS.map((card) => (
+        <Skeleton key={card} className={cn('shrink-0', WALL_CARD_HEIGHT, WALL_FIXED_WIDTH)} />
+      ))}
+    </div>
   )
 }
 
 function EmptyWall({ title, body }: { title: string; body: string }) {
   return (
-    <div className="border-line bg-surface/35 mx-auto mt-[12vh] max-w-md rounded-3xl border border-dashed px-8 py-12 text-center">
+    <div
+      className={cn(
+        'border-line bg-surface/35 mx-auto mt-[12vh] max-w-md rounded-3xl border border-dashed px-8 py-12 text-center',
+        motionMountRise,
+      )}
+    >
       <p className="text-accent/75 text-[10px] font-semibold tracking-[0.16em] uppercase">Empty wall</p>
       <h2 className="font-display text-ink mt-2 text-[21px] font-semibold tracking-tight">{title}</h2>
       <p className="text-ink/45 mt-2 text-[12.5px] leading-relaxed">{body}</p>
@@ -428,7 +508,8 @@ function UploadTile({ item, onOpen }: { item: PublicAsset; onOpen: () => void })
       onClick={onOpen}
       style={item.kind === 'audio' ? undefined : { aspectRatio: ratio }}
       className={cn(
-        'group border-line bg-surface hover:border-ink/25 relative shrink-0 overflow-hidden rounded-xl border text-left transition-colors',
+        'group border-line bg-surface hover:border-ink/25 relative shrink-0 overflow-hidden rounded-xl border text-left transition-[border-color,transform] active:scale-[0.99] motion-reduce:active:scale-100',
+        motionMountRise,
         WALL_CARD_HEIGHT,
         item.kind === 'audio' && WALL_FIXED_WIDTH,
       )}
@@ -440,11 +521,11 @@ function UploadTile({ item, onOpen }: { item: PublicAsset; onOpen: () => void })
           <FileAudio size={26} />
         </div>
       ) : (
-        <img
+        <FadeImage
           src={item.url}
           alt=""
           loading="lazy"
-          className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+          className="size-full object-cover duration-500 group-hover:scale-[1.02]"
         />
       )}
       <span className="bg-ink/70 text-canvas absolute top-2 left-2 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[9px] font-semibold tracking-[0.06em] uppercase backdrop-blur">
@@ -478,7 +559,8 @@ function UploadFolderCard({
       type="button"
       onClick={onOpen}
       className={cn(
-        'group border-line bg-surface hover:border-ink/25 relative flex shrink-0 flex-col overflow-hidden rounded-xl border text-left transition-colors',
+        'group border-line bg-surface hover:border-ink/25 relative flex shrink-0 flex-col overflow-hidden rounded-xl border text-left transition-[border-color,transform] active:scale-[0.99] motion-reduce:active:scale-100',
+        motionMountRise,
         WALL_CARD_HEIGHT,
         WALL_FIXED_WIDTH,
       )}
@@ -505,7 +587,12 @@ function UploadFolderCard({
                   className="size-full object-cover"
                 />
               ) : (
-                <img src={asset.url} alt="" loading="lazy" className="size-full object-cover" />
+                <FadeImage
+                  src={asset.url}
+                  alt=""
+                  loading="lazy"
+                  className="size-full object-cover duration-500 group-hover:scale-[1.02]"
+                />
               )}
             </div>
           ))}
@@ -539,11 +626,16 @@ function PreviewOverlay({ preview, onClose }: { preview: Preview; onClose: () =>
   if (!current) return null
 
   return (
-    <div
+    <motion.div
+      variants={motionFade}
+      initial="hidden"
+      animate="visible"
+      exit="hidden"
       className="bg-ink/70 fixed inset-0 z-[60] flex items-center justify-center p-3 backdrop-blur-sm md:p-8"
       onClick={onClose}
     >
-      <div
+      <motion.div
+        variants={motionPop}
         onClick={(event) => event.stopPropagation()}
         className="border-line bg-surface flex max-h-full w-full max-w-5xl flex-col overflow-hidden rounded-2xl border shadow-2xl"
       >
@@ -558,7 +650,7 @@ function PreviewOverlay({ preview, onClose }: { preview: Preview; onClose: () =>
             <a
               href={current.url}
               download
-              className="text-ink/45 hover:bg-ink/5 hover:text-ink grid size-8 place-items-center rounded-lg"
+              className="text-ink/45 hover:bg-ink/5 hover:text-ink grid size-8 place-items-center rounded-lg transition-[color,background-color,transform] active:scale-90"
               aria-label="Download"
             >
               <Download size={14} />
@@ -567,7 +659,7 @@ function PreviewOverlay({ preview, onClose }: { preview: Preview; onClose: () =>
               type="button"
               onClick={onClose}
               aria-label="Close preview"
-              className="text-ink/45 hover:bg-ink/5 hover:text-ink grid size-8 place-items-center rounded-lg"
+              className="text-ink/45 hover:bg-ink/5 hover:text-ink grid size-8 place-items-center rounded-lg transition-[color,background-color,transform] active:scale-90"
             >
               <X size={15} />
             </button>
@@ -575,28 +667,38 @@ function PreviewOverlay({ preview, onClose }: { preview: Preview; onClose: () =>
         </div>
 
         <div className="bg-ink/[0.03] min-h-0 flex-1 overflow-hidden p-2">
-          {current.kind === 'video' ? (
-            <video
-              key={current.url}
-              src={current.url}
-              controls
-              autoPlay
-              loop
-              playsInline
-              className="mx-auto max-h-[68vh] w-full rounded-xl object-contain"
-            />
-          ) : current.kind === 'audio' ? (
-            <div className="grid min-h-40 place-items-center">
-              <audio key={current.url} src={current.url} controls autoPlay className="w-full max-w-md" />
-            </div>
-          ) : (
-            <img
-              key={current.url}
-              src={current.url}
-              alt=""
-              className="mx-auto max-h-[68vh] w-full rounded-xl object-contain"
-            />
-          )}
+          <AnimatePresence initial={false} mode="popLayout">
+            <motion.div
+              key={current.id}
+              variants={motionSwap}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              transition={motionFast}
+              className="w-full"
+            >
+              {current.kind === 'video' ? (
+                <video
+                  src={current.url}
+                  controls
+                  autoPlay
+                  loop
+                  playsInline
+                  className="mx-auto max-h-[68vh] w-full rounded-xl object-contain"
+                />
+              ) : current.kind === 'audio' ? (
+                <div className="grid min-h-40 place-items-center">
+                  <audio src={current.url} controls autoPlay className="w-full max-w-md" />
+                </div>
+              ) : (
+                <FadeImage
+                  src={current.url}
+                  alt=""
+                  className="mx-auto max-h-[68vh] w-full rounded-xl object-contain"
+                />
+              )}
+            </motion.div>
+          </AnimatePresence>
         </div>
 
         {items.length > 1 ? (
@@ -607,7 +709,7 @@ function PreviewOverlay({ preview, onClose }: { preview: Preview; onClose: () =>
                 type="button"
                 onClick={() => setIndex(itemIndex)}
                 className={cn(
-                  'size-12 shrink-0 overflow-hidden rounded-lg border transition-colors',
+                  'size-12 shrink-0 overflow-hidden rounded-lg border transition-[border-color,transform] active:scale-95 motion-reduce:active:scale-100',
                   itemIndex === safeIndex ? 'border-accent' : 'border-line hover:border-ink/25',
                 )}
               >
@@ -618,7 +720,7 @@ function PreviewOverlay({ preview, onClose }: { preview: Preview; onClose: () =>
                     <FileAudio size={16} />
                   </span>
                 ) : (
-                  <img src={item.url} alt="" className="size-full object-cover" />
+                  <FadeImage src={item.url} alt="" className="size-full object-cover" />
                 )}
               </button>
             ))}
@@ -639,7 +741,7 @@ function PreviewOverlay({ preview, onClose }: { preview: Preview; onClose: () =>
             <span>{new Date(current.createdAt).toLocaleString()}</span>
           </div>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   )
 }

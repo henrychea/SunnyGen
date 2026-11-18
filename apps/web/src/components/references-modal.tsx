@@ -1,6 +1,36 @@
+import { AnimatePresence, motion } from 'motion/react'
+import { FadeImage, motionFade, motionFast, motionPop, motionSwap } from '@sunnygen/ui'
 import { useEffect, useState } from 'react'
-import { MediaCard, MediaThumbStrip } from '~/components/media-preview'
+import { MediaThumbStrip } from '~/components/media-preview'
 import type { InputAsset } from '~/server/media.server'
+
+function ReferenceMedia({ reference, label }: { reference: InputAsset; label: string }) {
+  return (
+    <div className="bg-ink/[0.03] border-line/70 flex items-center justify-center overflow-hidden rounded-xl border p-2">
+      {reference.kind === 'image' ? (
+        <div className="relative flex min-h-44 w-full items-center justify-center">
+          <FadeImage
+            shimmer
+            src={reference.url}
+            alt={label}
+            className="relative max-h-[calc(90dvh-18rem)] w-auto max-w-full rounded-lg object-contain"
+          />
+        </div>
+      ) : reference.kind === 'video' ? (
+        <video
+          src={reference.url}
+          controls
+          autoPlay
+          loop
+          playsInline
+          className="max-h-[calc(90dvh-18rem)] w-auto max-w-full rounded-lg"
+        />
+      ) : (
+        <audio src={reference.url} controls autoPlay className="w-full max-w-md" />
+      )}
+    </div>
+  )
+}
 
 export function ReferencesModal({ references, onClose }: { references: InputAsset[]; onClose: () => void }) {
   const [index, setIndex] = useState(0)
@@ -20,14 +50,19 @@ export function ReferencesModal({ references, onClose }: { references: InputAsse
   if (!current) return null
 
   return (
-    <div
+    <motion.div
+      variants={motionFade}
+      initial="hidden"
+      animate="visible"
+      exit="hidden"
       className="bg-ink/70 fixed inset-0 z-[80] flex items-center justify-center p-3 backdrop-blur-sm md:p-8"
       onClick={(event) => {
         event.stopPropagation()
         onClose()
       }}
     >
-      <div
+      <motion.div
+        variants={motionPop}
         onClick={(event) => event.stopPropagation()}
         className="border-line bg-surface flex max-h-[90dvh] w-fit max-w-[min(92vw,1000px)] min-w-[min(92vw,420px)] flex-col overflow-hidden rounded-2xl border shadow-2xl"
       >
@@ -43,18 +78,27 @@ export function ReferencesModal({ references, onClose }: { references: InputAsse
             type="button"
             onClick={onClose}
             aria-label="Close references"
-            className="text-ink/40 hover:bg-ink/5 hover:text-ink ml-auto grid size-8 shrink-0 place-items-center rounded-lg"
+            className="text-ink/40 hover:bg-ink/5 hover:text-ink ml-auto grid size-8 shrink-0 place-items-center rounded-lg transition-[color,background-color,transform] active:scale-90"
           >
             ×
           </button>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto p-3 md:p-4">
-          <MediaCard
-            url={current.url}
-            kind={current.kind}
-            alt={`Reference ${safeIndex + 1}`}
-            mediaClassName="max-h-[calc(90dvh-18rem)]"
-          />
+          <div className="relative">
+            <AnimatePresence initial={false} mode="popLayout">
+              <motion.div
+                key={current.id}
+                variants={motionSwap}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                transition={motionFast}
+                className="w-full"
+              >
+                <ReferenceMedia reference={current} label={`Reference ${safeIndex + 1}`} />
+              </motion.div>
+            </AnimatePresence>
+          </div>
           {references.length > 1 ? (
             <MediaThumbStrip
               items={references}
@@ -88,7 +132,7 @@ export function ReferencesModal({ references, onClose }: { references: InputAsse
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   )
 }

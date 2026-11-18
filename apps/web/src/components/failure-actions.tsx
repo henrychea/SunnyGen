@@ -1,3 +1,5 @@
+import { AnimatePresence, motion } from 'motion/react'
+import { motionFadeRise, motionFast, motionMountFade } from '@sunnygen/ui'
 import { Copy, RotateCw } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useRetryGeneration, type RetryableGeneration } from '~/lib/use-retry-generation'
@@ -45,31 +47,54 @@ export function FailureActions({
             type="button"
             onClick={() => retry.mutate(generation)}
             disabled={retry.isPending}
-            className="border-line text-ink/60 hover:border-ink/25 hover:text-ink inline-flex h-7 items-center gap-1 rounded-md border px-2 text-[10px] font-medium disabled:opacity-50"
+            className="border-line text-ink/60 hover:border-ink/25 hover:text-ink inline-flex h-7 items-center gap-1 rounded-md border px-2 text-[10px] font-medium transition-[color,border-color,transform] active:scale-[0.97] disabled:opacity-50 motion-reduce:active:scale-100"
           >
             <RotateCw size={11} className={retry.isPending ? 'animate-spin' : undefined} />
-            {retry.isPending ? 'Retrying…' : 'Retry'}
+            <span key={retry.isPending ? 'busy' : 'idle'} className={motionMountFade}>
+              {retry.isPending ? 'Retrying…' : 'Retry'}
+            </span>
           </button>
         ) : (
           <button
             type="button"
             onClick={copyPrompt}
-            className="border-line text-ink/60 hover:border-ink/25 hover:text-ink inline-flex h-7 items-center gap-1 rounded-md border px-2 text-[10px] font-medium"
+            className="border-line text-ink/60 hover:border-ink/25 hover:text-ink inline-flex h-7 items-center gap-1 rounded-md border px-2 text-[10px] font-medium transition-[color,border-color,transform] active:scale-[0.97] motion-reduce:active:scale-100"
           >
-            <Copy size={11} /> {copied ? 'Copied' : 'Copy prompt'}
+            <Copy size={11} />
+            <span key={copied ? 'copied' : 'idle'} className={motionMountFade}>
+              {copied ? 'Copied' : 'Copy prompt'}
+            </span>
           </button>
         )}
       </div>
-      {!retryable ? (
-        <p className="text-error/60 mt-1 text-[9.5px] leading-snug">
-          Not retryable. Revise the prompt or references first.
-        </p>
-      ) : null}
-      {retry.error ? (
-        <p className="text-error/70 mt-1 line-clamp-2 text-[9.5px] leading-snug">
-          {retry.error instanceof Error ? retry.error.message : 'Retry failed'}
-        </p>
-      ) : null}
+      <AnimatePresence initial={false}>
+        {!retryable ? (
+          <motion.p
+            key="hint"
+            variants={motionFadeRise}
+            initial="hidden"
+            animate="visible"
+            exit="hidden"
+            transition={motionFast}
+            className="text-error/60 mt-1 text-[9.5px] leading-snug"
+          >
+            Not retryable. Revise the prompt or references first.
+          </motion.p>
+        ) : null}
+        {retry.error ? (
+          <motion.p
+            key="retry-error"
+            variants={motionFadeRise}
+            initial="hidden"
+            animate="visible"
+            exit="hidden"
+            transition={motionFast}
+            className="text-error/70 mt-1 line-clamp-2 text-[9.5px] leading-snug"
+          >
+            {retry.error instanceof Error ? retry.error.message : 'Retry failed'}
+          </motion.p>
+        ) : null}
+      </AnimatePresence>
     </div>
   )
 }
