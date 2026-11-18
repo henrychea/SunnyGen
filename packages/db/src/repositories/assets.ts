@@ -103,6 +103,7 @@ export interface ListAssetsFilter {
   source?: AssetSource
   sources?: AssetSource[]
   excludeSource?: AssetSource
+  excludeKind?: AssetKind
   folderId?: string | null
   limit?: number
   offset?: number
@@ -147,6 +148,10 @@ export function listAssets(filter: ListAssetsFilter = {}): AssetRecord[] {
   if (filter.excludeSource) {
     conditions.push('source != ?')
     values.push(filter.excludeSource)
+  }
+  if (filter.excludeKind) {
+    conditions.push('kind != ?')
+    values.push(filter.excludeKind)
   }
   if (filter.folderId !== undefined) {
     if (filter.folderId === null) {

@@ -10,11 +10,13 @@ import {
   updateGeneration,
 } from '@sunnygen/db'
 import { adapterFor, providerContext, storeProviderOutputs } from './generation.server'
+import { completeLoraGeneration } from './lora.server'
 
 const POLL_INTERVAL_MS = 3_000
 const MAX_AGE_MS: Record<GenerationKind, number> = {
   image: 20 * 60 * 1000,
   video: 60 * 60 * 1000,
+  lora: 2 * 60 * 60 * 1000,
 }
 
 interface PollerState {
@@ -79,12 +81,19 @@ async function recoverFailedJobs(): Promise<void> {
           kind: generation.kind,
         })
         if (result.status === 'succeeded') {
-          const outputIds = await storeProviderOutputs(result.outputs ?? [], generation.folderId)
+          const outputIds = await storeProviderOutputs(
+            result.outputs ?? [],
+            generation.folderId,
+            generation.kind === 'lora' ? 'lora' : undefined,
+          )
           updateGeneration(generation.id, {
             status: 'succeeded',
             outputAssetIds: outputIds,
             error: null,
           })
+          if (generation.kind === 'lora') {
+            completeLoraGeneration(generation, outputIds, result.outputs ?? [])
+          }
           console.info(`[generation-poller] recovered ${generation.id}`)
         } else if (result.status === 'failed') {
           updateGeneration(generation.id, {
@@ -165,12 +174,19 @@ export async function processGenerationJobs(): Promise<void> {
           kind: generation.kind,
         })
         if (result.status === 'succeeded') {
-          const outputIds = await storeProviderOutputs(result.outputs ?? [], generation.folderId)
+          const outputIds = await storeProviderOutputs(
+            result.outputs ?? [],
+            generation.folderId,
+            generation.kind === 'lora' ? 'lora' : undefined,
+          )
           updateGeneration(generation.id, {
             status: 'succeeded',
             outputAssetIds: outputIds,
             error: null,
           })
+          if (generation.kind === 'lora') {
+            completeLoraGeneration(generation, outputIds, result.outputs ?? [])
+          }
           deleteJob(job.taskId)
         } else if (result.status === 'failed') {
           const message = result.error ?? 'Generation failed'

@@ -1,7 +1,11 @@
+import { parseAvatarLora, type AvatarLora } from '@sunnygen/core'
+
 export interface AvatarReference {
   id: string
+  avatarId: string
   name: string
   assetIds: string[]
+  lora: AvatarLora | null
 }
 
 export interface ReferenceAvatar extends AvatarReference {
@@ -26,5 +30,11 @@ export function referenceAvatar(source: AvatarSource): AvatarReference | null {
   const cleanSheet = typeof sheet === 'string' && sheet.length > 0 ? sheet : null
   const assetIds = [...new Set([cleanSheet, source.assetId].filter((id): id is string => Boolean(id)))]
   if (assetIds.length === 0) return null
-  return { id: assetIds[0] as string, name: source.name, assetIds }
+  return {
+    id: assetIds[0] as string,
+    avatarId: source.id,
+    name: source.name,
+    assetIds,
+    lora: parseAvatarLora(source.data.lora),
+  }
 }

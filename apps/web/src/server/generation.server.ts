@@ -1,5 +1,6 @@
 import {
   PROVIDERS,
+  type AssetKind,
   type GenerationKind,
   type GenerationParams,
   type ModelDefinition,
@@ -123,20 +124,20 @@ export async function loadProviderAssets(assetIds: string[]): Promise<ProviderAs
 export async function storeProviderOutputs(
   outputs: ProviderOutput[],
   folderId: string | null,
+  forceKind?: AssetKind,
 ): Promise<string[]> {
   const ids: string[] = []
   for (const output of outputs) {
-    const kind: GenerationKind | 'audio' = output.mime.startsWith('video/')
-      ? 'video'
-      : output.mime.startsWith('audio/')
-        ? 'audio'
-        : 'image'
+    const kind: AssetKind =
+      forceKind ??
+      (output.mime.startsWith('video/') ? 'video' : output.mime.startsWith('audio/') ? 'audio' : 'image')
     const asset = await storeBuffer({
       buffer: output.buffer,
       mime: output.mime,
       kind,
       source: 'generated',
       folderId,
+      ...(output.fileName ? { fileName: output.fileName } : {}),
     })
     ids.push(asset.id)
   }
@@ -164,7 +165,7 @@ export async function prepareGeneration(input: {
   provider?: ProviderId
 }): Promise<PreparedGeneration> {
   const provider = await resolveProvider(input.model, input.provider)
-  const assets = await loadProviderAssets(input.assetIds)
+  const assets = input.model.supportsImages ? await loadProviderAssets(input.assetIds) : []
   return {
     provider,
     request: {
