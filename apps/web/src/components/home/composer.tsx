@@ -29,7 +29,6 @@ import { ReferencePicker } from './reference-picker'
 
 const PROMPT_LIMIT = 20_000
 const MAX_BATCH = 8
-const MAX_TARGETS = 4
 const ALL_MODELS = [...IMAGE_MODELS, ...VIDEO_MODELS]
 const EDIT_MODELS = IMAGE_MODELS.filter((model) => model.supportsImages)
 
@@ -142,8 +141,7 @@ export function HomeComposer() {
       )
     : allChoices
   const canAddReferences = model.supportsImages
-  const targetMax = Math.min(MAX_TARGETS, MAX_BATCH, model.maxImages)
-  const referenceMax = isEdit ? Math.max(0, model.maxImages - editTargets.length) : model.maxImages
+  const referenceMax = isEdit ? Math.max(0, model.maxImages - 1) : model.maxImages
   const referenceSlots = canAddReferences ? Math.max(0, referenceMax - referenceImageCount(references)) : 0
   const editReferenceSlots = Math.max(0, referenceMax - referenceImageCount(editReferences))
 
@@ -171,9 +169,7 @@ export function HomeComposer() {
     setRatio(defaultRatio(next))
     setCount(1)
     setReferences((current) => current.slice(0, next.supportsImages ? next.maxImages : 0))
-    const nextTargets = editTargets.slice(0, Math.min(MAX_TARGETS, next.maxImages))
-    setEditTargets(nextTargets)
-    setEditReferences((current) => current.slice(0, Math.max(0, next.maxImages - nextTargets.length)))
+    setEditReferences((current) => current.slice(0, Math.max(0, next.maxImages - 1)))
     if (next.kind === 'image') {
       setQuality(next.qualityOptions.includes('1k') ? '1k' : (next.qualityOptions[0] ?? ''))
     } else {
@@ -243,7 +239,7 @@ export function HomeComposer() {
             )
           })()
 
-    if (jobs.length > MAX_BATCH) {
+    if (mode !== 'edit' && jobs.length > MAX_BATCH) {
       setError(`A batch can hold at most ${MAX_BATCH} prompts.`)
       return
     }
@@ -329,15 +325,13 @@ export function HomeComposer() {
     const next = [
       ...editTargets,
       ...items.filter((item) => !editTargets.some((entry) => entry.id === item.id)),
-    ].slice(0, targetMax)
+    ]
     setEditTargets(next)
-    setEditReferences((current) => trimReferences(current, Math.max(0, model.maxImages - next.length)))
+    setEditReferences((current) => trimReferences(current, Math.max(0, model.maxImages - 1)))
   }
 
   const addEditReferences = (items: ReferenceItem[]) => {
-    setEditReferences((current) =>
-      appendReferences(current, items, Math.max(0, model.maxImages - editTargets.length)),
-    )
+    setEditReferences((current) => appendReferences(current, items, Math.max(0, model.maxImages - 1)))
   }
 
   const hasContent =
@@ -355,7 +349,7 @@ export function HomeComposer() {
           title: 'Add target images',
           allowAvatars: false,
           existingIds: editTargets.map((item) => item.id),
-          max: targetMax - editTargets.length,
+          max: Number.POSITIVE_INFINITY,
           onConfirm: addTargets,
         }
       : picker === 'editReferences'
@@ -506,8 +500,8 @@ export function HomeComposer() {
                 label="Targets"
                 tileLabel="TARGET"
                 items={editTargets}
-                max={targetMax}
-                remaining={targetMax - editTargets.length}
+                max={Number.POSITIVE_INFINITY}
+                remaining={Number.POSITIVE_INFINITY}
                 busy={busy}
                 onAdd={() => setPicker('editTargets')}
                 onRemove={(id) => setEditTargets((current) => current.filter((entry) => entry.id !== id))}
@@ -516,7 +510,7 @@ export function HomeComposer() {
                 label="References"
                 tileLabel="REF"
                 items={editReferences}
-                max={Math.max(0, model.maxImages - editTargets.length)}
+                max={Math.max(0, model.maxImages - 1)}
                 remaining={editReferenceSlots}
                 busy={busy}
                 onAdd={() => setPicker('editReferences')}
@@ -774,7 +768,7 @@ function SelectionBox({
       <div className="flex items-center justify-between">
         <span className="text-ink/35 text-[9px] font-semibold tracking-[0.1em] uppercase">{label}</span>
         <span className="text-ink/25 text-[9px] tabular-nums">
-          {items.length}/{max}
+          {Number.isFinite(max) ? `${items.length}/${max}` : items.length}
         </span>
       </div>
       <div className="mt-1 flex flex-wrap items-start gap-1.5">
@@ -801,7 +795,9 @@ function SelectionBox({
           >
             <ImagePlus size={13} />
             <span className="text-[7.5px] font-semibold tracking-[0.04em]">{tileLabel}</span>
-            <span className="text-[7.5px] opacity-60">{remaining} left</span>
+            {Number.isFinite(remaining) ? (
+              <span className="text-[7.5px] opacity-60">{remaining} left</span>
+            ) : null}
           </button>
         ) : null}
       </div>
