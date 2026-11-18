@@ -7,7 +7,7 @@ export const Dialog = BaseDialog
 export function DialogSurface({ className, children }: { className?: string; children: ReactNode }) {
   return (
     <BaseDialog.Portal>
-      <BaseDialog.Backdrop className="bg-ink/35 fixed inset-0 z-40 backdrop-blur-[2px] transition-opacity data-[ending-style]:opacity-0 data-[starting-style]:opacity-0" />
+      <BaseDialog.Backdrop className="bg-ink/35 fixed inset-0 z-40 backdrop-blur-[2px] transition-opacity duration-200 ease-out data-[ending-style]:opacity-0 data-[starting-style]:opacity-0 motion-reduce:transition-none" />
       <BaseDialog.Popup
         style={{
           left: '50%',
@@ -19,8 +19,9 @@ export function DialogSurface({ className, children }: { className?: string; chi
           'fixed z-50 w-[min(92vw,520px)]',
           'border-line bg-surface max-h-[88dvh] overflow-y-auto rounded-2xl border p-6',
           'shadow-[0_30px_90px_-30px_rgba(42,30,23,0.55)] outline-none',
-          'transition-[opacity,transform] data-[ending-style]:scale-[0.98] data-[ending-style]:opacity-0',
-          'data-[starting-style]:scale-[0.98] data-[starting-style]:opacity-0',
+          'transition-[opacity,scale,translate] duration-200 ease-out motion-reduce:transition-none',
+          'data-[ending-style]:scale-[0.98] data-[ending-style]:translate-y-1 data-[ending-style]:opacity-0',
+          'data-[starting-style]:scale-[0.98] data-[starting-style]:translate-y-1 data-[starting-style]:opacity-0',
           className,
         )}
       >

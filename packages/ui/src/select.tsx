@@ -6,7 +6,8 @@ export function Select({ className, children, ...props }: ComponentProps<'select
     <select
       className={cn(
         'border-line bg-surface text-ink h-10 w-full appearance-none rounded-xl border px-3 text-[13px]',
-        'focus-visible:border-accent/45 focus-visible:ring-accent/15 focus-visible:outline-none focus-visible:ring-2',
+        'transition-[color,box-shadow,border-color] duration-150 ease-out',
+        'hover:border-ink/20 focus-visible:border-accent/45 focus-visible:ring-accent/15 focus-visible:outline-none focus-visible:ring-2',
         'disabled:cursor-not-allowed disabled:opacity-50',
         className,
       )}

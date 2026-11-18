@@ -1,5 +1,7 @@
 import type { ComponentProps } from 'react'
+import { AnimatePresence, motion } from 'motion/react'
 import { cn } from './cn'
+import { motionFast, motionPop, motionPress } from './motion'
 
 const VARIANTS = {
   primary:
@@ -37,7 +39,8 @@ export function Button({
     <button
       type={type}
       className={cn(
-        'inline-flex select-none items-center justify-center gap-2 font-medium transition-colors',
+        'inline-flex select-none items-center justify-center gap-2 font-medium transition duration-150 ease-out',
+        motionPress,
         'focus-visible:ring-accent/35 focus-visible:ring-offset-canvas focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
         'disabled:pointer-events-none disabled:opacity-45',
         VARIANTS[variant],
@@ -47,7 +50,21 @@ export function Button({
       disabled={disabled || loading}
       {...props}
     >
-      {loading ? <Spinner /> : null}
+      <AnimatePresence initial={false}>
+        {loading ? (
+          <motion.span
+            key="spinner"
+            variants={motionPop}
+            initial="hidden"
+            animate="visible"
+            exit="hidden"
+            transition={motionFast}
+            className="inline-flex shrink-0"
+          >
+            <Spinner />
+          </motion.span>
+        ) : null}
+      </AnimatePresence>
       {children}
     </button>
   )

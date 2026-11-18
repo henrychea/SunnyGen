@@ -9,7 +9,18 @@ import {
   type ReactNode,
 } from 'react'
 import { createPortal } from 'react-dom'
+import { AnimatePresence, motion } from 'motion/react'
 import { cn } from './cn'
+import {
+  motionFade,
+  motionFast,
+  motionList,
+  motionListItem,
+  motionPop,
+  motionPress,
+  motionSpring,
+  motionSwap,
+} from './motion'
 
 export type SelectorSize = 'sm' | 'md'
 
@@ -242,161 +253,229 @@ export function Selector({
           }
         }}
         className={cn(
-          'border-line bg-surface text-ink hover:border-ink/25 focus-visible:border-accent/40 flex w-full items-center gap-2 border text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50',
+          'border-line bg-surface text-ink hover:border-ink/25 focus-visible:border-accent/40 relative flex w-full items-center gap-2 border text-left transition-[color,border-color,transform] disabled:cursor-not-allowed disabled:opacity-50',
+          motionPress,
           size === 'sm' ? 'h-9 rounded-lg px-3' : 'h-11 rounded-xl px-3.5',
         )}
       >
-        {selected?.leading ? <span className="shrink-0">{selected.leading}</span> : null}
-        <span className="min-w-0 flex-1">
-          <span
-            className={cn('block truncate font-medium', size === 'sm' ? 'text-[12.5px]' : 'text-[13.5px]')}
+        <AnimatePresence initial={false} mode="popLayout">
+          <motion.span
+            key={selected?.key ?? 'placeholder'}
+            variants={motionSwap}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            transition={motionFast}
+            className="flex min-w-0 flex-1 items-center gap-2"
           >
-            {selected?.label ?? placeholder}
-          </span>
-          {selected && showTriggerDescription && (selected.triggerDescription ?? selected.description) ? (
-            <span
-              className={cn('text-ink/40 block truncate', size === 'sm' ? 'text-[10.5px]' : 'text-[11px]')}
-            >
-              {selected.triggerDescription ?? selected.description}
+            {selected?.leading ? <span className="shrink-0">{selected.leading}</span> : null}
+            <span className="min-w-0 flex-1">
+              <span
+                className={cn(
+                  'block truncate font-medium',
+                  size === 'sm' ? 'text-[12.5px]' : 'text-[13.5px]',
+                )}
+              >
+                {selected?.label ?? placeholder}
+              </span>
+              {selected && showTriggerDescription && (selected.triggerDescription ?? selected.description) ? (
+                <span
+                  className={cn(
+                    'text-ink/40 block truncate',
+                    size === 'sm' ? 'text-[10.5px]' : 'text-[11px]',
+                  )}
+                >
+                  {selected.triggerDescription ?? selected.description}
+                </span>
+              ) : null}
             </span>
-          ) : null}
-        </span>
-        <ChevronDown size={size === 'sm' ? 12 : 14} />
+          </motion.span>
+        </AnimatePresence>
+        <motion.span animate={{ rotate: open ? 180 : 0 }} transition={motionFast} className="shrink-0">
+          <ChevronDown size={size === 'sm' ? 12 : 14} />
+        </motion.span>
       </button>
 
-      {open && position
+      {position
         ? createPortal(
-            <div
-              ref={menuRef}
-              tabIndex={-1}
-              onKeyDown={handleMenuKeyDown}
-              style={{
-                position: 'fixed',
-                left: position.left,
-                width: position.width,
-                maxHeight: position.maxHeight,
-                ...(position.top !== undefined ? { top: position.top } : { bottom: position.bottom }),
-              }}
-              className="border-line bg-surface z-[80] flex flex-col overflow-hidden rounded-xl border shadow-[0_20px_50px_-20px_rgba(42,30,23,0.45)] outline-none"
-            >
-              {searchable ? (
-                <div className="border-line flex items-center gap-2 border-b px-3 py-2.5">
-                  <span className="text-ink/35">
-                    <SearchIcon />
-                  </span>
-                  <input
-                    ref={searchRef}
-                    value={query}
-                    onChange={(event) => {
-                      setQuery(event.target.value)
-                      setActiveIndex(0)
-                    }}
-                    role="combobox"
-                    aria-expanded={open}
-                    aria-controls={listboxId}
-                    aria-autocomplete="list"
-                    aria-activedescendant={visible[active] ? `${listboxId}-${active}` : undefined}
-                    placeholder={searchPlaceholder}
-                    className="text-ink placeholder:text-ink/30 min-w-0 flex-1 bg-transparent text-[12.5px] outline-none"
-                  />
-                </div>
-              ) : null}
+            <AnimatePresence>
+              {open ? (
+                <motion.div
+                  key="menu"
+                  ref={menuRef}
+                  tabIndex={-1}
+                  onKeyDown={handleMenuKeyDown}
+                  variants={motionPop}
+                  initial="hidden"
+                  animate="visible"
+                  exit="hidden"
+                  style={{
+                    position: 'fixed',
+                    left: position.left,
+                    width: position.width,
+                    maxHeight: position.maxHeight,
+                    transformOrigin: position.top !== undefined ? 'top center' : 'bottom center',
+                    ...(position.top !== undefined ? { top: position.top } : { bottom: position.bottom }),
+                  }}
+                  className="border-line bg-surface z-[80] flex flex-col overflow-hidden rounded-xl border shadow-[0_20px_50px_-20px_rgba(42,30,23,0.45)] outline-none"
+                >
+                  {searchable ? (
+                    <div className="border-line flex items-center gap-2 border-b px-3 py-2.5">
+                      <span className="text-ink/35">
+                        <SearchIcon />
+                      </span>
+                      <input
+                        ref={searchRef}
+                        value={query}
+                        onChange={(event) => {
+                          setQuery(event.target.value)
+                          setActiveIndex(0)
+                        }}
+                        role="combobox"
+                        aria-expanded={open}
+                        aria-controls={listboxId}
+                        aria-autocomplete="list"
+                        aria-activedescendant={visible[active] ? `${listboxId}-${active}` : undefined}
+                        placeholder={searchPlaceholder}
+                        className="text-ink placeholder:text-ink/30 min-w-0 flex-1 bg-transparent text-[12.5px] outline-none"
+                      />
+                    </div>
+                  ) : null}
 
-              {hasFilters ? (
-                <div className="border-line flex flex-wrap items-center gap-1.5 border-b px-3 py-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setFilter('all')
-                      setActiveIndex(0)
-                    }}
-                    className={cn(
-                      'rounded-full px-3 py-1.5 text-[10.5px] font-medium transition-colors',
-                      filter === 'all' ? 'bg-ink text-canvas' : 'text-ink/45 hover:text-ink',
-                    )}
-                  >
-                    {allFilterLabel}
-                  </button>
-                  {filters.map((entry) => (
-                    <button
-                      key={entry.id}
-                      type="button"
-                      onClick={() => {
-                        setFilter(entry.id)
-                        setActiveIndex(0)
-                      }}
-                      className={cn(
-                        'rounded-full px-3 py-1.5 text-[10.5px] font-medium transition-colors',
-                        filter === entry.id ? 'bg-ink text-canvas' : 'text-ink/45 hover:text-ink',
-                      )}
-                    >
-                      {entry.label}
-                    </button>
-                  ))}
-                </div>
-              ) : null}
-
-              <div id={listboxId} role="listbox" className="max-h-80 min-h-0 flex-1 overflow-y-auto p-1.5">
-                {visible.length === 0 ? (
-                  <p className="text-ink/35 px-2.5 py-4 text-center text-[11px]">{emptyLabel}</p>
-                ) : (
-                  visible.map((option, index) => {
-                    const previous = visible[index - 1]
-                    return (
-                      <Fragment key={option.key}>
-                        {option.group && (!previous || previous.group !== option.group) ? (
-                          <p className="text-ink/30 bg-surface/95 sticky top-0 z-10 px-2.5 pt-2 pb-1 text-[9.5px] font-semibold tracking-[0.1em] uppercase backdrop-blur">
-                            {option.group}
-                          </p>
+                  {hasFilters ? (
+                    <div className="border-line flex flex-wrap items-center gap-1.5 border-b px-3 py-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFilter('all')
+                          setActiveIndex(0)
+                        }}
+                        className={cn(
+                          'relative rounded-full px-3 py-1.5 text-[10.5px] font-medium transition-colors',
+                          motionPress,
+                          filter === 'all' ? 'text-canvas' : 'text-ink/45 hover:text-ink',
+                        )}
+                      >
+                        {filter === 'all' ? (
+                          <motion.span
+                            layoutId={`${listboxId}-filter`}
+                            transition={motionSpring}
+                            className="bg-ink absolute inset-0 rounded-full"
+                          />
                         ) : null}
+                        <span className="relative">{allFilterLabel}</span>
+                      </button>
+                      {filters.map((entry) => (
                         <button
-                          id={`${listboxId}-${index}`}
+                          key={entry.id}
                           type="button"
-                          role="option"
-                          aria-selected={selected?.key === option.key}
-                          aria-disabled={option.disabled}
-                          disabled={option.disabled}
-                          onMouseEnter={() => setActiveIndex(index)}
-                          onClick={() => select(option)}
+                          onClick={() => {
+                            setFilter(entry.id)
+                            setActiveIndex(0)
+                          }}
                           className={cn(
-                            'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors',
-                            index === active ? 'bg-ink/[0.06]' : '',
-                            option.disabled ? 'cursor-not-allowed opacity-45' : '',
+                            'relative rounded-full px-3 py-1.5 text-[10.5px] font-medium transition-colors',
+                            motionPress,
+                            filter === entry.id ? 'text-canvas' : 'text-ink/45 hover:text-ink',
                           )}
                         >
-                          {option.leading ? <span className="shrink-0">{option.leading}</span> : null}
-                          <span className="min-w-0 flex-1">
-                            <span className="text-ink/80 block truncate text-[12.5px] font-medium">
-                              {option.label}
-                            </span>
-                            {option.description ? (
-                              <span className="text-ink/35 block truncate text-[10.5px]">
-                                {option.description}
-                              </span>
-                            ) : null}
-                          </span>
-                          {option.meta ? (
-                            <span className="text-ink/40 max-w-[42%] shrink-0 truncate text-[10.5px] tabular-nums">
-                              {option.meta}
-                            </span>
+                          {filter === entry.id ? (
+                            <motion.span
+                              layoutId={`${listboxId}-filter`}
+                              transition={motionSpring}
+                              className="bg-ink absolute inset-0 rounded-full"
+                            />
                           ) : null}
-                          {selected?.key === option.key ? (
-                            <span className="text-accent shrink-0">
-                              <CheckIcon />
-                            </span>
-                          ) : null}
+                          <span className="relative">{entry.label}</span>
                         </button>
-                      </Fragment>
-                    )
-                  })
-                )}
-              </div>
-              {footer ? (
-                <div className="border-line/60 text-ink/30 border-t px-3 py-2 text-[9.5px] leading-snug">
-                  {footer}
-                </div>
+                      ))}
+                    </div>
+                  ) : null}
+
+                  <motion.div
+                    id={listboxId}
+                    role="listbox"
+                    variants={motionList}
+                    initial="hidden"
+                    animate="visible"
+                    className="max-h-80 min-h-0 flex-1 overflow-y-auto p-1.5"
+                  >
+                    {visible.length === 0 ? (
+                      <motion.p
+                        variants={motionFade}
+                        initial="hidden"
+                        animate="visible"
+                        className="text-ink/35 px-2.5 py-4 text-center text-[11px]"
+                      >
+                        {emptyLabel}
+                      </motion.p>
+                    ) : (
+                      visible.map((option, index) => {
+                        const previous = visible[index - 1]
+                        return (
+                          <Fragment key={option.key}>
+                            {option.group && (!previous || previous.group !== option.group) ? (
+                              <p className="text-ink/30 bg-surface/95 sticky top-0 z-10 px-2.5 pt-2 pb-1 text-[9.5px] font-semibold tracking-[0.1em] uppercase backdrop-blur">
+                                {option.group}
+                              </p>
+                            ) : null}
+                            <motion.button
+                              id={`${listboxId}-${index}`}
+                              variants={motionListItem}
+                              type="button"
+                              role="option"
+                              aria-selected={selected?.key === option.key}
+                              aria-disabled={option.disabled}
+                              disabled={option.disabled}
+                              onMouseEnter={() => setActiveIndex(index)}
+                              onClick={() => select(option)}
+                              className={cn(
+                                'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors active:bg-ink/[0.09]',
+                                index === active ? 'bg-ink/[0.06]' : '',
+                                option.disabled ? 'cursor-not-allowed opacity-45' : '',
+                              )}
+                            >
+                              {option.leading ? <span className="shrink-0">{option.leading}</span> : null}
+                              <span className="min-w-0 flex-1">
+                                <span className="text-ink/80 block truncate text-[12.5px] font-medium">
+                                  {option.label}
+                                </span>
+                                {option.description ? (
+                                  <span className="text-ink/35 block truncate text-[10.5px]">
+                                    {option.description}
+                                  </span>
+                                ) : null}
+                              </span>
+                              {option.meta ? (
+                                <span className="text-ink/40 max-w-[42%] shrink-0 truncate text-[10.5px] tabular-nums">
+                                  {option.meta}
+                                </span>
+                              ) : null}
+                              <span className="text-accent grid w-[13px] shrink-0 place-items-center">
+                                <motion.span
+                                  animate={{
+                                    opacity: selected?.key === option.key ? 1 : 0,
+                                    scale: selected?.key === option.key ? 1 : 0.7,
+                                  }}
+                                  transition={motionFast}
+                                >
+                                  <CheckIcon />
+                                </motion.span>
+                              </span>
+                            </motion.button>
+                          </Fragment>
+                        )
+                      })
+                    )}
+                  </motion.div>
+                  {footer ? (
+                    <div className="border-line/60 text-ink/30 border-t px-3 py-2 text-[9.5px] leading-snug">
+                      {footer}
+                    </div>
+                  ) : null}
+                </motion.div>
               ) : null}
-            </div>,
+            </AnimatePresence>,
             document.body,
           )
         : null}

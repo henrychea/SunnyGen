@@ -20,8 +20,9 @@ export function DropdownMenuContent({
           className={cn(
             'border-line bg-surface min-w-44 rounded-xl border p-1.5',
             'shadow-[0_18px_50px_-24px_rgba(42,30,23,0.45)] outline-none',
-            'transition-[opacity,transform] data-[ending-style]:scale-[0.98] data-[ending-style]:opacity-0',
-            'data-[starting-style]:scale-[0.98] data-[starting-style]:opacity-0',
+            'transition-[opacity,scale,translate] duration-200 ease-out motion-reduce:transition-none',
+            'origin-(--transform-origin) data-[ending-style]:scale-[0.97] data-[ending-style]:opacity-0',
+            'data-[starting-style]:scale-[0.97] data-[starting-style]:opacity-0',
             className,
           )}
         >
@@ -36,7 +37,7 @@ export function DropdownMenuItem({ className, ...props }: ComponentProps<typeof 
   return (
     <Menu.Item
       className={cn(
-        'text-ink/75 flex cursor-default select-none items-center gap-2 rounded-lg px-2.5 py-2 text-[12.5px] outline-none',
+        'text-ink/75 flex cursor-default select-none items-center gap-2 rounded-lg px-2.5 py-2 text-[12.5px] outline-none transition-[color,background-color,transform] duration-100 active:scale-[0.99] motion-reduce:active:scale-100',
         'data-[disabled]:pointer-events-none data-[disabled]:opacity-40',
         'data-[highlighted]:bg-ink/[0.06] data-[highlighted]:text-ink',
         className,

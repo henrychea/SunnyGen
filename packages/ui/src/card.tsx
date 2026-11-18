@@ -1,11 +1,17 @@
 import type { ComponentProps } from 'react'
 import { cn } from './cn'
+import { motionMountRise } from './motion'
 
-export function Card({ className, ...props }: ComponentProps<'div'>) {
+export function Card({
+  className,
+  animateIn = false,
+  ...props
+}: ComponentProps<'div'> & { animateIn?: boolean }) {
   return (
     <div
       className={cn(
         'border-line bg-surface rounded-2xl border shadow-[0_1px_0_rgba(255,255,255,0.7)_inset,0_18px_40px_-30px_rgba(42,30,23,0.28)]',
+        animateIn && motionMountRise,
         className,
       )}
       {...props}
