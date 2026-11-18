@@ -7,11 +7,12 @@ import {
   DEFAULT_ASSISTANT_MODEL,
   type AssistantModeId,
 } from '@sunnygen/core'
-import { Button, Select } from '@sunnygen/ui'
+import { Button, Select, motionFade, motionList, motionListItem, motionTransition } from '@sunnygen/ui'
 import { AlertCircle, MessageSquarePlus, Sparkles, Trash2, X } from 'lucide-react'
+import { AnimatePresence, motion } from 'motion/react'
 import { Composer } from '~/components/chat/composer'
 import { SessionRail } from '~/components/chat/session-rail'
-import { Transcript, type ChatTurn } from '~/components/chat/transcript'
+import { Transcript, TranscriptSkeleton, type ChatTurn } from '~/components/chat/transcript'
 import {
   deleteChatSession,
   loadChatSession,
@@ -106,6 +107,9 @@ function ChatPage() {
   const missingKey = keyConfigured === false || keyRejected
   const title =
     sessionQuery.data?.title ?? sessions.find((entry) => entry.id === activeId)?.title ?? 'Assistant'
+  const threadLoading =
+    Boolean(activeId) &&
+    (sessionQuery.isLoading || (turns.length === 0 && (sessionQuery.data?.messages.length ?? 0) > 0))
 
   // A search-param jump (back button, pasted link) discards the visible thread
   // unless this component itself just created or opened that session.
@@ -178,7 +182,7 @@ function ChatPage() {
       void queryClient.invalidateQueries({ queryKey: ['chat-sessions'] })
       if (saved.id !== activeId) {
         hydratedId.current = saved.id
-        await router.navigate({ to: '/chat', search: { id: saved.id }, replace: true })
+        await router.navigate({ to: '/chat', search: { id: saved.id }, replace: true, viewTransition: false })
       }
     } catch (cause) {
       if (streamToken.current === token) {
@@ -268,7 +272,7 @@ function ChatPage() {
     setDraft('')
     setError(null)
     setModel(DEFAULT_ASSISTANT_MODEL)
-    void router.navigate({ to: '/chat', search: {} })
+    void router.navigate({ to: '/chat', search: {}, viewTransition: false })
   }
 
   function selectSession(id: string) {
@@ -281,7 +285,7 @@ function ChatPage() {
     setTurns([])
     setError(null)
     setModel(DEFAULT_ASSISTANT_MODEL)
-    void router.navigate({ to: '/chat', search: { id } })
+    void router.navigate({ to: '/chat', search: { id }, viewTransition: false })
   }
 
   async function removeSession(id: string) {
@@ -301,7 +305,7 @@ function ChatPage() {
         setDraft('')
         setError(null)
         setModel(DEFAULT_ASSISTANT_MODEL)
-        await router.navigate({ to: '/chat', search: {}, replace: true })
+        await router.navigate({ to: '/chat', search: {}, replace: true, viewTransition: false })
       }
       await queryClient.invalidateQueries({ queryKey: ['chat-sessions'] })
     } catch (cause) {
@@ -314,6 +318,7 @@ function ChatPage() {
       <SessionRail
         sessions={sessions}
         activeId={activeId}
+        loading={sessionsQuery.isLoading}
         onSelect={selectSession}
         onNew={newChat}
         onDelete={(id) => void removeSession(id)}
@@ -344,8 +349,16 @@ function ChatPage() {
             </Select>
           </div>
 
-          <p className="font-display hidden truncate text-[14.5px] font-semibold tracking-tight md:block md:flex-1">
-            {activeId ? title : 'Assistant'}
+          <p className="font-display hidden min-w-0 flex-1 truncate text-[14.5px] font-semibold tracking-tight md:block">
+            <motion.span
+              key={activeId ? title : 'assistant'}
+              variants={motionFade}
+              initial="hidden"
+              animate="visible"
+              className="inline-block max-w-full truncate align-bottom"
+            >
+              {activeId ? title : 'Assistant'}
+            </motion.span>
           </p>
 
           <div className="flex items-center gap-1.5">
@@ -365,71 +378,140 @@ function ChatPage() {
             </Button>
             {activeId ? (
               <span className="bg-ink/[0.05] text-ink/45 hidden rounded-md px-1.5 py-0.5 text-[10px] font-medium sm:inline">
-                {ASSISTANT_MODELS.find((entry) => entry.id === model)?.label ?? model}
+                <motion.span
+                  key={model}
+                  variants={motionFade}
+                  initial="hidden"
+                  animate="visible"
+                  className="inline-block"
+                >
+                  {ASSISTANT_MODELS.find((entry) => entry.id === model)?.label ?? model}
+                </motion.span>
               </span>
             ) : null}
           </div>
         </header>
 
-        {missingKey ? (
-          <div className="border-accent/25 bg-accent/[0.06] text-accent mx-3 mt-3 flex items-start gap-2 rounded-xl border px-3 py-2 text-[12px] leading-relaxed md:mx-6">
-            <AlertCircle size={14} className="mt-0.5 shrink-0" />
-            <p>
-              The assistant needs an OpenRouter API key.{' '}
-              <Link to="/settings" className="font-semibold underline underline-offset-2">
-                Open Settings
-              </Link>
-            </p>
-          </div>
-        ) : null}
-
-        {error ? (
-          <div
-            role="alert"
-            className="border-error/25 bg-error/[0.05] text-error mx-3 mt-3 flex items-start gap-2 rounded-xl border px-3 py-2 text-[12px] leading-relaxed md:mx-6"
-          >
-            <AlertCircle size={14} className="mt-0.5 shrink-0" />
-            <p className="min-w-0 flex-1">{error}</p>
-            <button
-              type="button"
-              onClick={() => setError(null)}
-              className="hover:bg-error/10 shrink-0 rounded p-0.5 transition-colors"
-              aria-label="Dismiss error"
+        <AnimatePresence initial={false}>
+          {missingKey ? (
+            <motion.div
+              key="chat-key-banner"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={motionTransition}
+              className="mx-3 mt-3 overflow-hidden md:mx-6"
             >
-              <X size={12} />
-            </button>
-          </div>
-        ) : null}
-
-        {turns.length === 0 ? (
-          <div className="min-h-0 flex-1 overflow-y-auto">
-            <div className="mx-auto flex h-full w-full max-w-3xl flex-col items-center justify-center gap-5 px-5 py-10 text-center">
-              <div className="bg-accent/10 text-accent grid size-12 place-items-center rounded-2xl">
-                <Sparkles size={20} />
-              </div>
-              <div>
-                <h2 className="font-display text-[22px] font-semibold tracking-tight">What are we making?</h2>
-                <p className="text-ink/45 mt-1.5 text-[12.5px] leading-relaxed">
-                  Prompt drafts, rewrites, translations, or anything else you want to think through.
+              <div className="border-accent/25 bg-accent/[0.06] text-accent flex items-start gap-2 rounded-xl border px-3 py-2 text-[12px] leading-relaxed">
+                <AlertCircle size={14} className="mt-0.5 shrink-0" />
+                <p>
+                  The assistant needs an OpenRouter API key.{' '}
+                  <Link to="/settings" className="font-semibold underline underline-offset-2">
+                    Open Settings
+                  </Link>
                 </p>
               </div>
-              <div className="flex flex-wrap justify-center gap-2">
-                {SUGGESTIONS.map((suggestion) => (
-                  <button
-                    key={suggestion}
-                    type="button"
-                    onClick={() => setDraft(suggestion)}
-                    className="border-line bg-surface text-ink/60 hover:border-ink/20 hover:text-ink rounded-full border px-3 py-1.5 text-[11.5px] transition-colors"
-                  >
-                    {suggestion}
-                  </button>
-                ))}
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
+
+        <AnimatePresence initial={false}>
+          {error ? (
+            <motion.div
+              key="chat-error"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={motionTransition}
+              className="mx-3 mt-3 overflow-hidden md:mx-6"
+            >
+              <div
+                role="alert"
+                className="border-error/25 bg-error/[0.05] text-error flex items-start gap-2 rounded-xl border px-3 py-2 text-[12px] leading-relaxed"
+              >
+                <AlertCircle size={14} className="mt-0.5 shrink-0" />
+                <p className="min-w-0 flex-1">{error}</p>
+                <button
+                  type="button"
+                  onClick={() => setError(null)}
+                  className="hover:bg-error/10 shrink-0 rounded p-0.5 transition-[background-color,color,transform] duration-150 ease-out active:scale-[0.9]"
+                  aria-label="Dismiss error"
+                >
+                  <X size={12} />
+                </button>
               </div>
-            </div>
-          </div>
-        ) : (
-          <Transcript turns={turns} />
-        )}
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
+
+        <div className="relative min-h-0 flex-1">
+          <AnimatePresence initial={false}>
+            {threadLoading ? (
+              <motion.div
+                key="chat-loading"
+                variants={motionFade}
+                initial="hidden"
+                animate="visible"
+                exit="hidden"
+                className="absolute inset-0 overflow-y-auto"
+              >
+                <TranscriptSkeleton />
+              </motion.div>
+            ) : turns.length === 0 ? (
+              <motion.div
+                key="chat-empty"
+                variants={motionFade}
+                initial="hidden"
+                animate="visible"
+                exit="hidden"
+                className="absolute inset-0 overflow-y-auto"
+              >
+                <div className="mx-auto flex h-full w-full max-w-3xl flex-col items-center justify-center gap-5 px-5 py-10 text-center">
+                  <div className="bg-accent/10 text-accent grid size-12 place-items-center rounded-2xl">
+                    <Sparkles size={20} />
+                  </div>
+                  <div>
+                    <h2 className="font-display text-[22px] font-semibold tracking-tight">
+                      What are we making?
+                    </h2>
+                    <p className="text-ink/45 mt-1.5 text-[12.5px] leading-relaxed">
+                      Prompt drafts, rewrites, translations, or anything else you want to think through.
+                    </p>
+                  </div>
+                  <motion.div
+                    variants={motionList}
+                    initial="hidden"
+                    animate="visible"
+                    className="flex flex-wrap justify-center gap-2"
+                  >
+                    {SUGGESTIONS.map((suggestion) => (
+                      <motion.button
+                        key={suggestion}
+                        variants={motionListItem}
+                        type="button"
+                        onClick={() => setDraft(suggestion)}
+                        className="border-line bg-surface text-ink/60 hover:border-ink/20 hover:text-ink rounded-full border px-3 py-1.5 text-[11.5px] transition-[color,border-color,transform] duration-150 ease-out active:scale-[0.96]"
+                      >
+                        {suggestion}
+                      </motion.button>
+                    ))}
+                  </motion.div>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key={`chat-thread-${activeId ?? 'new'}`}
+                variants={motionFade}
+                initial="hidden"
+                animate="visible"
+                exit="hidden"
+                className="absolute inset-0 flex flex-col"
+              >
+                <Transcript turns={turns} />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
 
         <Composer
           value={draft}

@@ -1,13 +1,83 @@
-import type { ReactNode } from 'react'
+import { useRouterState } from '@tanstack/react-router'
+import { motionTransition } from '@sunnygen/ui'
+import { motion } from 'motion/react'
+import { useEffect, useState, useSyncExternalStore, type ReactNode } from 'react'
 import { MobileNav, Sidebar } from './sidebar'
 
+const noopSubscribe = () => () => {}
+
+const PROGRESS_DELAY_MS = 120
+const PROGRESS_FADE_MS = 240
+const PROGRESS_DONE_MS = 480
+
+function NavigationProgress({ pending }: { pending: boolean }) {
+  const [visible, setVisible] = useState(false)
+  const [value, setValue] = useState(0)
+
+  useEffect(() => {
+    if (pending) {
+      const show = window.setTimeout(() => {
+        setVisible(true)
+        setValue(12)
+      }, PROGRESS_DELAY_MS)
+      return () => window.clearTimeout(show)
+    }
+    const settle = window.setTimeout(() => setValue((current) => (current > 0 ? 100 : 0)), 0)
+    const fade = window.setTimeout(() => setVisible(false), PROGRESS_FADE_MS)
+    const reset = window.setTimeout(() => setValue(0), PROGRESS_DONE_MS)
+    return () => {
+      window.clearTimeout(settle)
+      window.clearTimeout(fade)
+      window.clearTimeout(reset)
+    }
+  }, [pending])
+
+  useEffect(() => {
+    if (!pending || !visible) return
+    const timer = window.setInterval(() => {
+      setValue((current) => (current < 30 ? 42 : current < 62 ? 74 : Math.min(93, current + 2)))
+    }, 180)
+    return () => window.clearInterval(timer)
+  }, [pending, visible])
+
+  return (
+    <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 z-[70] h-[2px]">
+      <div
+        className="bg-accent h-full origin-left transition-[transform,opacity] duration-200 ease-out motion-reduce:transition-none"
+        style={{ transform: `scaleX(${value / 100})`, opacity: visible ? 1 : 0 }}
+      />
+    </div>
+  )
+}
+
 export function AppShell({ children }: { children: ReactNode }) {
+  const pathname = useRouterState({ select: (state) => state.location.pathname })
+  const pending = useRouterState({ select: (state) => state.status === 'pending' })
+  const segment = pathname.split('/')[1] ?? ''
+  const hydrated = useSyncExternalStore(
+    noopSubscribe,
+    () => true,
+    () => false,
+  )
+  const viewTransition = hydrated && 'startViewTransition' in window
+
   return (
     <div className="bg-canvas flex h-dvh overflow-hidden">
       <Sidebar />
-      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+      <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
+        <NavigationProgress pending={pending} />
         <MobileNav />
-        <main className="min-h-0 flex-1 overflow-hidden">{children}</main>
+        <main className="min-h-0 flex-1 overflow-hidden">
+          <motion.div
+            key={segment}
+            initial={hydrated && !viewTransition ? { opacity: 0, y: 6 } : false}
+            animate={{ opacity: 1, y: 0 }}
+            transition={motionTransition}
+            className="h-full"
+          >
+            {children}
+          </motion.div>
+        </main>
       </div>
     </div>
   )

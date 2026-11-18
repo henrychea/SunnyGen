@@ -1,3 +1,4 @@
+import { cn, FadeImage } from '@sunnygen/ui'
 import { Play } from 'lucide-react'
 import type { GalleryItem } from '~/server/library.functions'
 
@@ -6,7 +7,9 @@ export function GalleryCard({ item, onOpen }: { item: GalleryItem; onOpen: () =>
     <button
       type="button"
       onClick={onOpen}
-      className="border-line bg-surface hover:border-ink/20 group relative overflow-hidden rounded-2xl border text-left shadow-[0_14px_40px_-30px_rgba(42,30,23,0.4)] transition-[transform,border-color] hover:-translate-y-0.5"
+      className={cn(
+        'border-line bg-surface hover:border-ink/20 group relative overflow-hidden rounded-2xl border text-left shadow-[0_14px_40px_-30px_rgba(42,30,23,0.4)] transition-[transform,border-color] duration-200 ease-out hover:-translate-y-0.5 active:scale-[0.985] motion-reduce:active:scale-100',
+      )}
     >
       <div className="bg-ink/[0.04] relative aspect-[4/5] overflow-hidden">
         {item.kind === 'video' ? (
@@ -24,11 +27,12 @@ export function GalleryCard({ item, onOpen }: { item: GalleryItem; onOpen: () =>
             </span>
           </>
         ) : (
-          <img
+          <FadeImage
+            shimmer
             src={item.url}
             alt={item.prompt || 'Generated image'}
             loading="lazy"
-            className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.025]"
+            className="size-full object-cover group-hover:scale-[1.025]"
           />
         )}
         {item.outputCount > 1 ? (
@@ -61,7 +65,9 @@ export function GalleryWallTile({ item, onOpen }: { item: GalleryItem; onOpen: (
     <button
       type="button"
       onClick={onOpen}
-      className="group bg-ink/[0.04] border-line hover:border-ink/25 relative mb-3 block w-full break-inside-avoid overflow-hidden rounded-xl border text-left transition-colors"
+      className={cn(
+        'group bg-ink/[0.04] border-line hover:border-ink/25 relative block w-full overflow-hidden rounded-xl border text-left transition-[border-color,scale] duration-200 ease-out active:scale-[0.985] motion-reduce:active:scale-100',
+      )}
     >
       <div style={{ aspectRatio: ratio }} className="relative w-full overflow-hidden">
         {item.kind === 'video' ? (
@@ -74,11 +80,12 @@ export function GalleryWallTile({ item, onOpen }: { item: GalleryItem; onOpen: (
             className="size-full object-cover"
           />
         ) : (
-          <img
+          <FadeImage
+            shimmer
             src={item.url}
             alt={item.prompt || 'Generated image'}
             loading="lazy"
-            className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+            className="size-full object-cover group-hover:scale-[1.02]"
           />
         )}
         {item.kind === 'video' ? (

@@ -1,7 +1,17 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { Badge, cn } from '@sunnygen/ui'
+import { AnimatePresence, motion } from 'motion/react'
+import {
+  Badge,
+  FadeImage,
+  cn,
+  motionFade,
+  motionFadeRise,
+  motionFast,
+  motionPop,
+  motionSwap,
+} from '@sunnygen/ui'
 import { AlertCircle, Clock, FileAudio, Folder, Loader2 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type Ref } from 'react'
 import { FailureActions } from '~/components/failure-actions'
 import { MediaActionBar } from '~/components/media-action-bar'
 import { MediaCard, MediaThumbStrip } from '~/components/media-preview'
@@ -10,6 +20,14 @@ import { deleteLibraryItemFn, type GenerationWallItem } from '~/server/library.f
 
 export const WALL_CARD_HEIGHT = 'h-[180px] md:h-[230px]'
 export const WALL_FIXED_WIDTH = 'w-[280px] md:w-[320px]'
+
+const cardMotion = {
+  layout: 'position',
+  variants: motionFadeRise,
+  initial: 'hidden',
+  animate: 'visible',
+  exit: 'hidden',
+} as const
 
 export type WallOutput = GenerationWallItem['outputs'][number]
 export type WallCard =
@@ -26,21 +44,25 @@ export function OutputCard({
   output,
   onOpen,
   showCount = true,
+  ref,
 }: {
   generation: GenerationWallItem
   output: WallOutput
   onOpen?: () => void
   showCount?: boolean
+  ref?: Ref<HTMLButtonElement>
 }) {
   const ratio = outputRatio(output)
   return (
-    <button
+    <motion.button
+      {...cardMotion}
+      ref={ref}
       type="button"
       onClick={onOpen}
       data-wall-card="output"
       style={{ aspectRatio: ratio }}
       className={cn(
-        'group border-line bg-surface hover:border-ink/25 relative shrink-0 overflow-hidden rounded-xl border text-left shadow-[0_14px_40px_-30px_rgba(42,30,23,0.4)] transition-colors',
+        'group border-line bg-surface hover:border-ink/25 relative shrink-0 overflow-hidden rounded-xl border text-left shadow-[0_14px_40px_-30px_rgba(42,30,23,0.4)] transition-[border-color,transform] active:scale-[0.99] motion-reduce:active:scale-100',
         WALL_CARD_HEIGHT,
         !onOpen && 'cursor-default',
       )}
@@ -59,11 +81,11 @@ export function OutputCard({
           <FileAudio size={26} />
         </div>
       ) : (
-        <img
+        <FadeImage
           src={output.url}
           alt={generation.prompt || 'Generated image'}
           loading="lazy"
-          className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+          className="size-full object-cover duration-500 group-hover:scale-[1.02]"
         />
       )}
       <span className="bg-ink/70 text-canvas absolute top-2 left-2 rounded px-1.5 py-0.5 text-[9px] font-semibold tracking-[0.05em] uppercase backdrop-blur">
@@ -79,15 +101,17 @@ export function OutputCard({
           {generation.prompt || generation.model}
         </p>
       </div>
-    </button>
+    </motion.button>
   )
 }
 
-export function JobCard({ generation }: { generation: GenerationWallItem }) {
+export function JobCard({ generation, ref }: { generation: GenerationWallItem; ref?: Ref<HTMLDivElement> }) {
   const failed = generation.status === 'failed'
   const running = generation.status === 'running'
   return (
-    <div
+    <motion.div
+      {...cardMotion}
+      ref={ref}
       data-wall-card="job"
       className={cn(
         'border-line bg-surface relative flex shrink-0 flex-col overflow-hidden rounded-xl border',
@@ -101,7 +125,7 @@ export function JobCard({ generation }: { generation: GenerationWallItem }) {
           failed ? 'border-error/15 bg-error/[0.04]' : 'border-line/70 bg-canvas/40',
         )}
       >
-        <Badge tone={failed ? 'error' : running ? 'accent' : 'warning'}>
+        <Badge key={generation.status} tone={failed ? 'error' : running ? 'accent' : 'warning'}>
           {failed ? 'Failed' : running ? 'Rendering' : 'Queued'}
         </Badge>
         <span className="text-ink/30 ml-auto text-[9.5px] tabular-nums">
@@ -142,7 +166,7 @@ export function JobCard({ generation }: { generation: GenerationWallItem }) {
           </p>
         </div>
       )}
-    </div>
+    </motion.div>
   )
 }
 
@@ -152,21 +176,25 @@ export function GroupCard({
   failed,
   outputs,
   onOpen,
+  ref,
 }: {
   title: string
   count: number
   failed: number
   outputs: WallOutput[]
   onOpen: () => void
+  ref?: Ref<HTMLButtonElement>
 }) {
   const previews = outputs.slice(0, 4)
   return (
-    <button
+    <motion.button
+      {...cardMotion}
+      ref={ref}
       type="button"
       onClick={onOpen}
       data-wall-card="group"
       className={cn(
-        'group border-line bg-surface hover:border-ink/25 relative flex shrink-0 flex-col overflow-hidden rounded-xl border text-left shadow-[0_14px_40px_-30px_rgba(42,30,23,0.4)] transition-colors',
+        'group border-line bg-surface hover:border-ink/25 relative flex shrink-0 flex-col overflow-hidden rounded-xl border text-left shadow-[0_14px_40px_-30px_rgba(42,30,23,0.4)] transition-[border-color,transform] active:scale-[0.99] motion-reduce:active:scale-100',
         WALL_CARD_HEIGHT,
         WALL_FIXED_WIDTH,
       )}
@@ -194,11 +222,11 @@ export function GroupCard({
                     className="size-full object-cover"
                   />
                 ) : (
-                  <img
+                  <FadeImage
                     src={output.url}
                     alt=""
                     loading="lazy"
-                    className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+                    className="size-full object-cover duration-500 group-hover:scale-[1.02]"
                   />
                 )}
               </div>
@@ -226,7 +254,7 @@ export function GroupCard({
         <Folder size={12} className="text-ink/40 shrink-0" />
         <span className="text-ink/65 truncate text-[10.5px] font-medium">{title}</span>
       </div>
-    </button>
+    </motion.button>
   )
 }
 
@@ -253,7 +281,11 @@ export function WallModal({
   const jobs = cards.length - outputs.length
 
   return (
-    <div
+    <motion.div
+      variants={motionFade}
+      initial="hidden"
+      animate="visible"
+      exit="hidden"
       className="bg-ink/70 fixed inset-0 z-[60] flex items-center justify-center p-3 backdrop-blur-sm md:p-8"
       onClick={onClose}
     >
@@ -262,7 +294,8 @@ export function WallModal({
       ) : outputs.length > 0 ? (
         <CollectionModal title={title} cards={outputs} jobs={jobs} onClose={onClose} />
       ) : (
-        <div
+        <motion.div
+          variants={motionPop}
           onClick={(event) => event.stopPropagation()}
           className="border-line bg-surface flex max-h-[90dvh] w-full max-w-[1400px] flex-col overflow-hidden rounded-2xl border shadow-2xl"
         >
@@ -277,7 +310,7 @@ export function WallModal({
               type="button"
               onClick={onClose}
               aria-label="Close folder"
-              className="text-ink/40 hover:bg-ink/5 hover:text-ink ml-auto grid size-8 place-items-center rounded-lg"
+              className="text-ink/40 hover:bg-ink/5 hover:text-ink ml-auto grid size-8 place-items-center rounded-lg transition-[color,background-color,transform] active:scale-90"
             >
               ×
             </button>
@@ -296,9 +329,9 @@ export function WallModal({
               ),
             )}
           </div>
-        </div>
+        </motion.div>
       )}
-    </div>
+    </motion.div>
   )
 }
 
@@ -341,7 +374,8 @@ function CollectionModal({
   }
 
   return (
-    <div
+    <motion.div
+      variants={motionPop}
       onClick={(event) => event.stopPropagation()}
       className="border-line bg-surface flex max-h-[90dvh] w-full max-w-[1200px] flex-col overflow-hidden rounded-2xl border shadow-2xl"
     >
@@ -358,7 +392,7 @@ function CollectionModal({
             type="button"
             onClick={onClose}
             aria-label="Close folder"
-            className="text-ink/40 hover:bg-ink/5 hover:text-ink ml-auto grid size-8 shrink-0 place-items-center rounded-lg"
+            className="text-ink/40 hover:bg-ink/5 hover:text-ink ml-auto grid size-8 shrink-0 place-items-center rounded-lg transition-[color,background-color,transform] active:scale-90"
           >
             ×
           </button>
@@ -376,12 +410,26 @@ function CollectionModal({
       <div className="min-h-0 flex-1 overflow-y-auto p-3 md:p-4">
         <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="min-w-0">
-            <MediaCard
-              url={output.url}
-              kind={output.kind}
-              alt={generation.prompt || 'Generated image'}
-              mediaClassName="max-h-[calc(90dvh-26rem)] lg:max-h-[calc(90dvh-16rem)]"
-            />
+            <div className="relative">
+              <AnimatePresence initial={false} mode="popLayout">
+                <motion.div
+                  key={`${generation.id}-${output.id}`}
+                  variants={motionSwap}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                  transition={motionFast}
+                  className="relative w-full"
+                >
+                  <MediaCard
+                    url={output.url}
+                    kind={output.kind}
+                    alt={generation.prompt || 'Generated image'}
+                    mediaClassName="max-h-[calc(90dvh-26rem)] lg:max-h-[calc(90dvh-16rem)]"
+                  />
+                </motion.div>
+              </AnimatePresence>
+            </div>
             <MediaThumbStrip
               items={visible.map((card) => ({
                 id: `${card.generation.id}-${card.output.id}`,
@@ -403,10 +451,12 @@ function CollectionModal({
           </div>
         </div>
       </div>
-      {showReferences ? (
-        <ReferencesModal references={generation.inputAssets} onClose={() => setShowReferences(false)} />
-      ) : null}
-    </div>
+      <AnimatePresence>
+        {showReferences ? (
+          <ReferencesModal references={generation.inputAssets} onClose={() => setShowReferences(false)} />
+        ) : null}
+      </AnimatePresence>
+    </motion.div>
   )
 }
 
@@ -433,7 +483,8 @@ function OutputModal({
   }
 
   return (
-    <div
+    <motion.div
+      variants={motionPop}
       onClick={(event) => event.stopPropagation()}
       className="border-line bg-surface flex max-h-[90dvh] w-fit max-w-[min(92vw,1200px)] min-w-[min(92vw,420px)] flex-col overflow-hidden rounded-2xl border shadow-2xl"
     >
@@ -444,7 +495,7 @@ function OutputModal({
             type="button"
             onClick={onClose}
             aria-label="Close preview"
-            className="text-ink/40 hover:bg-ink/5 hover:text-ink ml-auto grid size-8 shrink-0 place-items-center rounded-lg"
+            className="text-ink/40 hover:bg-ink/5 hover:text-ink ml-auto grid size-8 shrink-0 place-items-center rounded-lg transition-[color,background-color,transform] active:scale-90"
           >
             ×
           </button>
@@ -468,10 +519,12 @@ function OutputModal({
         />
         <PreviewDetails generation={generation} output={output} className="mt-3" />
       </div>
-      {showReferences ? (
-        <ReferencesModal references={generation.inputAssets} onClose={() => setShowReferences(false)} />
-      ) : null}
-    </div>
+      <AnimatePresence>
+        {showReferences ? (
+          <ReferencesModal references={generation.inputAssets} onClose={() => setShowReferences(false)} />
+        ) : null}
+      </AnimatePresence>
+    </motion.div>
   )
 }
 

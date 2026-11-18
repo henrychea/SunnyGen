@@ -15,6 +15,29 @@
   --color-success: #2f7a4b;
   --color-warning: #a36a12;
   --color-error: #b3261e;
+
+  --animate-fade-in: fade-in 0.18s ease-out both;
+  --animate-rise-in: rise-in 0.22s ease-out both;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes rise-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 }
 
 @layer base {
@@ -52,5 +75,39 @@
 
   .pwa-safe-bottom {
     padding-bottom: max(0px, env(safe-area-inset-bottom));
+  }
+}
+
+@keyframes skeleton-shimmer {
+  from {
+    background-position: 180% 0;
+  }
+  to {
+    background-position: -80% 0;
+  }
+}
+
+.skeleton-shimmer {
+  background-color: color-mix(in srgb, var(--color-ink) 7%, transparent);
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--color-ink) 11%, transparent) 45%,
+    transparent 90%
+  );
+  background-repeat: no-repeat;
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.3s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-shimmer {
+    animation: none;
+  }
+
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
   }
 }

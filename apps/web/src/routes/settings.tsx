@@ -11,8 +11,14 @@ import {
   Input,
   Label,
   Separator,
+  cn,
+  motionFade,
+  motionFadeRise,
+  motionPop,
+  motionSpring,
 } from '@sunnygen/ui'
 import { ExternalLink, RefreshCw, Search } from 'lucide-react'
+import { AnimatePresence, motion } from 'motion/react'
 import { PageBody, PageHeader, PageScroll } from '~/components/app-shell'
 import { ModelCombobox } from '~/components/model-combobox'
 import type { CatalogProvider, ModelCatalogView } from '~/server/model-catalog.functions'
@@ -55,7 +61,7 @@ function SettingsPage() {
       />
       <PageBody>
         <div className="grid min-w-0 gap-5 lg:grid-cols-2">
-          <Card>
+          <Card animateIn>
             <CardHeader>
               <CardTitle>Providers</CardTitle>
               <p className="text-ink/50 text-[12px]">
@@ -88,7 +94,7 @@ function SettingsPage() {
           </Card>
 
           <div className="flex min-w-0 flex-col gap-5">
-            <Card>
+            <Card animateIn>
               <CardHeader>
                 <CardTitle>Assistant</CardTitle>
                 <p className="text-ink/50 text-[12px]">
@@ -104,7 +110,7 @@ function SettingsPage() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card animateIn>
               <CardHeader>
                 <CardTitle>Studio</CardTitle>
                 <p className="text-ink/50 text-[12px]">
@@ -120,7 +126,7 @@ function SettingsPage() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card animateIn>
               <CardHeader>
                 <CardTitle>Local storage</CardTitle>
               </CardHeader>
@@ -141,6 +147,28 @@ function SettingsPage() {
   )
 }
 
+function StatusBadge({
+  tone,
+  value,
+}: {
+  tone: 'neutral' | 'accent' | 'success' | 'warning' | 'error'
+  value: string
+}) {
+  return (
+    <Badge tone={tone}>
+      <motion.span
+        key={value}
+        variants={motionFade}
+        initial="hidden"
+        animate="visible"
+        className="inline-block"
+      >
+        {value}
+      </motion.span>
+    </Badge>
+  )
+}
+
 function CodexCard() {
   const status = useQuery({ queryKey: ['codex-status'], queryFn: () => loadCodexStatus() })
   const ready = status.data?.ready ?? false
@@ -148,15 +176,32 @@ function CodexCard() {
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
         <Label>Codex CLI</Label>
-        <Badge tone={ready ? 'success' : 'neutral'}>
-          {status.isLoading
-            ? 'Checking…'
-            : ready
-              ? 'Ready'
-              : status.data?.installed
-                ? 'Sign in required'
-                : 'Not installed'}
-        </Badge>
+        <AnimatePresence initial={false} mode="wait">
+          {status.isLoading ? (
+            <motion.span
+              key="codex-loading"
+              variants={motionFade}
+              initial="hidden"
+              animate="visible"
+              exit="hidden"
+              className="skeleton-shimmer block h-4 w-24 rounded-md"
+            />
+          ) : (
+            <motion.span
+              key="codex-status"
+              variants={motionFade}
+              initial="hidden"
+              animate="visible"
+              exit="hidden"
+              className="inline-flex"
+            >
+              <StatusBadge
+                tone={ready ? 'success' : 'neutral'}
+                value={ready ? 'Ready' : status.data?.installed ? 'Sign in required' : 'Not installed'}
+              />
+            </motion.span>
+          )}
+        </AnimatePresence>
       </div>
       <p className="border-line bg-canvas/60 text-ink/50 rounded-xl border px-3 py-2 text-[11.5px] leading-relaxed">
         Runs GPT Image 2 through your ChatGPT plan. Install <code className="font-mono">codex-imagegen</code>{' '}
@@ -216,7 +261,10 @@ function ProviderKeyCard({
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
         <Label>{label}</Label>
-        <Badge tone={configured ? 'success' : 'neutral'}>{configured ? 'Configured' : 'Missing'}</Badge>
+        <StatusBadge
+          tone={configured ? 'success' : 'neutral'}
+          value={configured ? 'Configured' : 'Missing'}
+        />
       </div>
       {hasKeySetting ? (
         <div className="flex min-w-0 gap-2">
@@ -232,18 +280,41 @@ function ProviderKeyCard({
           <Button className="shrink-0" onClick={save} loading={busy} disabled={!value.trim()}>
             Save
           </Button>
-          {configured ? (
-            <Button className="shrink-0" variant="ghost" onClick={clear} disabled={busy}>
-              Clear
-            </Button>
-          ) : null}
+          <AnimatePresence initial={false}>
+            {configured ? (
+              <motion.div
+                key="provider-clear"
+                variants={motionPop}
+                initial="hidden"
+                animate="visible"
+                exit="hidden"
+              >
+                <Button className="shrink-0" variant="ghost" onClick={clear} disabled={busy}>
+                  Clear
+                </Button>
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
         </div>
       ) : (
         <p className="border-line bg-canvas/60 text-ink/50 rounded-xl border px-3 py-2 text-[11.5px]">
           Codex uses your local CLI login instead of an API key.
         </p>
       )}
-      {message ? <p className="text-ink/45 text-[11px]">{message}</p> : null}
+      <AnimatePresence initial={false}>
+        {message ? (
+          <motion.p
+            key="provider-key-message"
+            variants={motionFadeRise}
+            initial="hidden"
+            animate="visible"
+            exit="hidden"
+            className="text-ink/45 text-[11px]"
+          >
+            {message}
+          </motion.p>
+        ) : null}
+      </AnimatePresence>
     </div>
   )
 }
@@ -282,9 +353,10 @@ function AzureCard({
     <div className="flex flex-col gap-2.5">
       <div className="flex items-center justify-between">
         <Label>Azure deployment</Label>
-        <Badge tone={configured && baseUrl && deployment ? 'success' : 'neutral'}>
-          {configured && baseUrl && deployment ? 'Ready' : 'Optional'}
-        </Badge>
+        <StatusBadge
+          tone={configured && baseUrl && deployment ? 'success' : 'neutral'}
+          value={configured && baseUrl && deployment ? 'Ready' : 'Optional'}
+        />
       </div>
       <Input
         value={url}
@@ -304,7 +376,20 @@ function AzureCard({
         <Button variant="outline" onClick={save} loading={busy}>
           Save Azure
         </Button>
-        {message ? <span className="text-ink/45 text-[11px]">{message}</span> : null}
+        <AnimatePresence initial={false} mode="wait">
+          {message ? (
+            <motion.span
+              key="azure-message"
+              variants={motionFade}
+              initial="hidden"
+              animate="visible"
+              exit="hidden"
+              className="text-ink/45 text-[11px]"
+            >
+              {message}
+            </motion.span>
+          ) : null}
+        </AnimatePresence>
       </div>
     </div>
   )
@@ -345,7 +430,10 @@ function AssistantKeyCard({ configured, onSaved }: { configured: boolean; onSave
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
         <Label>OpenRouter key</Label>
-        <Badge tone={configured ? 'success' : 'neutral'}>{configured ? 'Configured' : 'Optional'}</Badge>
+        <StatusBadge
+          tone={configured ? 'success' : 'neutral'}
+          value={configured ? 'Configured' : 'Optional'}
+        />
       </div>
       <div className="flex min-w-0 gap-2">
         <Input
@@ -360,13 +448,36 @@ function AssistantKeyCard({ configured, onSaved }: { configured: boolean; onSave
         <Button className="shrink-0" onClick={save} loading={busy} disabled={!value.trim()}>
           Save
         </Button>
-        {configured ? (
-          <Button className="shrink-0" variant="ghost" onClick={clear} disabled={busy}>
-            Clear
-          </Button>
-        ) : null}
+        <AnimatePresence initial={false}>
+          {configured ? (
+            <motion.div
+              key="assistant-clear"
+              variants={motionPop}
+              initial="hidden"
+              animate="visible"
+              exit="hidden"
+            >
+              <Button className="shrink-0" variant="ghost" onClick={clear} disabled={busy}>
+                Clear
+              </Button>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
       </div>
-      {message ? <p className="text-ink/45 text-[11px]">{message}</p> : null}
+      <AnimatePresence initial={false}>
+        {message ? (
+          <motion.p
+            key="assistant-key-message"
+            variants={motionFadeRise}
+            initial="hidden"
+            animate="visible"
+            exit="hidden"
+            className="text-ink/45 text-[11px]"
+          >
+            {message}
+          </motion.p>
+        ) : null}
+      </AnimatePresence>
     </div>
   )
 }
@@ -422,7 +533,7 @@ function ModelCatalogCard({ catalog }: { catalog: ModelCatalogView }) {
   }
 
   return (
-    <Card>
+    <Card animateIn>
       <CardHeader>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -470,7 +581,7 @@ function ModelCatalogCard({ catalog }: { catalog: ModelCatalogView }) {
                 href={source.docsUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="text-ink/35 hover:text-ink inline-flex items-center gap-0.5"
+                className="text-ink/35 hover:text-ink inline-flex items-center gap-0.5 transition-colors duration-150 ease-out"
               >
                 Docs <ExternalLink size={9} />
               </a>
@@ -481,8 +592,32 @@ function ModelCatalogCard({ catalog }: { catalog: ModelCatalogView }) {
           </span>
         </div>
 
-        {message ? <p className="text-success text-[11px]">{message}</p> : null}
-        {error ? <p className="text-error text-[11px]">{error}</p> : null}
+        <AnimatePresence initial={false}>
+          {message ? (
+            <motion.p
+              key="catalog-message"
+              variants={motionFadeRise}
+              initial="hidden"
+              animate="visible"
+              exit="hidden"
+              className="text-success text-[11px]"
+            >
+              {message}
+            </motion.p>
+          ) : null}
+          {error ? (
+            <motion.p
+              key="catalog-error"
+              variants={motionFadeRise}
+              initial="hidden"
+              animate="visible"
+              exit="hidden"
+              className="text-error text-[11px]"
+            >
+              {error}
+            </motion.p>
+          ) : null}
+        </AnimatePresence>
 
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <label className="border-line bg-surface text-ink/45 focus-within:border-accent/40 flex h-9 w-full items-center gap-1.5 rounded-xl border px-2.5 transition-colors sm:max-w-sm">
@@ -501,14 +636,24 @@ function ModelCatalogCard({ catalog }: { catalog: ModelCatalogView }) {
                 key={option.id}
                 type="button"
                 onClick={() => setProvider(option.id)}
-                className={
-                  provider === option.id
-                    ? 'bg-ink text-canvas rounded-lg px-2.5 py-1.5 text-[10.5px] font-medium'
-                    : 'text-ink/45 hover:text-ink rounded-lg px-2.5 py-1.5 text-[10.5px] font-medium'
-                }
+                aria-pressed={provider === option.id}
+                className={cn(
+                  'relative rounded-lg px-2.5 py-1.5 text-[10.5px] font-medium',
+                  'transition-[color,transform] duration-150 ease-out active:scale-[0.96]',
+                  provider === option.id ? 'text-canvas' : 'text-ink/45 hover:text-ink',
+                )}
               >
-                {option.label}
-                <span className="ml-1 opacity-55">{option.count}</span>
+                {provider === option.id ? (
+                  <motion.span
+                    layoutId="settings-catalog-provider"
+                    transition={motionSpring}
+                    className="bg-ink absolute inset-0 rounded-lg"
+                  />
+                ) : null}
+                <span className="relative">
+                  {option.label}
+                  <span className="ml-1 opacity-55">{option.count}</span>
+                </span>
               </button>
             ))}
           </div>
@@ -517,41 +662,64 @@ function ModelCatalogCard({ catalog }: { catalog: ModelCatalogView }) {
           </p>
         </div>
 
-        <div className="border-line max-h-[440px] overflow-y-auto rounded-xl border">
-          {entries.length === 0 ? (
-            <p className="text-ink/35 px-4 py-10 text-center text-[12px]">
-              No models match that search or provider.
-            </p>
-          ) : (
-            entries.map((entry) => (
-              <div
-                key={entry.key}
-                className="border-line/60 flex items-start gap-3 border-b px-3 py-2 last:border-b-0"
+        <motion.div
+          key={provider}
+          variants={motionFade}
+          initial="hidden"
+          animate="visible"
+          className="border-line max-h-[440px] overflow-y-auto rounded-xl border"
+        >
+          <AnimatePresence initial={false} mode="wait">
+            {entries.length === 0 ? (
+              <motion.p
+                key="catalog-empty"
+                variants={motionFade}
+                initial="hidden"
+                animate="visible"
+                exit="hidden"
+                className="text-ink/35 px-4 py-10 text-center text-[12px]"
               >
-                <div className="min-w-0 flex-1">
-                  <div className="flex min-w-0 items-center gap-1.5">
-                    <p className="text-ink/75 truncate text-[11.5px] font-medium">{entry.label}</p>
-                    <Badge tone={entry.supported ? 'success' : entry.available ? 'accent' : 'neutral'}>
-                      {entry.supported ? 'Supported' : entry.available ? 'Generic' : 'Unavailable'}
-                    </Badge>
+                No models match that search or provider.
+              </motion.p>
+            ) : (
+              <motion.div
+                key="catalog-rows"
+                variants={motionFade}
+                initial="hidden"
+                animate="visible"
+                exit="hidden"
+              >
+                {entries.map((entry) => (
+                  <div
+                    key={entry.key}
+                    className="border-line/60 flex items-start gap-3 border-b px-3 py-2 last:border-b-0"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex min-w-0 items-center gap-1.5">
+                        <p className="text-ink/75 truncate text-[11.5px] font-medium">{entry.label}</p>
+                        <Badge tone={entry.supported ? 'success' : entry.available ? 'accent' : 'neutral'}>
+                          {entry.supported ? 'Supported' : entry.available ? 'Generic' : 'Unavailable'}
+                        </Badge>
+                      </div>
+                      <p className="text-ink/35 mt-0.5 truncate text-[9.5px]">
+                        {entry.company} · {entry.providerLabel} · {entry.kind} · {entry.sourceId}
+                        {entry.limitation ? ` · ${entry.limitation}` : ''}
+                      </p>
+                    </div>
+                    <div className="max-w-[48%] shrink-0 text-right">
+                      <p className="text-ink/60 truncate text-[10.5px] tabular-nums">
+                        {entry.price ?? 'No price'}
+                      </p>
+                      {entry.modelId ? (
+                        <p className="text-ink/25 mt-0.5 truncate text-[9px]">{entry.modelId}</p>
+                      ) : null}
+                    </div>
                   </div>
-                  <p className="text-ink/35 mt-0.5 truncate text-[9.5px]">
-                    {entry.company} · {entry.providerLabel} · {entry.kind} · {entry.sourceId}
-                    {entry.limitation ? ` · ${entry.limitation}` : ''}
-                  </p>
-                </div>
-                <div className="max-w-[48%] shrink-0 text-right">
-                  <p className="text-ink/60 truncate text-[10.5px] tabular-nums">
-                    {entry.price ?? 'No price'}
-                  </p>
-                  {entry.modelId ? (
-                    <p className="text-ink/25 mt-0.5 truncate text-[9px]">{entry.modelId}</p>
-                  ) : null}
-                </div>
-              </div>
-            ))
-          )}
-        </div>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
         <p className="text-ink/30 text-[10px]">
           Catalog-only models are listed by the provider but are not wired into SunnyGen generation yet.
           Rebuilding updates prices and availability; it does not change generation support.

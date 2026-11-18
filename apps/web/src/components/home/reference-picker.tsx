@@ -1,6 +1,20 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { cn } from '@sunnygen/ui'
+import {
+  FadeImage,
+  Skeleton,
+  cn,
+  motionFade,
+  motionFadeRise,
+  motionFast,
+  motionList,
+  motionListItem,
+  motionPop,
+  motionPress,
+  motionSpring,
+  motionSwap,
+} from '@sunnygen/ui'
 import { Check, ImageIcon, Loader2, Upload, X } from 'lucide-react'
+import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import { appendReferences, referenceImageCount, type ReferenceItem } from '~/lib/reference-images'
 import { loadReferenceLibrary } from '~/server/library.functions'
@@ -27,6 +41,71 @@ function assetLabel(asset: PublicAsset): string {
 
 function assetItem(asset: PublicAsset): ReferenceItem {
   return { id: asset.id, name: assetLabel(asset), url: asset.url }
+}
+
+const SKELETON_TILES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+
+function PickerSkeleton() {
+  return (
+    <div
+      aria-busy="true"
+      aria-label="Loading references"
+      className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5"
+    >
+      {SKELETON_TILES.map((tile) => (
+        <div key={tile} className="border-line bg-canvas/40 overflow-hidden rounded-xl border">
+          <Skeleton className="aspect-square rounded-none" />
+          <div className="px-2 py-1.5">
+            <Skeleton className="h-2.5 w-2/3 rounded-full" />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function PickerTile({
+  item,
+  selected,
+  disabled,
+  onToggle,
+}: {
+  item: ReferenceItem
+  selected: boolean
+  disabled: boolean
+  onToggle: () => void
+}) {
+  return (
+    <motion.button
+      variants={motionListItem}
+      type="button"
+      onClick={onToggle}
+      disabled={disabled}
+      aria-pressed={selected}
+      className={cn(
+        'group border-line bg-canvas/40 relative overflow-hidden rounded-xl border text-left transition-[border-color,box-shadow,transform] active:scale-[0.98] disabled:opacity-40 motion-reduce:active:scale-100',
+        selected ? 'border-accent ring-accent/20 ring-2' : 'hover:border-ink/25',
+      )}
+    >
+      <div className="bg-ink/[0.06] relative aspect-square overflow-hidden">
+        <FadeImage
+          shimmer
+          src={item.url}
+          alt=""
+          loading="lazy"
+          className="relative size-full object-cover duration-300 group-hover:scale-[1.02]"
+        />
+      </div>
+      <span className="text-ink/55 block truncate px-2 py-1.5 text-[10px]">{item.name}</span>
+      <motion.span
+        animate={{ scale: selected ? 1 : 0.85, opacity: selected ? 1 : 0 }}
+        transition={motionFast}
+        className="border-accent bg-accent absolute top-1.5 right-1.5 grid size-5 place-items-center rounded-full border text-white"
+      >
+        <Check size={11} />
+      </motion.span>
+    </motion.button>
+  )
 }
 
 export function ReferencePicker({
@@ -193,11 +272,16 @@ export function ReferencePicker({
   }
 
   return (
-    <div
+    <motion.div
+      variants={motionFade}
+      initial="hidden"
+      animate="visible"
+      exit="hidden"
       className="bg-ink/35 fixed inset-0 z-[70] flex items-center justify-center p-3 backdrop-blur-sm md:p-8"
       onClick={onClose}
     >
-      <div
+      <motion.div
+        variants={motionPop}
         role="dialog"
         aria-modal="true"
         aria-label={title}
@@ -217,7 +301,7 @@ export function ReferencePicker({
             type="button"
             onClick={onClose}
             aria-label="Close picker"
-            className="text-ink/40 hover:bg-ink/5 hover:text-ink ml-auto grid size-8 place-items-center rounded-lg"
+            className="text-ink/40 hover:bg-ink/5 hover:text-ink ml-auto grid size-8 place-items-center rounded-lg transition-[color,background-color,transform] active:scale-90"
           >
             <X size={15} />
           </button>
@@ -230,12 +314,25 @@ export function ReferencePicker({
               type="button"
               onClick={() => setSelectedTab(entry)}
               className={cn(
-                'shrink-0 rounded-lg px-2.5 py-1.5 text-[11.5px] font-medium transition-colors',
-                tab === entry ? 'bg-ink text-canvas' : 'text-ink/50 hover:text-ink',
+                'relative shrink-0 rounded-lg px-2.5 py-1.5 text-[11.5px] font-medium transition-[color,background-color,transform]',
+                motionPress,
+                tab === entry ? 'text-canvas' : 'text-ink/50 hover:text-ink',
               )}
             >
-              {TAB_LABELS[entry]}
-              <span className={cn('ml-1.5 text-[9.5px]', tab === entry ? 'text-canvas/55' : 'text-ink/30')}>
+              {tab === entry ? (
+                <motion.span
+                  layoutId="reference-picker-tab"
+                  transition={motionSpring}
+                  className="bg-ink absolute inset-0 rounded-lg"
+                />
+              ) : null}
+              <span className="relative">{TAB_LABELS[entry]}</span>
+              <span
+                className={cn(
+                  'relative ml-1.5 text-[9.5px]',
+                  tab === entry ? 'text-canvas/55' : 'text-ink/30',
+                )}
+              >
                 {groups[entry].length}
               </span>
             </button>
@@ -260,74 +357,94 @@ export function ReferencePicker({
                 type="button"
                 onClick={() => void importLinks()}
                 disabled={importing || linkText.trim().length === 0}
-                className="bg-ink text-canvas hover:bg-ink/90 inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl px-3 text-[11.5px] font-medium transition-colors disabled:pointer-events-none disabled:opacity-35"
+                className="bg-ink text-canvas hover:bg-ink/90 inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl px-3 text-[11.5px] font-medium transition-[color,background-color,transform] active:scale-[0.97] disabled:pointer-events-none disabled:opacity-35 motion-reduce:active:scale-100"
               >
-                {importing ? <Loader2 size={13} className="animate-spin" /> : null}
+                <AnimatePresence initial={false} mode="popLayout">
+                  {importing ? (
+                    <motion.span
+                      key="busy"
+                      variants={motionPop}
+                      initial="hidden"
+                      animate="visible"
+                      exit="hidden"
+                      transition={motionFast}
+                      className="grid place-items-center"
+                    >
+                      <Loader2 size={13} className="animate-spin" />
+                    </motion.span>
+                  ) : null}
+                </AnimatePresence>
                 Import
               </button>
             </div>
-            <p className={cn('mt-1 text-[10px]', importError ? 'text-error' : 'text-ink/30')}>
-              {importError ?? 'Cobalt downloads the post into assets. Multi-image posts become a folder.'}
-            </p>
+            <AnimatePresence initial={false} mode="popLayout">
+              <motion.p
+                key={importError ?? 'hint'}
+                variants={motionFadeRise}
+                initial="hidden"
+                animate="visible"
+                exit="hidden"
+                transition={motionFast}
+                className={cn('mt-1 text-[10px]', importError ? 'text-error' : 'text-ink/30')}
+              >
+                {importError ?? 'Cobalt downloads the post into assets. Multi-image posts become a folder.'}
+              </motion.p>
+            </AnimatePresence>
           </div>
         ) : null}
 
         <div className="min-h-0 flex-1 overflow-y-auto p-3">
-          {library.isLoading ? (
-            <div className="text-ink/40 grid h-full place-items-center">
-              <Loader2 size={20} className="animate-spin" />
-            </div>
-          ) : visible.length === 0 ? (
-            <div className="text-ink/35 grid h-full place-items-center text-center">
-              <div>
-                <ImageIcon size={22} className="mx-auto" />
-                <p className="mt-2 text-[12px]">
-                  {groups[tab].length === 0
-                    ? `No ${TAB_LABELS[tab].toLowerCase()} yet.`
-                    : 'Everything here is already selected.'}
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
-              {visible.map((item) => {
-                const selected = picked.some((entry) => entry.id === item.id)
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => toggle(item)}
-                    disabled={!selected && pickedCount + (item.assetIds?.length ?? 1) > max}
-                    aria-pressed={selected}
-                    className={cn(
-                      'group border-line bg-canvas/40 relative overflow-hidden rounded-xl border text-left transition-colors disabled:opacity-40',
-                      selected ? 'border-accent ring-accent/20 ring-2' : 'hover:border-ink/25',
-                    )}
-                  >
-                    <div className="aspect-square overflow-hidden">
-                      <img
-                        src={item.url}
-                        alt=""
-                        loading="lazy"
-                        className="size-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-                      />
+          <AnimatePresence initial={false} mode="popLayout">
+            <motion.div
+              key={library.isPending ? 'loading' : visible.length === 0 ? `empty-${tab}` : tab}
+              variants={motionSwap}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              transition={motionFast}
+              className="w-full"
+            >
+              <motion.div
+                animate={{ opacity: library.isFetching && !library.isPending ? 0.55 : 1 }}
+                transition={motionFast}
+              >
+                {library.isPending ? (
+                  <PickerSkeleton />
+                ) : visible.length === 0 ? (
+                  <div className="text-ink/35 grid h-full place-items-center text-center">
+                    <div>
+                      <ImageIcon size={22} className="mx-auto" />
+                      <p className="mt-2 text-[12px]">
+                        {groups[tab].length === 0
+                          ? `No ${TAB_LABELS[tab].toLowerCase()} yet.`
+                          : 'Everything here is already selected.'}
+                      </p>
                     </div>
-                    <span className="text-ink/55 block truncate px-2 py-1.5 text-[10px]">{item.name}</span>
-                    <span
-                      className={cn(
-                        'absolute top-1.5 right-1.5 grid size-5 place-items-center rounded-full border transition-colors',
-                        selected
-                          ? 'border-accent bg-accent text-white'
-                          : 'border-line bg-surface/80 text-transparent',
-                      )}
-                    >
-                      <Check size={11} />
-                    </span>
-                  </button>
-                )
-              })}
-            </div>
-          )}
+                  </div>
+                ) : (
+                  <motion.div
+                    variants={motionList}
+                    initial="hidden"
+                    animate="visible"
+                    className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5"
+                  >
+                    {visible.map((item) => {
+                      const selected = picked.some((entry) => entry.id === item.id)
+                      return (
+                        <PickerTile
+                          key={item.id}
+                          item={item}
+                          selected={selected}
+                          disabled={!selected && pickedCount + (item.assetIds?.length ?? 1) > max}
+                          onToggle={() => toggle(item)}
+                        />
+                      )
+                    })}
+                  </motion.div>
+                )}
+              </motion.div>
+            </motion.div>
+          </AnimatePresence>
         </div>
 
         <div className="border-line flex flex-col gap-1.5 border-t px-4 py-3">
@@ -336,9 +453,17 @@ export function ReferencePicker({
               type="button"
               onClick={() => fileRef.current?.click()}
               disabled={uploading || pickedCount >= max}
-              className="border-line bg-canvas/50 text-ink/60 hover:text-ink inline-flex h-9 items-center gap-1.5 rounded-xl border px-3 text-[12px] font-medium transition-colors disabled:opacity-40"
+              className="border-line bg-canvas/50 text-ink/60 hover:text-ink inline-flex h-9 items-center gap-1.5 rounded-xl border px-3 text-[12px] font-medium transition-[color,border-color,transform] active:scale-[0.97] disabled:opacity-40 motion-reduce:active:scale-100"
             >
-              {uploading ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
+              <motion.span
+                key={uploading ? 'busy' : 'idle'}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={motionFast}
+                className="grid place-items-center"
+              >
+                {uploading ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
+              </motion.span>
               Upload
             </button>
             <input
@@ -358,7 +483,7 @@ export function ReferencePicker({
               <button
                 type="button"
                 onClick={onClose}
-                className="border-line bg-surface text-ink/60 hover:text-ink h-9 rounded-xl border px-3 text-[12px] font-medium"
+                className="border-line bg-surface text-ink/60 hover:text-ink h-9 rounded-xl border px-3 text-[12px] font-medium transition-[color,border-color,transform] active:scale-[0.97] motion-reduce:active:scale-100"
               >
                 Cancel
               </button>
@@ -369,15 +494,29 @@ export function ReferencePicker({
                   onClose()
                 }}
                 disabled={picked.length === 0}
-                className="bg-accent hover:bg-accent/90 h-9 rounded-xl px-3.5 text-[12px] font-medium text-white transition-colors disabled:pointer-events-none disabled:opacity-35"
+                className="bg-accent hover:bg-accent/90 h-9 rounded-xl px-3.5 text-[12px] font-medium text-white transition-[background-color,transform] active:scale-[0.97] disabled:pointer-events-none disabled:opacity-35 motion-reduce:active:scale-100"
               >
                 Add {picked.length > 0 ? picked.length : ''}
               </button>
             </div>
           </div>
-          {uploadError ? <p className="text-error text-[10.5px]">{uploadError}</p> : null}
+          <AnimatePresence initial={false}>
+            {uploadError ? (
+              <motion.p
+                key="upload-error"
+                variants={motionFadeRise}
+                initial="hidden"
+                animate="visible"
+                exit="hidden"
+                transition={motionFast}
+                className="text-error text-[10.5px]"
+              >
+                {uploadError}
+              </motion.p>
+            ) : null}
+          </AnimatePresence>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   )
 }

@@ -1,6 +1,17 @@
 import { IMAGE_MODELS, VIDEO_MODELS, type ModelDefinition } from '@sunnygen/core'
 import { useQueryClient } from '@tanstack/react-query'
-import { Selector, cn } from '@sunnygen/ui'
+import {
+  FadeImage,
+  Selector,
+  cn,
+  motionFade,
+  motionFadeRise,
+  motionFast,
+  motionPop,
+  motionPress,
+  motionSpring,
+  motionSwap,
+} from '@sunnygen/ui'
 import {
   ArrowUp,
   ChevronUp,
@@ -13,6 +24,7 @@ import {
   Sparkles,
   X,
 } from 'lucide-react'
+import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import { submitGeneration } from '~/server/generation.functions'
 import { createFolderFn } from '~/server/library.functions'
@@ -118,6 +130,7 @@ export function HomeComposer() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  const [typing, setTyping] = useState(false)
 
   const isEdit = mode === 'edit'
   const { choices, catalogOnly } = useModelChoices()
@@ -149,8 +162,16 @@ export function HomeComposer() {
     if (expanded) return
     const element = textareaRef.current
     if (!element) return
+    const previous = element.style.height
+    element.style.transition = 'none'
     element.style.height = '0px'
-    element.style.height = `${Math.min(element.scrollHeight, 180)}px`
+    const content = element.scrollHeight
+    const next = Math.min(content, 180)
+    element.style.height = previous
+    void element.offsetHeight
+    element.style.transition = ''
+    element.style.height = `${next}px`
+    element.style.overflowY = content > 180 ? 'auto' : 'hidden'
   }, [prompt, expanded, mode])
 
   useEffect(() => {
@@ -371,31 +392,44 @@ export function HomeComposer() {
   if (minimized) {
     return (
       <div className="pointer-events-none fixed bottom-4 left-1/2 z-50 -translate-x-1/2 px-3">
-        <button
+        <motion.button
           type="button"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={motionSpring}
           onClick={() => setMinimized(false)}
           aria-label="Open prompt"
-          className="border-line bg-surface/92 text-ink/65 hover:border-ink/25 hover:text-ink pointer-events-auto flex items-center gap-2 rounded-full border px-4 py-2.5 text-[12px] font-medium shadow-[0_18px_50px_-24px_rgba(42,30,23,0.55)] backdrop-blur-xl transition-colors"
+          className={cn(
+            'border-line bg-surface/92 text-ink/65 hover:border-ink/25 hover:text-ink pointer-events-auto flex items-center gap-2 rounded-full border px-4 py-2.5 text-[12px] font-medium shadow-[0_18px_50px_-24px_rgba(42,30,23,0.55)] backdrop-blur-xl transition-[color,border-color,transform]',
+            motionPress,
+          )}
         >
           <Sparkles size={13} className="text-accent/80" />
           Prompt
           <span className="text-ink/35 hidden max-w-32 truncate text-[10.5px] sm:block">{model.label}</span>
           <ChevronUp size={13} className="text-ink/35" />
-        </button>
+        </motion.button>
       </div>
     )
   }
 
   return (
     <>
-      {expanded ? (
-        <button
-          type="button"
-          aria-label="Minimize prompt"
-          onClick={() => setExpanded(false)}
-          className="bg-ink/25 fixed inset-0 z-40 backdrop-blur-[2px]"
-        />
-      ) : null}
+      <AnimatePresence>
+        {expanded ? (
+          <motion.button
+            key="composer-backdrop"
+            type="button"
+            aria-label="Minimize prompt"
+            onClick={() => setExpanded(false)}
+            variants={motionFade}
+            initial="hidden"
+            animate="visible"
+            exit="hidden"
+            className="bg-ink/25 fixed inset-0 z-40 backdrop-blur-[2px]"
+          />
+        ) : null}
+      </AnimatePresence>
       <div
         className={cn(
           'pointer-events-none fixed z-50 px-3',
@@ -404,32 +438,42 @@ export function HomeComposer() {
             : 'right-3 bottom-3 left-3 md:right-0 md:bottom-5 md:left-[228px] md:px-3',
         )}
       >
-        <div
+        <motion.div
+          layout={!typing}
+          transition={motionSpring}
           className={cn(
-            'border-line bg-surface/92 pointer-events-auto relative mx-auto flex w-full flex-col overflow-hidden border shadow-[0_28px_80px_-30px_rgba(42,30,23,0.55)] backdrop-blur-xl transition-[border-radius]',
+            'border-line bg-surface/92 pointer-events-auto relative mx-auto flex w-full flex-col overflow-hidden border shadow-[0_28px_80px_-30px_rgba(42,30,23,0.55)] backdrop-blur-xl transition-[border-radius,border-color] focus-within:border-accent/25',
             expanded ? 'h-full max-h-[840px] max-w-[1000px] rounded-[26px]' : 'max-w-[860px] rounded-[22px]',
           )}
         >
           <div className="absolute top-2.5 right-2.5 z-10 flex items-center gap-1">
-            {hasContent ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setPrompt('')
-                  setReferences([])
-                  setEditTargets([])
-                  setEditReferences([])
-                  setError(null)
-                  setNotice(null)
-                }}
-                aria-label="Clear prompt"
-                className="text-ink/35 hover:bg-ink/[0.06] hover:text-ink grid size-7 place-items-center rounded-lg transition-colors"
-              >
-                <X size={13} />
-              </button>
-            ) : null}
+            <AnimatePresence initial={false} mode="popLayout">
+              {hasContent ? (
+                <motion.button
+                  key="clear"
+                  type="button"
+                  variants={motionPop}
+                  initial="hidden"
+                  animate="visible"
+                  exit="hidden"
+                  onClick={() => {
+                    setPrompt('')
+                    setReferences([])
+                    setEditTargets([])
+                    setEditReferences([])
+                    setError(null)
+                    setNotice(null)
+                  }}
+                  aria-label="Clear prompt"
+                  className="text-ink/35 hover:bg-ink/[0.06] hover:text-ink grid size-7 place-items-center rounded-lg transition-[color,background-color,transform] active:scale-90"
+                >
+                  <X size={13} />
+                </motion.button>
+              ) : null}
+            </AnimatePresence>
             {!expanded ? (
-              <button
+              <motion.button
+                layout="position"
                 type="button"
                 onClick={() => {
                   setExpanded(false)
@@ -438,20 +482,33 @@ export function HomeComposer() {
                 }}
                 aria-label="Minimize prompt"
                 title="Minimize"
-                className="text-ink/40 hover:bg-ink/[0.06] hover:text-ink grid size-7 place-items-center rounded-lg transition-colors"
+                className="text-ink/40 hover:bg-ink/[0.06] hover:text-ink grid size-7 place-items-center rounded-lg transition-[color,background-color,transform] active:scale-90"
               >
                 <Minus size={13} />
-              </button>
+              </motion.button>
             ) : null}
-            <button
+            <motion.button
+              layout="position"
               type="button"
               onClick={() => setExpanded((value) => !value)}
               aria-label={expanded ? 'Minimize prompt' : 'Expand prompt'}
               title={expanded ? 'Minimize' : 'Expand'}
-              className="text-ink/40 hover:bg-ink/[0.06] hover:text-ink grid size-7 place-items-center rounded-lg transition-colors"
+              className="text-ink/40 hover:bg-ink/[0.06] hover:text-ink relative grid size-7 place-items-center rounded-lg transition-[color,background-color,transform] active:scale-90"
             >
-              {expanded ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
-            </button>
+              <AnimatePresence initial={false} mode="popLayout">
+                <motion.span
+                  key={expanded ? 'collapse' : 'expand'}
+                  variants={motionPop}
+                  initial="hidden"
+                  animate="visible"
+                  exit="hidden"
+                  transition={motionFast}
+                  className="grid place-items-center"
+                >
+                  {expanded ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+                </motion.span>
+              </AnimatePresence>
+            </motion.button>
           </div>
 
           <div className="flex items-center gap-1 px-3 pt-2.5 pr-24">
@@ -460,68 +517,102 @@ export function HomeComposer() {
               onClick={() => changeMode('generate')}
               aria-pressed={mode === 'generate'}
               className={cn(
-                'flex h-8 items-center gap-1.5 rounded-lg px-3 text-[11.5px] font-medium transition-colors',
-                mode === 'generate' ? 'bg-ink text-canvas' : 'text-ink/45 hover:bg-ink/[0.05] hover:text-ink',
+                'relative flex h-8 items-center gap-1.5 rounded-lg px-3 text-[11.5px] font-medium transition-[color,background-color,transform]',
+                motionPress,
+                mode === 'generate' ? 'text-canvas' : 'text-ink/45 hover:bg-ink/[0.05] hover:text-ink',
               )}
             >
-              <Sparkles size={12} />
-              Generate
+              {mode === 'generate' ? (
+                <motion.span
+                  layoutId="composer-mode"
+                  transition={motionSpring}
+                  className="bg-ink absolute inset-0 rounded-lg"
+                />
+              ) : null}
+              <span className="relative flex items-center gap-1.5">
+                <Sparkles size={12} />
+                Generate
+              </span>
             </button>
             <button
               type="button"
               onClick={() => changeMode('edit')}
               aria-pressed={mode === 'edit'}
               className={cn(
-                'flex h-8 items-center gap-1.5 rounded-lg px-3 text-[11.5px] font-medium transition-colors',
-                mode === 'edit' ? 'bg-ink text-canvas' : 'text-ink/45 hover:bg-ink/[0.05] hover:text-ink',
+                'relative flex h-8 items-center gap-1.5 rounded-lg px-3 text-[11.5px] font-medium transition-[color,background-color,transform]',
+                motionPress,
+                mode === 'edit' ? 'text-canvas' : 'text-ink/45 hover:bg-ink/[0.05] hover:text-ink',
               )}
             >
-              <Replace size={12} />
-              Edit
+              {mode === 'edit' ? (
+                <motion.span
+                  layoutId="composer-mode"
+                  transition={motionSpring}
+                  className="bg-ink absolute inset-0 rounded-lg"
+                />
+              ) : null}
+              <span className="relative flex items-center gap-1.5">
+                <Replace size={12} />
+                Edit
+              </span>
             </button>
           </div>
 
-          {mode === 'generate' && canAddReferences ? (
-            <SelectionBox
-              label="References"
-              tileLabel="IMAGE"
-              items={references}
-              max={model.maxImages}
-              remaining={referenceSlots}
-              busy={busy}
-              onAdd={() => setPicker('references')}
-              onRemove={(id) => setReferences((current) => current.filter((entry) => entry.id !== id))}
-            />
-          ) : null}
+          <AnimatePresence initial={false} mode="popLayout">
+            <motion.div
+              key={mode}
+              variants={motionSwap}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              transition={motionFast}
+              className="w-full shrink-0"
+            >
+              {mode === 'generate' && canAddReferences ? (
+                <SelectionBox
+                  label="References"
+                  tileLabel="IMAGE"
+                  items={references}
+                  max={model.maxImages}
+                  remaining={referenceSlots}
+                  busy={busy}
+                  onAdd={() => setPicker('references')}
+                  onRemove={(id) => setReferences((current) => current.filter((entry) => entry.id !== id))}
+                />
+              ) : null}
 
-          {mode === 'edit' ? (
-            <>
-              <SelectionBox
-                label="Targets"
-                tileLabel="TARGET"
-                items={editTargets}
-                max={Number.POSITIVE_INFINITY}
-                remaining={Number.POSITIVE_INFINITY}
-                busy={busy}
-                onAdd={() => setPicker('editTargets')}
-                onRemove={(id) => setEditTargets((current) => current.filter((entry) => entry.id !== id))}
-              />
-              <SelectionBox
-                label="References"
-                tileLabel="REF"
-                items={editReferences}
-                max={Math.max(0, model.maxImages - 1)}
-                remaining={editReferenceSlots}
-                busy={busy}
-                onAdd={() => setPicker('editReferences')}
-                onRemove={(id) => setEditReferences((current) => current.filter((entry) => entry.id !== id))}
-              />
-              <p className="text-ink/30 px-3 pt-1 text-[9px] leading-snug">
-                Avatars use their clean sheet and 4x4 panel for face and body. Extra references are supporting
-                only.
-              </p>
-            </>
-          ) : null}
+              {mode === 'edit' ? (
+                <>
+                  <SelectionBox
+                    label="Targets"
+                    tileLabel="TARGET"
+                    items={editTargets}
+                    max={Number.POSITIVE_INFINITY}
+                    remaining={Number.POSITIVE_INFINITY}
+                    busy={busy}
+                    onAdd={() => setPicker('editTargets')}
+                    onRemove={(id) => setEditTargets((current) => current.filter((entry) => entry.id !== id))}
+                  />
+                  <SelectionBox
+                    label="References"
+                    tileLabel="REF"
+                    items={editReferences}
+                    max={Math.max(0, model.maxImages - 1)}
+                    remaining={editReferenceSlots}
+                    busy={busy}
+                    onAdd={() => setPicker('editReferences')}
+                    onRemove={(id) =>
+                      setEditReferences((current) => current.filter((entry) => entry.id !== id))
+                    }
+                  />
+                  <p className="text-ink/30 px-3 pt-1 text-[9px] leading-snug">
+                    Avatars use their clean sheet and 4x4 panel for face and body. Extra references are
+                    supporting only.
+                  </p>
+                </>
+              ) : null}
+            </motion.div>
+          </AnimatePresence>
 
           <div
             className={cn(
@@ -544,6 +635,8 @@ export function HomeComposer() {
                   void generate()
                 }
               }}
+              onFocus={() => setTyping(true)}
+              onBlur={() => setTyping(false)}
               rows={1}
               placeholder={
                 mode === 'edit'
@@ -557,18 +650,27 @@ export function HomeComposer() {
               aria-label="Prompt"
               disabled={busy}
               className={cn(
-                'text-ink placeholder:text-ink/30 w-full resize-none bg-transparent text-[14.5px] leading-[22px] tracking-[-0.01em] outline-none disabled:opacity-60',
+                'text-ink placeholder:text-ink/30 w-full resize-none bg-transparent text-[14.5px] leading-[22px] tracking-[-0.01em] outline-none transition-[height] duration-150 ease-out disabled:opacity-60 motion-reduce:transition-none',
                 expanded ? 'min-h-0 flex-1' : 'max-h-[180px]',
               )}
               style={expanded ? undefined : { height: 22 }}
             />
           </div>
 
-          {error || notice ? (
-            <p className={cn('px-3 pt-1.5 text-[10.5px]', error ? 'text-error' : 'text-ink/40')}>
-              {error ?? notice}
-            </p>
-          ) : null}
+          <AnimatePresence mode="wait" initial={false}>
+            {error || notice ? (
+              <motion.p
+                key={error ?? notice}
+                variants={motionFadeRise}
+                initial="hidden"
+                animate="visible"
+                exit="hidden"
+                className={cn('px-3 pt-1.5 text-[10.5px]', error ? 'text-error' : 'text-ink/40')}
+              >
+                {error ?? notice}
+              </motion.p>
+            ) : null}
+          </AnimatePresence>
 
           <div className="border-line/60 mt-2 flex flex-wrap items-center gap-1.5 border-t px-3 pt-2.5 pb-2.5">
             <ModelCombobox
@@ -655,23 +757,35 @@ export function HomeComposer() {
             ) : null}
 
             {!isVideo && !multi && mode === 'generate' ? (
-              <div className="border-line bg-canvas/55 flex h-8 items-center overflow-hidden rounded-lg border">
+              <div className="border-line bg-canvas/55 relative flex h-8 items-center overflow-hidden rounded-lg border">
                 <button
                   type="button"
                   aria-label="Fewer results"
                   onClick={() => setCount((value) => Math.max(1, value - 1))}
                   disabled={busy || count <= 1}
-                  className="text-ink/55 hover:text-ink h-full w-7 text-[14px] disabled:opacity-25"
+                  className="text-ink/55 hover:text-ink h-full w-7 text-[14px] transition-[color,transform,opacity] duration-150 active:scale-90 disabled:opacity-25"
                 >
                   −
                 </button>
-                <span className="text-ink/75 min-w-7 text-center text-[11.5px] tabular-nums">{count}/4</span>
+                <AnimatePresence initial={false} mode="popLayout">
+                  <motion.span
+                    key={count}
+                    variants={motionPop}
+                    initial="hidden"
+                    animate="visible"
+                    exit="hidden"
+                    transition={motionFast}
+                    className="text-ink/75 min-w-7 text-center text-[11.5px] tabular-nums"
+                  >
+                    {count}/4
+                  </motion.span>
+                </AnimatePresence>
                 <button
                   type="button"
                   aria-label="More results"
                   onClick={() => setCount((value) => Math.min(4, value + 1))}
                   disabled={busy || count >= 4}
-                  className="text-ink/55 hover:text-ink h-full w-7 text-[14px] disabled:opacity-25"
+                  className="text-ink/55 hover:text-ink h-full w-7 text-[14px] transition-[color,transform,opacity] duration-150 active:scale-90 disabled:opacity-25"
                 >
                   +
                 </button>
@@ -688,7 +802,8 @@ export function HomeComposer() {
                 }}
                 disabled={busy}
                 className={cn(
-                  'flex h-8 items-center gap-1.5 rounded-lg border px-2 text-[11.5px] font-medium transition-colors',
+                  'flex h-8 items-center gap-1.5 rounded-lg border px-2 text-[11.5px] font-medium transition-[color,background-color,border-color,transform]',
+                  motionPress,
                   multi
                     ? 'border-accent/30 bg-accent/10 text-accent'
                     : 'border-line bg-canvas/55 text-ink/55 hover:text-ink',
@@ -702,7 +817,7 @@ export function HomeComposer() {
                 >
                   <span
                     className={cn(
-                      'absolute top-0.5 size-2.5 rounded-full bg-white transition-[left]',
+                      'absolute top-0.5 size-2.5 rounded-full bg-white transition-[left] duration-150 ease-out',
                       multi ? 'left-[13px]' : 'left-0.5',
                     )}
                   />
@@ -712,7 +827,12 @@ export function HomeComposer() {
             ) : null}
 
             <div className="ml-auto flex items-center gap-2">
-              <span className={cn('text-[10px] tabular-nums', overLimit ? 'text-error' : 'text-ink/30')}>
+              <span
+                className={cn(
+                  'text-[10px] tabular-nums transition-colors duration-300',
+                  overLimit ? 'text-error' : 'text-ink/30',
+                )}
+              >
                 {prompt.length.toLocaleString()}/{PROMPT_LIMIT.toLocaleString()}
               </span>
               <button
@@ -721,25 +841,39 @@ export function HomeComposer() {
                 disabled={disabled}
                 aria-label={mode === 'edit' ? 'Apply edit' : 'Generate'}
                 title={busy ? 'Submitting' : mode === 'edit' ? 'Apply edit' : 'Generate'}
-                className="bg-accent hover:bg-accent/90 grid size-9 place-items-center rounded-full text-white shadow-[0_8px_20px_-10px_rgba(163,22,33,0.7)] transition-colors disabled:pointer-events-none disabled:opacity-35"
+                className="bg-accent hover:bg-accent/90 relative grid size-9 place-items-center rounded-full text-white shadow-[0_8px_20px_-10px_rgba(163,22,33,0.7)] transition-[background-color,transform] duration-150 hover:scale-[1.03] active:scale-95 disabled:pointer-events-none disabled:opacity-35 motion-reduce:hover:scale-100 motion-reduce:active:scale-100"
               >
-                {busy ? <Loader2 size={15} className="animate-spin" /> : <ArrowUp size={16} />}
+                <AnimatePresence initial={false} mode="popLayout">
+                  <motion.span
+                    key={busy ? 'busy' : 'idle'}
+                    variants={motionPop}
+                    initial="hidden"
+                    animate="visible"
+                    exit="hidden"
+                    transition={motionFast}
+                    className="grid place-items-center"
+                  >
+                    {busy ? <Loader2 size={15} className="animate-spin" /> : <ArrowUp size={16} />}
+                  </motion.span>
+                </AnimatePresence>
               </button>
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
 
-      {picker ? (
-        <ReferencePicker
-          title={pickerConfig.title}
-          allowAvatars={pickerConfig.allowAvatars}
-          existingIds={pickerConfig.existingIds}
-          max={pickerConfig.max}
-          onClose={() => setPicker(null)}
-          onConfirm={pickerConfig.onConfirm}
-        />
-      ) : null}
+      <AnimatePresence>
+        {picker ? (
+          <ReferencePicker
+            title={pickerConfig.title}
+            allowAvatars={pickerConfig.allowAvatars}
+            existingIds={pickerConfig.existingIds}
+            max={pickerConfig.max}
+            onClose={() => setPicker(null)}
+            onConfirm={pickerConfig.onConfirm}
+          />
+        ) : null}
+      </AnimatePresence>
     </>
   )
 }
@@ -772,34 +906,51 @@ function SelectionBox({
         </span>
       </div>
       <div className="mt-1 flex flex-wrap items-start gap-1.5">
-        {items.map((item) => (
-          <div key={item.id} className="border-line group relative overflow-hidden rounded-lg border">
-            <img src={item.url} alt="" className="size-12 object-cover" />
-            <button
-              type="button"
-              onClick={() => onRemove(item.id)}
-              aria-label={`Remove ${item.name}`}
-              className="bg-ink/75 text-canvas absolute top-0.5 right-0.5 grid size-4 place-items-center rounded opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100"
+        <AnimatePresence initial={false} mode="popLayout">
+          {items.map((item) => (
+            <motion.div
+              key={item.id}
+              layout
+              variants={motionPop}
+              initial="hidden"
+              animate="visible"
+              exit="hidden"
+              transition={motionFast}
+              className="border-line group relative overflow-hidden rounded-lg border"
             >
-              <X size={9} />
-            </button>
-          </div>
-        ))}
-        {remaining > 0 ? (
-          <button
-            type="button"
-            onClick={onAdd}
-            disabled={busy}
-            aria-label={`Add ${label.toLowerCase()}`}
-            className="border-line bg-canvas/50 text-ink/45 hover:border-accent/35 hover:text-accent flex size-12 flex-col items-center justify-center gap-0.5 rounded-lg border border-dashed transition-colors disabled:opacity-40"
-          >
-            <ImagePlus size={13} />
-            <span className="text-[7.5px] font-semibold tracking-[0.04em]">{tileLabel}</span>
-            {Number.isFinite(remaining) ? (
-              <span className="text-[7.5px] opacity-60">{remaining} left</span>
-            ) : null}
-          </button>
-        ) : null}
+              <FadeImage src={item.url} alt="" className="size-12 object-cover" />
+              <button
+                type="button"
+                onClick={() => onRemove(item.id)}
+                aria-label={`Remove ${item.name}`}
+                className="bg-ink/75 text-canvas absolute top-0.5 right-0.5 grid size-4 place-items-center rounded opacity-100 transition-[opacity,transform] hover:scale-110 active:scale-95 md:opacity-0 md:group-hover:opacity-100"
+              >
+                <X size={9} />
+              </button>
+            </motion.div>
+          ))}
+          {remaining > 0 ? (
+            <motion.button
+              key="add"
+              type="button"
+              onClick={onAdd}
+              disabled={busy}
+              aria-label={`Add ${label.toLowerCase()}`}
+              variants={motionPop}
+              initial="hidden"
+              animate="visible"
+              exit="hidden"
+              transition={motionFast}
+              className="border-line bg-canvas/50 text-ink/45 hover:border-accent/35 hover:text-accent flex size-12 flex-col items-center justify-center gap-0.5 rounded-lg border border-dashed transition-[color,border-color,transform] active:scale-95 disabled:opacity-40"
+            >
+              <ImagePlus size={13} />
+              <span className="text-[7.5px] font-semibold tracking-[0.04em]">{tileLabel}</span>
+              {Number.isFinite(remaining) ? (
+                <span className="text-[7.5px] opacity-60">{remaining} left</span>
+              ) : null}
+            </motion.button>
+          ) : null}
+        </AnimatePresence>
       </div>
     </div>
   )

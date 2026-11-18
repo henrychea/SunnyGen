@@ -1,6 +1,7 @@
 import type { StudioKind } from '@sunnygen/core'
-import { Button, Dialog, DialogSurface, Label, cn } from '@sunnygen/ui'
+import { Button, Dialog, DialogSurface, Label, cn, motionFast } from '@sunnygen/ui'
 import { FileArchive, FolderUp, Upload, X } from 'lucide-react'
+import { AnimatePresence, motion } from 'motion/react'
 import { useRef, useState } from 'react'
 import type { PackImportResult } from '~/server/pack-import.server'
 
@@ -88,7 +89,7 @@ export function StudioPackDialog({
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="text-ink/40 hover:bg-ink/5 grid size-8 place-items-center rounded-lg"
+            className="text-ink/40 hover:bg-ink/5 grid size-8 place-items-center rounded-lg transition-[color,background-color,scale] duration-150 ease-out active:scale-[0.94] motion-reduce:active:scale-100"
             aria-label="Close"
           >
             <X size={15} />
@@ -107,8 +108,8 @@ export function StudioPackDialog({
               type="button"
               onClick={() => zipRef.current?.click()}
               className={cn(
-                'border-line bg-surface/60 text-ink/55 hover:border-accent/40 hover:text-accent flex min-h-24 flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed px-3 text-center transition-colors',
-                zip ? 'border-accent/50 text-accent' : '',
+                'border-line bg-surface/60 text-ink/55 hover:border-accent/40 hover:text-accent flex min-h-24 flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed px-3 text-center transition-[color,border-color,background-color,scale] duration-200 ease-out active:scale-[0.99] motion-reduce:active:scale-100',
+                zip ? 'border-accent/50 bg-accent/[0.04] text-accent' : '',
               )}
             >
               <FileArchive size={18} />
@@ -119,8 +120,8 @@ export function StudioPackDialog({
               type="button"
               onClick={() => folderRef.current?.click()}
               className={cn(
-                'border-line bg-surface/60 text-ink/55 hover:border-accent/40 hover:text-accent flex min-h-24 flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed px-3 text-center transition-colors',
-                folder ? 'border-accent/50 text-accent' : '',
+                'border-line bg-surface/60 text-ink/55 hover:border-accent/40 hover:text-accent flex min-h-24 flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed px-3 text-center transition-[color,border-color,background-color,scale] duration-200 ease-out active:scale-[0.99] motion-reduce:active:scale-100',
+                folder ? 'border-accent/50 bg-accent/[0.04] text-accent' : '',
               )}
             >
               <FolderUp size={18} />
@@ -137,9 +138,20 @@ export function StudioPackDialog({
               <p className="text-ink/40 text-[10px]">Optional JSON that overrides names, kinds, and data.</p>
             </div>
             <div className="flex items-center gap-2">
-              {mapping ? (
-                <span className="text-ink/50 max-w-32 truncate text-[10.5px]">{mapping.name}</span>
-              ) : null}
+              <AnimatePresence initial={false}>
+                {mapping ? (
+                  <motion.span
+                    key={mapping.name}
+                    initial={{ opacity: 0, x: 4 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 4 }}
+                    transition={motionFast}
+                    className="text-ink/50 max-w-32 truncate text-[10.5px]"
+                  >
+                    {mapping.name}
+                  </motion.span>
+                ) : null}
+              </AnimatePresence>
               <Button size="sm" variant="outline" onClick={() => mappingRef.current?.click()}>
                 {mapping ? 'Change' : 'Attach'}
               </Button>
@@ -151,41 +163,72 @@ export function StudioPackDialog({
             </div>
           </div>
 
-          {error ? (
-            <div className="border-error/20 bg-error/5 text-error rounded-xl border px-3 py-2 text-[11.5px]">
-              {error}
-            </div>
-          ) : null}
+          <AnimatePresence initial={false}>
+            {error ? (
+              <motion.div
+                key="pack-error"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={motionFast}
+                className="border-error/20 bg-error/5 text-error overflow-hidden rounded-xl border text-[11.5px]"
+              >
+                <div className="px-3 py-2">{error}</div>
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
 
-          {result ? (
-            <div className="border-line bg-canvas/60 rounded-xl border px-3 py-2.5 text-[11.5px]">
-              <p className="text-ink/80">
-                Imported <strong>{result.imported.length}</strong>{' '}
-                {result.imported.length === 1 ? 'item' : 'items'}
-                {result.manifestPath ? ` from ${result.manifestPath}` : ''}.
-              </p>
-              {result.skipped.length > 0 ? (
-                <p className="text-ink/45 mt-1">
-                  Skipped {result.skipped.length}: {result.skipped[0]?.reason}
-                  {result.skipped.length > 1 ? ` (+${result.skipped.length - 1} more)` : ''}
-                </p>
-              ) : null}
-              {result.failed.length > 0 ? (
-                <ul className="text-error/80 mt-1.5 list-disc pl-4">
-                  {result.failed.slice(0, 5).map((failure) => (
-                    <li key={failure.file}>
-                      {failure.file}: {failure.error}
-                    </li>
-                  ))}
-                  {result.failed.length > 5 ? <li>+{result.failed.length - 5} more failures</li> : null}
-                </ul>
-              ) : null}
-            </div>
-          ) : null}
+          <AnimatePresence initial={false}>
+            {result ? (
+              <motion.div
+                key="pack-result"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={motionFast}
+                className="border-line bg-canvas/60 overflow-hidden rounded-xl border"
+              >
+                <div className="px-3 py-2.5 text-[11.5px]">
+                  <p className="text-ink/80">
+                    Imported <strong>{result.imported.length}</strong>{' '}
+                    {result.imported.length === 1 ? 'item' : 'items'}
+                    {result.manifestPath ? ` from ${result.manifestPath}` : ''}.
+                  </p>
+                  {result.skipped.length > 0 ? (
+                    <p className="text-ink/45 mt-1">
+                      Skipped {result.skipped.length}: {result.skipped[0]?.reason}
+                      {result.skipped.length > 1 ? ` (+${result.skipped.length - 1} more)` : ''}
+                    </p>
+                  ) : null}
+                  {result.failed.length > 0 ? (
+                    <ul className="text-error/80 mt-1.5 list-disc pl-4">
+                      {result.failed.slice(0, 5).map((failure) => (
+                        <li key={failure.file}>
+                          {failure.file}: {failure.error}
+                        </li>
+                      ))}
+                      {result.failed.length > 5 ? <li>+{result.failed.length - 5} more failures</li> : null}
+                    </ul>
+                  ) : null}
+                </div>
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
 
           <div className="flex items-center justify-between gap-3">
             <span className="text-ink/35 text-[10.5px]">
-              {source ?? 'Packs can also hold all five angles of each pose, or prepped garment images.'}
+              <AnimatePresence mode="popLayout" initial={false}>
+                <motion.span
+                  key={source ?? 'default'}
+                  initial={{ opacity: 0, y: 3 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -3 }}
+                  transition={motionFast}
+                  className="inline-block"
+                >
+                  {source ?? 'Packs can also hold all five angles of each pose, or prepped garment images.'}
+                </motion.span>
+              </AnimatePresence>
             </span>
             <Button onClick={submit} disabled={!canSubmit} loading={busy}>
               <Upload size={14} /> Import

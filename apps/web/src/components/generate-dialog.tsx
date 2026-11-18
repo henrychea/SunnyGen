@@ -1,6 +1,21 @@
 import { IMAGE_MODELS, PROVIDERS, VIDEO_MODELS, type ModelDefinition, type ProviderId } from '@sunnygen/core'
-import { Badge, Button, Dialog, DialogSurface, Input, Label, Select, Textarea, cn } from '@sunnygen/ui'
+import {
+  Badge,
+  Button,
+  Dialog,
+  DialogSurface,
+  FadeImage,
+  Input,
+  Label,
+  Select,
+  Textarea,
+  cn,
+  motionFade,
+  motionFast,
+  motionSpring,
+} from '@sunnygen/ui'
 import { FolderOpen, ImagePlus, Loader2, Sparkles, X } from 'lucide-react'
+import { AnimatePresence, motion } from 'motion/react'
 import { useRef, useState } from 'react'
 import { MediaPicker } from './media-picker'
 import { ModelCombobox } from './model-combobox'
@@ -238,7 +253,7 @@ export function GenerateDialog({
             <button
               type="button"
               onClick={closeDialog}
-              className="text-ink/40 hover:bg-ink/5 hover:text-ink grid size-8 place-items-center rounded-lg"
+              className="text-ink/40 hover:bg-ink/5 hover:text-ink grid size-8 place-items-center rounded-lg transition-[color,background-color,scale] duration-150 ease-out active:scale-[0.94] motion-reduce:active:scale-100"
               aria-label="Close"
             >
               <X size={15} />
@@ -255,15 +270,35 @@ export function GenerateDialog({
                     disabled={busy}
                     onClick={() => changeKind(option)}
                     className={cn(
-                      'rounded-[10px] px-3 py-1.5 text-[11.5px] font-medium capitalize',
-                      kind === option ? 'bg-ink text-canvas' : 'text-ink/50',
+                      'relative rounded-[10px] px-3 py-1.5 text-[11.5px] font-medium capitalize transition-colors duration-150 ease-out active:scale-[0.96] disabled:opacity-60 motion-reduce:active:scale-100',
+                      kind === option ? 'text-canvas' : 'text-ink/50 hover:text-ink',
                     )}
                   >
-                    {option}
+                    {kind === option ? (
+                      <motion.span
+                        layoutId="generate-kind-pill"
+                        transition={motionSpring}
+                        className="bg-ink absolute inset-0 rounded-[10px]"
+                      />
+                    ) : null}
+                    <span className="relative">{option}</span>
                   </button>
                 ))}
               </div>
-              {model ? <Badge tone="neutral">{selectedChoice?.price ?? model.price}</Badge> : null}
+              <AnimatePresence mode="wait" initial={false}>
+                {model ? (
+                  <motion.span
+                    key={selectedChoice?.price ?? model.price}
+                    initial={{ opacity: 0, y: 3 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -3 }}
+                    transition={motionFast}
+                    className="inline-flex"
+                  >
+                    <Badge tone="neutral">{selectedChoice?.price ?? model.price}</Badge>
+                  </motion.span>
+                ) : null}
+              </AnimatePresence>
             </div>
 
             <div className="grid gap-2 sm:grid-cols-2">
@@ -307,41 +342,65 @@ export function GenerateDialog({
             </label>
 
             <div className="grid gap-2 sm:grid-cols-3">
-              <label className="flex flex-col gap-1.5">
-                <Label>Ratio</Label>
-                <Select
-                  value={aspectRatio}
-                  onChange={(event) => setAspectRatio(event.target.value)}
-                  disabled={busy}
+              <AnimatePresence initial={false}>
+                <motion.label
+                  key="ratio"
+                  layout
+                  variants={motionFade}
+                  initial="hidden"
+                  animate="visible"
+                  exit="hidden"
+                  className="flex flex-col gap-1.5"
                 >
-                  {(model?.ratios ?? []).map((ratio) => (
-                    <option key={ratio} value={ratio}>
-                      {ratio}
-                    </option>
-                  ))}
-                </Select>
-              </label>
-
-              {model?.kind === 'image' && model.supportsQuality ? (
-                <label className="flex flex-col gap-1.5">
-                  <Label>Quality</Label>
+                  <Label>Ratio</Label>
                   <Select
-                    value={quality}
-                    onChange={(event) => setQuality(event.target.value)}
+                    value={aspectRatio}
+                    onChange={(event) => setAspectRatio(event.target.value)}
                     disabled={busy}
                   >
-                    {model.qualityOptions.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
+                    {(model?.ratios ?? []).map((ratio) => (
+                      <option key={ratio} value={ratio}>
+                        {ratio}
                       </option>
                     ))}
                   </Select>
-                </label>
-              ) : null}
+                </motion.label>
 
-              {model?.kind === 'video' ? (
-                <>
-                  <label className="flex flex-col gap-1.5">
+                {model?.kind === 'image' && model.supportsQuality ? (
+                  <motion.label
+                    key="quality"
+                    layout
+                    variants={motionFade}
+                    initial="hidden"
+                    animate="visible"
+                    exit="hidden"
+                    className="flex flex-col gap-1.5"
+                  >
+                    <Label>Quality</Label>
+                    <Select
+                      value={quality}
+                      onChange={(event) => setQuality(event.target.value)}
+                      disabled={busy}
+                    >
+                      {model.qualityOptions.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </Select>
+                  </motion.label>
+                ) : null}
+
+                {model?.kind === 'video' ? (
+                  <motion.label
+                    key="seconds"
+                    layout
+                    variants={motionFade}
+                    initial="hidden"
+                    animate="visible"
+                    exit="hidden"
+                    className="flex flex-col gap-1.5"
+                  >
                     <Label>Seconds</Label>
                     <Select
                       value={String(durationSeconds)}
@@ -354,37 +413,55 @@ export function GenerateDialog({
                         </option>
                       ))}
                     </Select>
-                  </label>
-                  {model.resolutions.length > 0 ? (
-                    <label className="flex flex-col gap-1.5">
-                      <Label>Resolution</Label>
-                      <Select
-                        value={resolution}
-                        onChange={(event) => setResolution(event.target.value)}
-                        disabled={busy}
-                      >
-                        {model.resolutions.map((option) => (
-                          <option key={option} value={option}>
-                            {option}
-                          </option>
-                        ))}
-                      </Select>
-                    </label>
-                  ) : null}
-                  {model.modes.length > 0 ? (
-                    <label className="flex flex-col gap-1.5">
-                      <Label>Mode</Label>
-                      <Select value={mode} onChange={(event) => setMode(event.target.value)} disabled={busy}>
-                        {model.modes.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </Select>
-                    </label>
-                  ) : null}
-                </>
-              ) : null}
+                  </motion.label>
+                ) : null}
+
+                {model?.kind === 'video' && model.resolutions.length > 0 ? (
+                  <motion.label
+                    key="resolution"
+                    layout
+                    variants={motionFade}
+                    initial="hidden"
+                    animate="visible"
+                    exit="hidden"
+                    className="flex flex-col gap-1.5"
+                  >
+                    <Label>Resolution</Label>
+                    <Select
+                      value={resolution}
+                      onChange={(event) => setResolution(event.target.value)}
+                      disabled={busy}
+                    >
+                      {model.resolutions.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </Select>
+                  </motion.label>
+                ) : null}
+
+                {model?.kind === 'video' && model.modes.length > 0 ? (
+                  <motion.label
+                    key="mode"
+                    layout
+                    variants={motionFade}
+                    initial="hidden"
+                    animate="visible"
+                    exit="hidden"
+                    className="flex flex-col gap-1.5"
+                  >
+                    <Label>Mode</Label>
+                    <Select value={mode} onChange={(event) => setMode(event.target.value)} disabled={busy}>
+                      {model.modes.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </Select>
+                  </motion.label>
+                ) : null}
+              </AnimatePresence>
             </div>
 
             {model?.kind === 'video' && model.sound ? (
@@ -405,48 +482,95 @@ export function GenerateDialog({
                 <div className="flex items-center justify-between">
                   <Label>References</Label>
                   <span className="text-ink/35 text-[10px]">
-                    {assetIds.length}/{model.maxImages}
+                    <AnimatePresence mode="popLayout" initial={false}>
+                      <motion.span
+                        key={`${assetIds.length}/${model.maxImages}`}
+                        initial={{ opacity: 0, y: 3 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -3 }}
+                        transition={motionFast}
+                        className="inline-block"
+                      >
+                        {assetIds.length}/{model.maxImages}
+                      </motion.span>
+                    </AnimatePresence>
                   </span>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {assetIds.map((assetId) => (
-                    <div
-                      key={assetId}
-                      className="border-line group relative overflow-hidden rounded-lg border"
-                    >
-                      <img src={`/api/media/${assetId}`} alt="" className="size-14 object-cover" />
-                      <button
-                        type="button"
-                        onClick={() => setAssetIds((current) => current.filter((id) => id !== assetId))}
-                        className="bg-ink/70 text-canvas absolute top-0.5 right-0.5 grid size-4 place-items-center rounded opacity-0 group-hover:opacity-100"
-                        aria-label="Remove reference"
+                  <AnimatePresence initial={false}>
+                    {assetIds.map((assetId) => (
+                      <motion.div
+                        key={assetId}
+                        layout
+                        initial={{ opacity: 0, scale: 0.92 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.92 }}
+                        transition={motionFast}
+                        className="border-line group relative overflow-hidden rounded-lg border"
                       >
-                        <X size={9} />
-                      </button>
-                    </div>
-                  ))}
-                  {assetIds.length < model.maxImages ? (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => fileRef.current?.click()}
-                        disabled={busy || uploading}
-                        className="border-line text-ink/35 hover:border-accent/40 hover:text-accent grid size-14 place-items-center rounded-lg border border-dashed"
-                        aria-label="Upload reference"
+                        <FadeImage
+                          shimmer
+                          src={`/api/media/${assetId}`}
+                          alt=""
+                          className="size-14 object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setAssetIds((current) => current.filter((id) => id !== assetId))}
+                          className="bg-ink/70 text-canvas absolute top-0.5 right-0.5 grid size-4 place-items-center rounded opacity-0 transition-[opacity,scale] duration-150 ease-out group-hover:opacity-100 focus-visible:opacity-100 active:scale-[0.9]"
+                          aria-label="Remove reference"
+                        >
+                          <X size={9} />
+                        </button>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                  <AnimatePresence initial={false}>
+                    {assetIds.length < model.maxImages ? (
+                      <motion.div
+                        key="reference-tiles"
+                        initial={{ opacity: 0, scale: 0.92 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.92 }}
+                        transition={motionFast}
+                        className="flex gap-2"
                       >
-                        {uploading ? <Loader2 size={16} className="animate-spin" /> : <ImagePlus size={16} />}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setPickerOpen(true)}
-                        disabled={busy}
-                        className="border-line text-ink/35 hover:border-accent/40 hover:text-accent grid size-14 place-items-center rounded-lg border border-dashed"
-                        aria-label="Choose from library"
-                      >
-                        <FolderOpen size={16} />
-                      </button>
-                    </>
-                  ) : null}
+                        <button
+                          type="button"
+                          onClick={() => fileRef.current?.click()}
+                          disabled={busy || uploading}
+                          className="border-line text-ink/35 hover:border-accent/40 hover:text-accent grid size-14 place-items-center rounded-lg border border-dashed transition-[color,border-color,scale] duration-150 ease-out active:scale-[0.94] motion-reduce:active:scale-100"
+                          aria-label="Upload reference"
+                        >
+                          <AnimatePresence mode="wait" initial={false}>
+                            <motion.span
+                              key={uploading ? 'uploading' : 'idle'}
+                              initial={{ opacity: 0, scale: 0.8 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              exit={{ opacity: 0, scale: 0.8 }}
+                              transition={motionFast}
+                              className="inline-flex"
+                            >
+                              {uploading ? (
+                                <Loader2 size={16} className="animate-spin" />
+                              ) : (
+                                <ImagePlus size={16} />
+                              )}
+                            </motion.span>
+                          </AnimatePresence>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPickerOpen(true)}
+                          disabled={busy}
+                          className="border-line text-ink/35 hover:border-accent/40 hover:text-accent grid size-14 place-items-center rounded-lg border border-dashed transition-[color,border-color,scale] duration-150 ease-out active:scale-[0.94] motion-reduce:active:scale-100"
+                          aria-label="Choose from library"
+                        >
+                          <FolderOpen size={16} />
+                        </button>
+                      </motion.div>
+                    ) : null}
+                  </AnimatePresence>
                 </div>
                 <input
                   ref={fileRef}
@@ -504,29 +628,62 @@ export function GenerateDialog({
               </div>
             ) : null}
 
-            {error ? (
-              <p className="border-error/20 bg-error/5 text-error rounded-lg border px-3 py-2 text-[11.5px] leading-snug">
-                {error}
-              </p>
-            ) : null}
+            <AnimatePresence initial={false}>
+              {error ? (
+                <motion.p
+                  key="generate-error"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={motionFast}
+                  className="border-error/20 bg-error/5 text-error overflow-hidden rounded-lg border px-3 py-2 text-[11.5px] leading-snug"
+                >
+                  {error}
+                </motion.p>
+              ) : null}
+            </AnimatePresence>
 
             <div className="flex items-center justify-between gap-3">
               <p className="text-ink/35 text-[10.5px]">
-                {busy ? 'Generation runs on your provider account.' : 'Uses your configured provider key.'}
+                <AnimatePresence mode="popLayout" initial={false}>
+                  <motion.span
+                    key={busy ? 'busy' : 'idle'}
+                    initial={{ opacity: 0, y: 3 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -3 }}
+                    transition={motionFast}
+                    className="inline-block"
+                  >
+                    {busy
+                      ? 'Generation runs on your provider account.'
+                      : 'Uses your configured provider key.'}
+                  </motion.span>
+                </AnimatePresence>
               </p>
               <div className="flex items-center gap-2">
-                {generationId && busy ? (
-                  <Button
-                    variant="ghost"
-                    onClick={() => {
-                      pollToken.current += 1
-                      setPhase('idle')
-                      setError('Canceled')
-                    }}
-                  >
-                    Stop waiting
-                  </Button>
-                ) : null}
+                <AnimatePresence initial={false}>
+                  {generationId && busy ? (
+                    <motion.div
+                      key="stop-waiting"
+                      initial={{ opacity: 0, width: 0 }}
+                      animate={{ opacity: 1, width: 'auto' }}
+                      exit={{ opacity: 0, width: 0 }}
+                      transition={motionFast}
+                      className="overflow-hidden"
+                    >
+                      <Button
+                        variant="ghost"
+                        onClick={() => {
+                          pollToken.current += 1
+                          setPhase('idle')
+                          setError('Canceled')
+                        }}
+                      >
+                        Stop waiting
+                      </Button>
+                    </motion.div>
+                  ) : null}
+                </AnimatePresence>
                 <Button onClick={() => void generate()} loading={busy} disabled={!prompt.trim()}>
                   <Sparkles size={13} /> {busy ? 'Generating…' : 'Generate'}
                 </Button>

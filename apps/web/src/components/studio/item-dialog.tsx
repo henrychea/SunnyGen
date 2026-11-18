@@ -7,8 +7,22 @@ import {
   type GarmentSource,
   type StudioKind,
 } from '@sunnygen/core'
-import { Badge, Button, Dialog, DialogSurface, Input, Label, Select, Textarea, cn } from '@sunnygen/ui'
+import {
+  Badge,
+  Button,
+  Dialog,
+  DialogSurface,
+  FadeImage,
+  Input,
+  Label,
+  Select,
+  Textarea,
+  cn,
+  motionFast,
+  motionPop,
+} from '@sunnygen/ui'
 import { ImagePlus, Loader2, X } from 'lucide-react'
+import { AnimatePresence, motion } from 'motion/react'
 import { useRef, useState } from 'react'
 import type { StudioItemDto } from '~/server/studio.functions'
 import { saveStudioItemFn } from '~/server/studio.functions'
@@ -122,7 +136,7 @@ export function StudioItemDialog({
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="text-ink/40 hover:bg-ink/5 grid size-8 place-items-center rounded-lg"
+            className="text-ink/40 hover:bg-ink/5 grid size-8 place-items-center rounded-lg transition-[color,background-color,scale] duration-150 ease-out active:scale-[0.94] motion-reduce:active:scale-100"
             aria-label="Close"
           >
             <X size={15} />
@@ -226,22 +240,40 @@ export function StudioItemDialog({
             />
           ) : null}
 
-          {item?.cleanAssetUrl ? (
-            <div className="flex items-center gap-2">
-              <Badge tone="success">Clean reference ready</Badge>
-              <img
-                src={item.cleanAssetUrl}
-                alt=""
-                className="border-line size-10 rounded-md border object-cover"
-              />
-            </div>
-          ) : null}
+          <AnimatePresence initial={false}>
+            {item?.cleanAssetUrl ? (
+              <motion.div
+                key="clean-reference"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={motionFast}
+                className="overflow-hidden"
+              >
+                <div className="flex items-center gap-2">
+                  <Badge tone="success">Clean reference ready</Badge>
+                  <span className="border-line relative size-10 overflow-hidden rounded-md border">
+                    <FadeImage shimmer src={item.cleanAssetUrl} alt="" className="size-full object-cover" />
+                  </span>
+                </div>
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
 
-          {error ? (
-            <p className="border-error/20 bg-error/5 text-error rounded-lg border px-3 py-2 text-[11.5px]">
-              {error}
-            </p>
-          ) : null}
+          <AnimatePresence initial={false}>
+            {error ? (
+              <motion.p
+                key="item-error"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={motionFast}
+                className="border-error/20 bg-error/5 text-error overflow-hidden rounded-lg border px-3 py-2 text-[11.5px]"
+              >
+                {error}
+              </motion.p>
+            ) : null}
+          </AnimatePresence>
 
           <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={() => onOpenChange(false)}>
@@ -278,19 +310,31 @@ function UploadBox({ label, hint, assetId, busy, onPick }: UploadSlot & { busy: 
         onClick={onPick}
         className={cn(
           'border-line bg-canvas/50 text-ink/35 relative grid h-28 place-items-center overflow-hidden rounded-xl border border-dashed',
-          'hover:border-accent/40 hover:text-accent',
+          'transition-[color,border-color,background-color,scale] duration-200 ease-out hover:border-accent/40 hover:bg-surface hover:text-accent',
+          'active:scale-[0.99] motion-reduce:active:scale-100',
         )}
       >
-        {busy ? (
-          <Loader2 size={18} className="animate-spin" />
-        ) : assetId ? (
-          <img src={`/api/media/${assetId}`} alt="" className="size-full object-cover" />
-        ) : (
-          <span className="flex flex-col items-center gap-1 text-[10.5px]">
-            <ImagePlus size={16} />
-            {hint}
-          </span>
-        )}
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.span
+            key={busy ? 'busy' : assetId ? 'asset' : 'empty'}
+            variants={motionPop}
+            initial="hidden"
+            animate="visible"
+            exit="hidden"
+            className={cn('grid size-full place-items-center', assetId && !busy ? 'absolute inset-0' : '')}
+          >
+            {busy ? (
+              <Loader2 size={18} className="animate-spin" />
+            ) : assetId ? (
+              <FadeImage shimmer src={`/api/media/${assetId}`} alt="" className="size-full object-cover" />
+            ) : (
+              <span className="flex flex-col items-center gap-1 text-[10.5px]">
+                <ImagePlus size={16} />
+                {hint}
+              </span>
+            )}
+          </motion.span>
+        </AnimatePresence>
       </button>
     </div>
   )
