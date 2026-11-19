@@ -33,11 +33,12 @@ import {
   X,
 } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { submitGeneration } from '~/server/generation.functions'
 import { createFolderFn } from '~/server/library.functions'
 import { ModelCombobox } from '~/components/model-combobox'
 import { buildEditPrompt, orderEditAssets } from '~/lib/edit-prompt'
+import { thumbSrcSet, thumbUrl } from '~/lib/media-thumbs'
 import {
   appendReferences,
   referenceImageCount,
@@ -118,7 +119,13 @@ function RatioGlyph({ ratio }: { ratio: string }) {
   )
 }
 
-export function HomeComposer({ initialAvatar }: { initialAvatar?: ReferenceAvatar | null } = {}) {
+export function HomeComposer({
+  initialAvatar,
+  onPickerOpenChange,
+}: {
+  initialAvatar?: ReferenceAvatar | null
+  onPickerOpenChange?: (open: boolean) => void
+} = {}) {
   const queryClient = useQueryClient()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const startModelId = initialAvatar?.lora ? LORA_MODEL_ID : 'gpt-image-2'
@@ -156,6 +163,26 @@ export function HomeComposer({ initialAvatar }: { initialAvatar?: ReferenceAvata
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [typing, setTyping] = useState(false)
+  const [loadingChips, setLoadingChips] = useState<Set<string>>(() => new Set())
+
+  useEffect(() => {
+    onPickerOpenChange?.(picker !== null)
+  }, [onPickerOpenChange, picker])
+
+  const handleChipLoadChange = useCallback((id: string, loaded: boolean) => {
+    setLoadingChips((current) => {
+      if (loaded) {
+        if (!current.has(id)) return current
+        const next = new Set(current)
+        next.delete(id)
+        return next
+      }
+      if (current.has(id)) return current
+      const next = new Set(current)
+      next.add(id)
+      return next
+    })
+  }, [])
 
   const isEdit = mode === 'edit'
   const { choices, catalogOnly } = useModelChoices()
@@ -442,7 +469,7 @@ export function HomeComposer({ initialAvatar }: { initialAvatar?: ReferenceAvata
           onClick={() => setMinimized(false)}
           aria-label="Open prompt"
           className={cn(
-            'border-line bg-surface/92 text-ink/65 hover:border-ink/25 hover:text-ink pointer-events-auto flex items-center gap-2 rounded-full border px-4 py-2.5 text-[12px] font-medium shadow-[0_18px_50px_-24px_rgba(42,30,23,0.55)] backdrop-blur-xl transition-[color,border-color,transform]',
+            'border-line bg-surface md:bg-surface/92 text-ink/65 hover:border-ink/25 hover:text-ink pointer-events-auto flex items-center gap-2 rounded-full border px-4 py-2.5 text-[12px] font-medium shadow-[0_18px_50px_-24px_rgba(42,30,23,0.55)] transition-[color,border-color,transform] md:backdrop-blur-xl',
             motionPress,
           )}
         >
@@ -468,7 +495,7 @@ export function HomeComposer({ initialAvatar }: { initialAvatar?: ReferenceAvata
             initial="hidden"
             animate="visible"
             exit="hidden"
-            className="bg-ink/25 fixed inset-0 z-40 backdrop-blur-[2px]"
+            className="bg-ink/25 fixed inset-0 z-40 md:backdrop-blur-[2px]"
           />
         ) : null}
       </AnimatePresence>
@@ -481,10 +508,10 @@ export function HomeComposer({ initialAvatar }: { initialAvatar?: ReferenceAvata
         )}
       >
         <motion.div
-          layout={!typing}
+          layout={!typing && !picker && loadingChips.size === 0}
           transition={motionSpring}
           className={cn(
-            'border-line bg-surface/92 pointer-events-auto relative mx-auto flex w-full flex-col overflow-hidden border shadow-[0_28px_80px_-30px_rgba(42,30,23,0.55)] backdrop-blur-xl transition-[border-radius,border-color] focus-within:border-accent/25',
+            'border-line bg-surface md:bg-surface/92 pointer-events-auto relative mx-auto flex w-full flex-col overflow-hidden border shadow-[0_28px_80px_-30px_rgba(42,30,23,0.55)] transition-[border-radius,border-color] focus-within:border-accent/25 md:backdrop-blur-xl',
             expanded ? 'h-full max-h-[840px] max-w-[1000px] rounded-[26px]' : 'max-w-[860px] rounded-[22px]',
           )}
         >
@@ -620,6 +647,7 @@ export function HomeComposer({ initialAvatar }: { initialAvatar?: ReferenceAvata
                   busy={busy}
                   onAdd={() => setPicker('references')}
                   onRemove={(id) => setReferences((current) => current.filter((entry) => entry.id !== id))}
+                  onImageLoadChange={handleChipLoadChange}
                 />
               ) : null}
 
@@ -634,6 +662,7 @@ export function HomeComposer({ initialAvatar }: { initialAvatar?: ReferenceAvata
                     busy={busy}
                     onAdd={() => setPicker('editTargets')}
                     onRemove={(id) => setEditTargets((current) => current.filter((entry) => entry.id !== id))}
+                    onImageLoadChange={handleChipLoadChange}
                   />
                   <SelectionBox
                     label="References"
@@ -646,6 +675,7 @@ export function HomeComposer({ initialAvatar }: { initialAvatar?: ReferenceAvata
                     onRemove={(id) =>
                       setEditReferences((current) => current.filter((entry) => entry.id !== id))
                     }
+                    onImageLoadChange={handleChipLoadChange}
                   />
                   <p className="text-ink/30 px-3 pt-1 text-[9px] leading-snug">
                     Avatars use their clean sheet and 4x4 panel for face and body. Extra references are
@@ -986,6 +1016,7 @@ function SelectionBox({
   busy,
   onAdd,
   onRemove,
+  onImageLoadChange,
 }: {
   label: string
   tileLabel: string
@@ -995,6 +1026,7 @@ function SelectionBox({
   busy: boolean
   onAdd: () => void
   onRemove: (id: string) => void
+  onImageLoadChange: (id: string, loaded: boolean) => void
 }) {
   return (
     <div className="px-3 pt-2">
@@ -1017,7 +1049,15 @@ function SelectionBox({
               transition={motionFast}
               className="border-line group relative overflow-hidden rounded-lg border"
             >
-              <FadeImage src={item.url} alt="" className="size-12 object-cover" />
+              <FadeImage
+                src={thumbUrl(item.url, 160)}
+                srcSet={thumbSrcSet(item.url, [160, 320])}
+                sizes="48px"
+                alt=""
+                decoding="async"
+                onLoadedChange={(loaded) => onImageLoadChange(item.id, loaded)}
+                className="size-12 object-cover"
+              />
               {item.lora ? (
                 <span className="bg-accent text-canvas absolute bottom-0 left-0 rounded-tr px-1 py-px text-[7px] font-semibold tracking-[0.04em] uppercase">
                   LoRA

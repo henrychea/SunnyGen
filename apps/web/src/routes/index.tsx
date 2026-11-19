@@ -109,6 +109,7 @@ function HomePage() {
   const [query, setQuery] = useState('')
   const [preview, setPreview] = useState<Preview | null>(null)
   const [groupModal, setGroupModal] = useState<{ title: string; cards: WallCard[] } | null>(null)
+  const [pickerOpen, setPickerOpen] = useState(false)
 
   const wall = useQuery({
     queryKey: ['home-generations'],
@@ -116,6 +117,7 @@ function HomePage() {
     initialData: data.generations,
     placeholderData: keepPreviousData,
     refetchInterval: (query) => {
+      if (pickerOpen) return false
       const items = query.state.data ?? []
       return items.some((item) => item.status === 'queued' || item.status === 'running') ? 3000 : false
     },
@@ -426,7 +428,7 @@ function HomePage() {
         </div>
       </PageScroll>
 
-      <HomeComposer initialAvatar={data.initialAvatar} />
+      <HomeComposer initialAvatar={data.initialAvatar} onPickerOpenChange={setPickerOpen} />
 
       <AnimatePresence>
         {groupModal ? (
