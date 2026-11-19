@@ -2,6 +2,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 import {
   GENERATION_KINDS,
+  LORA_TRAINER_MODEL,
   PROVIDER_IDS,
   getModel,
   type GenerationKind,
@@ -21,6 +22,7 @@ import {
 import { toPublicAsset, type PublicAsset } from './media.server'
 import { adapterFor, prepareGeneration, providerContext, storeProviderOutputs } from './generation.server'
 import { ensurePoller } from './generation-poller.server'
+import { applyAvatarLora } from './lora.server'
 import { buildModelCatalog } from './model-catalog.server'
 import { catalogModelDefinition } from '~/lib/catalog-model'
 
@@ -28,7 +30,7 @@ const submitSchema = z.object({
   kind: z.enum(GENERATION_KINDS),
   model: z.string().min(1),
   prompt: z.string().default(''),
-  assetIds: z.array(z.string()).max(16).default([]),
+  assetIds: z.array(z.string()).max(40).default([]),
   params: z.record(z.string(), z.unknown()).default({}),
   provider: z.enum(PROVIDER_IDS).optional(),
   folderId: z.string().nullable().optional(),
@@ -56,43 +58,53 @@ export const submitGeneration = createServerFn({ method: 'POST', strict: false }
   .handler(async ({ data }): Promise<GenerationView> => {
     const model = resolveModel(data.model)
     if (!model) throw new Error(`Unknown model: ${data.model}`)
-    if (model.kind !== data.kind) throw new Error(`${model.label} does not generate ${data.kind}s`)
+    const isTraining = data.kind === 'lora'
+    if (isTraining) {
+      if (model.id !== LORA_TRAINER_MODEL.id) throw new Error(`${model.label} cannot train a LoRA`)
+    } else if (model.kind !== data.kind) {
+      throw new Error(`${model.label} does not generate ${data.kind}s`)
+    }
 
     const requestedRatio = String(data.params.aspectRatio ?? '')
     const requestedQuality = String(data.params.quality ?? '')
-    const params: GenerationParams = {
-      ...data.params,
-      aspectRatio: model.ratios.includes(requestedRatio)
-        ? requestedRatio
-        : model.kind === 'video'
-          ? model.defaultRatio
-          : '1:1',
-      quality:
-        model.kind === 'image'
-          ? model.qualityOptions.includes(requestedQuality)
-            ? requestedQuality
-            : model.defaultQuality
-          : '',
-      ...(model.kind === 'video'
-        ? {
-            durationSeconds: model.durations.includes(Number(data.params.durationSeconds))
-              ? Number(data.params.durationSeconds)
-              : model.defaultDuration,
-            resolution: model.resolutions.includes(String(data.params.resolution ?? ''))
-              ? String(data.params.resolution)
-              : model.defaultResolution,
-            sound: typeof data.params.sound === 'boolean' ? data.params.sound : model.sound,
-            mode: model.modes.some((entry) => entry.value === String(data.params.mode ?? ''))
-              ? String(data.params.mode)
-              : model.defaultMode,
-          }
-        : {}),
-    }
+    const params: GenerationParams = isTraining
+      ? { ...data.params }
+      : {
+          ...data.params,
+          aspectRatio: model.ratios.includes(requestedRatio)
+            ? requestedRatio
+            : model.kind === 'video'
+              ? model.defaultRatio
+              : '1:1',
+          quality:
+            model.kind === 'image'
+              ? model.qualityOptions.includes(requestedQuality)
+                ? requestedQuality
+                : model.defaultQuality
+              : '',
+          ...(model.kind === 'video'
+            ? {
+                durationSeconds: model.durations.includes(Number(data.params.durationSeconds))
+                  ? Number(data.params.durationSeconds)
+                  : model.defaultDuration,
+                resolution: model.resolutions.includes(String(data.params.resolution ?? ''))
+                  ? String(data.params.resolution)
+                  : model.defaultResolution,
+                sound: typeof data.params.sound === 'boolean' ? data.params.sound : model.sound,
+                mode: model.modes.some((entry) => entry.value === String(data.params.mode ?? ''))
+                  ? String(data.params.mode)
+                  : model.defaultMode,
+              }
+            : {}),
+        }
+
+    let prompt = data.prompt
+    if (!isTraining) prompt = await applyAvatarLora(model, data.assetIds, prompt, params)
 
     const prepared = await prepareGeneration({
       kind: data.kind,
       model,
-      prompt: data.prompt,
+      prompt,
       params,
       assetIds: data.assetIds,
       provider: data.provider,
@@ -102,7 +114,7 @@ export const submitGeneration = createServerFn({ method: 'POST', strict: false }
       kind: data.kind,
       provider: prepared.provider,
       model: model.id,
-      prompt: data.prompt,
+      prompt,
       params,
       inputAssetIds: data.assetIds,
       folderId: data.folderId ?? null,

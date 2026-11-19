@@ -153,6 +153,7 @@ export interface FalImageSpec {
   imageMode: 'array' | 'single'
   supportsSafetyChecker: boolean
   promptMaxLength: number
+  sizeNameKey?: string
 }
 
 export const FAL_IMAGE_SPECS: Record<string, FalImageSpec> = {
@@ -163,5 +164,13 @@ export const FAL_IMAGE_SPECS: Record<string, FalImageSpec> = {
     imageMode: 'array',
     supportsSafetyChecker: true,
     promptMaxLength: 20000,
+  },
+  'flux-lora': {
+    endpoint: 'fal-ai/flux-lora',
+    imageKey: 'image_urls',
+    imageMode: 'array',
+    supportsSafetyChecker: false,
+    promptMaxLength: 2000,
+    sizeNameKey: 'image_size',
   },
 }

@@ -8,16 +8,16 @@ export type ProviderId = (typeof PROVIDER_IDS)[number]
 export const ASSISTANT_PROVIDER_IDS = ['openrouter'] as const
 export type AssistantProviderId = (typeof ASSISTANT_PROVIDER_IDS)[number]
 
-export const GENERATION_KINDS = ['image', 'video'] as const
+export const GENERATION_KINDS = ['image', 'video', 'lora'] as const
 export type GenerationKind = (typeof GENERATION_KINDS)[number]
 
 export const GENERATION_STATUSES = ['queued', 'running', 'succeeded', 'failed', 'cancelled'] as const
 export type GenerationStatus = (typeof GENERATION_STATUSES)[number]
 
-export const ASSET_KINDS = ['image', 'video', 'audio'] as const
+export const ASSET_KINDS = ['image', 'video', 'audio', 'lora'] as const
 export type AssetKind = (typeof ASSET_KINDS)[number]
 
-export const ASSET_SOURCES = ['generated', 'upload', 'social', 'studio'] as const
+export const ASSET_SOURCES = ['generated', 'upload', 'social', 'studio', 'training'] as const
 export type AssetSource = (typeof ASSET_SOURCES)[number]
 
 export const STUDIO_KINDS = ['avatar', 'garment', 'pose', 'scene'] as const

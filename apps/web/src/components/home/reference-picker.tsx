@@ -96,6 +96,11 @@ function PickerTile({
           className="relative size-full object-cover duration-300 group-hover:scale-[1.02]"
         />
       </div>
+      {item.lora ? (
+        <span className="bg-accent text-canvas absolute top-1.5 left-1.5 rounded px-1 py-0.5 text-[8px] font-semibold tracking-[0.04em] uppercase">
+          LoRA
+        </span>
+      ) : null}
       <span className="text-ink/55 block truncate px-2 py-1.5 text-[10px]">{item.name}</span>
       <motion.span
         animate={{ scale: selected ? 1 : 0.85, opacity: selected ? 1 : 0 }}
@@ -156,6 +161,8 @@ export function ReferencePicker({
       url: avatar.url,
       assetIds: avatar.assetIds,
       avatar: true,
+      avatarId: avatar.avatarId,
+      lora: avatar.lora,
     })),
     uploads: allAssets.filter((asset) => asset.source === 'upload').map(assetItem),
     assets: allAssets

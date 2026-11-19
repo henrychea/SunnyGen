@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import type { ImageModelDefinition, VideoModelDefinition } from '@sunnygen/core'
+import {
+  LORA_TRAINER_MODEL,
+  getModel,
+  type ImageModelDefinition,
+  type VideoModelDefinition,
+} from '@sunnygen/core'
 import { getAdapter, getWebhook, providerFlows } from './registry'
 import type { AdapterContext } from './types'
 
@@ -77,7 +82,7 @@ test('registers a flow module for every provider', () => {
   )
   assert.deepEqual(
     providerFlows('fal').map((flow) => flow.id),
-    ['fal.image', 'fal.video'],
+    ['fal.image', 'fal.video', 'fal.training'],
   )
   assert.deepEqual(
     providerFlows('azure').map((flow) => flow.id),
@@ -205,6 +210,114 @@ test('sends fal references to the edit endpoint', async () => {
   assert.equal(queue?.url, 'https://queue.fal.run/test/image/edit')
   assert.ok(queue?.body && typeof queue.body === 'object' && 'image_urls' in queue.body)
   assert.deepEqual(queue.body.image_urls, ['https://cdn.test/reference.png'])
+})
+
+test('zips the training set and submits it to the fal LoRA trainer', async () => {
+  const { context, calls } = referenceContext()
+  const result = await getAdapter('fal').submit(context, {
+    kind: 'lora',
+    model: LORA_TRAINER_MODEL,
+    prompt: 'aria',
+    params: { steps: 500, triggerWord: 'aria' },
+    assets: [imageAsset, { ...imageAsset, fileName: 'second.jpg' }],
+  })
+
+  assert.equal(result.status, 'running')
+  const initiate = calls.find((call) => call.url.includes('/storage/upload/initiate'))
+  assert.deepEqual(initiate?.body, { content_type: 'application/zip', file_name: 'images.zip' })
+
+  const queue = calls.find((call) => call.url.includes('queue.fal.run'))
+  assert.equal(queue?.url, 'https://queue.fal.run/fal-ai/flux-lora-fast-training')
+  assert.deepEqual(queue?.body, {
+    images_data_url: 'https://cdn.test/reference.png',
+    steps: 500,
+    is_style: false,
+    create_masks: true,
+    trigger_word: 'aria',
+  })
+})
+
+test('fal fallbacks to the balanced preset for unknown step counts', async () => {
+  const { context, calls } = referenceContext()
+  await getAdapter('fal').submit(context, {
+    kind: 'lora',
+    model: LORA_TRAINER_MODEL,
+    prompt: '',
+    params: { steps: 1234 },
+    assets: [imageAsset],
+  })
+  const queue = calls.find((call) => call.url.includes('queue.fal.run'))
+  const body = queue?.body as { steps: number; trigger_word?: string }
+  assert.equal(body.steps, 1000)
+  assert.equal(body.trigger_word, undefined)
+})
+
+test('reads the trained weights out of a fal lora result', async () => {
+  const statusUrl = 'https://queue.fal.run/fal-ai/flux-lora-fast-training/requests/req-9/status'
+  const responseUrl = 'https://queue.fal.run/fal-ai/flux-lora-fast-training/requests/req-9'
+  const poll = falQueueContext((url) => {
+    if (url === statusUrl) return Response.json({ status: 'COMPLETED', response_url: responseUrl })
+    if (url === responseUrl)
+      return Response.json({
+        diffusers_lora_file: { url: 'https://cdn.test/model.safetensors', file_name: 'model.safetensors' },
+        config_file: { url: 'https://cdn.test/config.json' },
+      })
+    return new Response('unexpected', { status: 500 })
+  })
+  const original = globalThis.fetch
+  globalThis.fetch = (async (input: string | URL | Request) => {
+    const response = new Response(new Uint8Array([1, 2, 3]), {
+      status: 200,
+      headers: { 'content-type': 'application/octet-stream' },
+    })
+    Object.defineProperty(response, 'url', { value: String(input) })
+    return response
+  }) as typeof fetch
+  try {
+    const result = await getAdapter('fal').poll?.(poll.context, {
+      providerJobId: `${statusUrl}|${responseUrl}|req-9`,
+      kind: 'lora',
+      model: LORA_TRAINER_MODEL,
+    })
+    const outputs = result?.outputs ?? []
+    assert.equal(result?.status, 'succeeded')
+    assert.equal(outputs.length, 1)
+    const output = outputs[0] as { mime: string; fileName?: string; sourceUrl?: string; buffer: Buffer }
+    assert.equal(output.mime, 'application/octet-stream')
+    assert.equal(output.fileName, 'lora.safetensors')
+    assert.equal(output.sourceUrl, 'https://cdn.test/model.safetensors')
+    assert.equal(output.buffer.byteLength, 3)
+  } finally {
+    globalThis.fetch = original
+  }
+})
+
+test('sends LoRA weights only to models that advertise support', async () => {
+  const lora = { path: 'https://cdn.test/model.safetensors', scale: 0.8 }
+  const supported = referenceContext()
+  await getAdapter('fal').submit(supported.context, {
+    kind: 'image',
+    model: getModel('flux-lora') as ImageModelDefinition,
+    prompt: 'aria portrait',
+    params: { aspectRatio: '1:1', lora },
+    assets: [],
+  })
+  const queue = supported.calls.find((call) => call.url.includes('queue.fal.run'))
+  assert.equal(queue?.url, 'https://queue.fal.run/fal-ai/flux-lora')
+  const queueBody = queue?.body as { loras?: unknown } | null
+  assert.deepEqual(queueBody?.loras, [lora])
+
+  const plain = referenceContext()
+  await getAdapter('fal').submit(plain.context, {
+    kind: 'image',
+    model: { ...dynamicImage('fal'), id: 'gpt-image-2' },
+    prompt: 'hello',
+    params: { lora },
+    assets: [],
+  })
+  const plainQueue = plain.calls.find((call) => call.url.includes('queue.fal.run'))
+  const plainBody = plainQueue?.body as { loras?: unknown } | null
+  assert.equal(plainBody?.loras, undefined)
 })
 
 test('exposes webhook adapters only for providers that deliver callbacks', () => {

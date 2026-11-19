@@ -24,6 +24,7 @@ import {
   type InputAsset,
   type PublicAsset,
 } from './media.server'
+import { assetMediaKind, generationMediaKind } from '~/lib/media-kind'
 import { referenceAvatar, type ReferenceAvatar } from '~/lib/reference-avatar'
 
 export interface GalleryItem {
@@ -94,7 +95,7 @@ export const loadGenerationWall = createServerFn({ method: 'GET', strict: false 
       ...listGenerations({ status: 'queued', limit: 30 }),
       ...listGenerations({ status: 'failed', limit: 20 }),
       ...listGenerations({ status: 'succeeded', limit: 80 }),
-    ]
+    ].filter((generation) => generation.kind !== 'lora')
     const outputIds = generations.flatMap((generation) => generation.outputAssetIds)
     const inputIds = generations.flatMap((generation) => generation.inputAssetIds)
     const assets = new Map(getAssetsByIds([...outputIds, ...inputIds]).map((asset) => [asset.id, asset]))
@@ -114,7 +115,7 @@ export const loadGenerationWall = createServerFn({ method: 'GET', strict: false 
         return {
           id: generation.id,
           generationId: generation.id,
-          kind: generation.kind,
+          kind: generationMediaKind(generation.kind),
           status: generation.status,
           prompt: generation.prompt,
           provider: generation.provider,
@@ -130,7 +131,7 @@ export const loadGenerationWall = createServerFn({ method: 'GET', strict: false 
             width: asset.width,
             height: asset.height,
             duration: asset.duration,
-            kind: asset.kind,
+            kind: assetMediaKind(asset.kind),
           })),
           width: first?.width ?? null,
           height: first?.height ?? null,
@@ -168,7 +169,7 @@ export const loadGallery = createServerFn({ method: 'GET' })
       folderId: data.folderId,
       limit: data.limit,
       offset: data.offset,
-    })
+    }).filter((generation) => generation.kind !== 'lora')
 
     const outputIds = generations.flatMap((generation) => generation.outputAssetIds)
     const inputIds = generations.flatMap((generation) => generation.inputAssetIds)
@@ -184,7 +185,7 @@ export const loadGallery = createServerFn({ method: 'GET' })
         {
           id: generation.id,
           generationId: generation.id,
-          kind: generation.kind,
+          kind: generationMediaKind(generation.kind),
           url: assetUrl(first.id),
           urls: outputs.map((asset) => assetUrl(asset.id)),
           width: first.width,
@@ -217,6 +218,7 @@ export const loadAssets = createServerFn({ method: 'GET' })
       kind: data.kind === 'all' ? undefined : data.kind,
       source: data.source === 'all' ? undefined : data.source,
       sources: data.source === 'all' ? ['upload', 'social'] : undefined,
+      excludeKind: 'lora',
       folderId: data.folderId,
       limit: data.limit,
       offset: data.offset,
@@ -234,6 +236,7 @@ export const loadMediaAssets = createServerFn({ method: 'GET', strict: false })
     listAssets({
       kind: data.kind === 'all' ? undefined : data.kind,
       sources: ['upload', 'social', 'generated'],
+      excludeKind: 'lora',
       limit: 200,
     }).map(toPublicAsset),
   )
@@ -252,6 +255,7 @@ export const loadReferenceLibrary = createServerFn({ method: 'GET', strict: fals
     assets: listAssets({
       kind: 'image',
       sources: ['upload', 'social', 'generated', 'studio'],
+      excludeKind: 'lora',
       limit: 120,
     }).map(toPublicAsset),
   }),

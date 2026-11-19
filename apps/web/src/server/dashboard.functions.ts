@@ -10,6 +10,7 @@ import {
 } from '@sunnygen/db'
 import { ensurePoller } from './generation-poller.server'
 import { assetUrl, toInputAssets } from './media.server'
+import { generationMediaKind } from '~/lib/media-kind'
 import type { GalleryItem } from './library.functions'
 
 export interface DashboardData {
@@ -27,7 +28,9 @@ export interface DashboardData {
 
 export const loadDashboard = createServerFn({ method: 'GET' }).handler((): DashboardData => {
   ensurePoller()
-  const recentGenerations = listGenerations({ status: 'succeeded', limit: 6 })
+  const recentGenerations = listGenerations({ status: 'succeeded', limit: 6 }).filter(
+    (generation) => generation.kind !== 'lora',
+  )
   const outputAssets = new Map(
     getAssetsByIds([
       ...recentGenerations.flatMap((generation) => generation.outputAssetIds),
@@ -45,7 +48,7 @@ export const loadDashboard = createServerFn({ method: 'GET' }).handler((): Dashb
       {
         id: generation.id,
         generationId: generation.id,
-        kind: generation.kind,
+        kind: generationMediaKind(generation.kind),
         url: assetUrl(first.id),
         urls: outputs.map((asset) => assetUrl(asset.id)),
         width: first.width,

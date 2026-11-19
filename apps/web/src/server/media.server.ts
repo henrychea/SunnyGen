@@ -126,6 +126,7 @@ export interface StoreBufferInput {
   source: AssetSource
   folderId?: string | null
   kind?: AssetKind
+  fileName?: string
 }
 
 export async function storeBuffer(input: StoreBufferInput): Promise<AssetRecord> {
@@ -141,7 +142,8 @@ export async function storeBuffer(input: StoreBufferInput): Promise<AssetRecord>
 
   const now = new Date()
   const folder = join(String(now.getUTCFullYear()), String(now.getUTCMonth() + 1).padStart(2, '0'))
-  const extension = MIME_EXTENSIONS[mime] ?? '.bin'
+  const extension =
+    MIME_EXTENSIONS[mime] ?? input.fileName?.match(/\.[a-z0-9]{2,12}$/i)?.[0].toLowerCase() ?? '.bin'
   const relativePath = join(folder, `${randomUUID()}${extension}`)
   const absolutePath = join(mediaDir, relativePath)
   await mkdir(dirname(absolutePath), { recursive: true, mode: 0o700 })

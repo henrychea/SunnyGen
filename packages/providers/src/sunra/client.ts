@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import type { GenerationKind } from '@sunnygen/core'
 import { downloadOutput, errorMessage, responseError } from '../http'
 import {
   ProviderError,
@@ -110,7 +111,7 @@ export async function submitSunraQueue(
   return { providerJobId: created.request_id, status: 'running' }
 }
 
-function extractUrls(output: Record<string, unknown>, kind: 'image' | 'video'): string[] {
+function extractUrls(output: Record<string, unknown>, kind: GenerationKind): string[] {
   const urls: string[] = []
   const push = (value: unknown) => {
     if (typeof value === 'string' && value) urls.push(value)

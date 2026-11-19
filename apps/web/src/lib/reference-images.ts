@@ -1,9 +1,13 @@
+import type { AvatarLora } from '@sunnygen/core'
+
 export interface ReferenceItem {
   id: string
   name: string
   url: string
   assetIds?: string[]
   avatar?: boolean
+  avatarId?: string
+  lora?: AvatarLora | null
 }
 
 export function referenceImageCount(items: ReferenceItem[]): number {

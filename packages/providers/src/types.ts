@@ -19,6 +19,8 @@ export interface ProviderRequest {
 export interface ProviderOutput {
   buffer: Buffer
   mime: string
+  fileName?: string
+  sourceUrl?: string
 }
 
 export interface ProviderSubmit {

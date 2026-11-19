@@ -1,4 +1,12 @@
-import { IMAGE_MODELS, VIDEO_MODELS, type ModelDefinition } from '@sunnygen/core'
+import {
+  IMAGE_MODELS,
+  LORA_MODEL_ID,
+  LORA_SCALE_DEFAULT,
+  LORA_SCALE_MAX,
+  LORA_SCALE_MIN,
+  VIDEO_MODELS,
+  type ModelDefinition,
+} from '@sunnygen/core'
 import { useQueryClient } from '@tanstack/react-query'
 import {
   FadeImage,
@@ -36,6 +44,7 @@ import {
   trimReferences,
   type ReferenceItem,
 } from '~/lib/reference-images'
+import type { ReferenceAvatar } from '~/lib/reference-avatar'
 import { useModelChoices } from '~/lib/use-model-choices'
 import { ReferencePicker } from './reference-picker'
 
@@ -109,19 +118,35 @@ function RatioGlyph({ ratio }: { ratio: string }) {
   )
 }
 
-export function HomeComposer() {
+export function HomeComposer({ initialAvatar }: { initialAvatar?: ReferenceAvatar | null } = {}) {
   const queryClient = useQueryClient()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const startModelId = initialAvatar?.lora ? LORA_MODEL_ID : 'gpt-image-2'
+  const [loraStrength, setLoraStrength] = useState(LORA_SCALE_DEFAULT)
   const [mode, setMode] = useState<ComposerMode>('generate')
   const [prompt, setPrompt] = useState('')
-  const [modelId, setModelId] = useState('gpt-image-2')
-  const [ratio, setRatio] = useState(() => defaultRatio(modelFor('gpt-image-2')))
+  const [modelId, setModelId] = useState(startModelId)
+  const [ratio, setRatio] = useState(() => defaultRatio(modelFor(startModelId)))
   const [quality, setQuality] = useState('1k')
   const [duration, setDuration] = useState(8)
   const [resolution, setResolution] = useState('')
   const [count, setCount] = useState(1)
   const [multi, setMulti] = useState(false)
-  const [references, setReferences] = useState<ReferenceItem[]>([])
+  const [references, setReferences] = useState<ReferenceItem[]>(() =>
+    initialAvatar
+      ? [
+          {
+            id: initialAvatar.id,
+            name: initialAvatar.name,
+            url: initialAvatar.url,
+            assetIds: initialAvatar.assetIds,
+            avatar: true,
+            avatarId: initialAvatar.avatarId,
+            lora: initialAvatar.lora,
+          },
+        ]
+      : [],
+  )
   const [editTargets, setEditTargets] = useState<ReferenceItem[]>([])
   const [editReferences, setEditReferences] = useState<ReferenceItem[]>([])
   const [picker, setPicker] = useState<PickerTarget | null>(null)
@@ -138,6 +163,7 @@ export function HomeComposer() {
   const allChoices = [...choices, ...catalogOnly].sort(
     (left, right) =>
       Number(supportedCompanies.has(right.company)) - Number(supportedCompanies.has(left.company)) ||
+      Number(Boolean(right.definition?.supportsLora)) - Number(Boolean(left.definition?.supportsLora)) ||
       left.company.localeCompare(right.company) ||
       Number(right.supported) - Number(left.supported) ||
       Number(left.disabled) - Number(right.disabled) ||
@@ -153,10 +179,19 @@ export function HomeComposer() {
           (!entry.supported || EDIT_MODELS.some((candidate) => candidate.id === entry.modelId)),
       )
     : allChoices
-  const canAddReferences = model.supportsImages
-  const referenceMax = isEdit ? Math.max(0, model.maxImages - 1) : model.maxImages
+  const canAddReferences = model.supportsImages || Boolean(model.supportsLora)
+  const referenceMax = isEdit
+    ? Math.max(0, model.maxImages - 1)
+    : model.supportsImages
+      ? model.maxImages
+      : model.supportsLora
+        ? 1
+        : 0
   const referenceSlots = canAddReferences ? Math.max(0, referenceMax - referenceImageCount(references)) : 0
   const editReferenceSlots = Math.max(0, referenceMax - referenceImageCount(editReferences))
+  const loraReference = mode === 'generate' ? references.find((item) => item.lora) : undefined
+  const loraSupported = Boolean(model.supportsLora)
+  const loraModelChoice = allChoices.find((entry) => entry.definition?.supportsLora && entry.modelId)
 
   useEffect(() => {
     if (expanded) return
@@ -189,7 +224,13 @@ export function HomeComposer() {
     setModelId(next.id)
     setRatio(defaultRatio(next))
     setCount(1)
-    setReferences((current) => current.slice(0, next.supportsImages ? next.maxImages : 0))
+    setReferences((current) =>
+      next.supportsImages
+        ? current.slice(0, next.maxImages)
+        : next.supportsLora
+          ? current.filter((item) => item.lora)
+          : [],
+    )
     setEditReferences((current) => current.slice(0, Math.max(0, next.maxImages - 1)))
     if (next.kind === 'image') {
       setQuality(next.qualityOptions.includes('1k') ? '1k' : (next.qualityOptions[0] ?? ''))
@@ -307,6 +348,7 @@ export function HomeComposer() {
                     resolution: isVideo ? resolution : undefined,
                     sound: isVideo ? model.sound : undefined,
                     mode: isVideo ? model.defaultMode : undefined,
+                    loraStrength: loraReference ? loraStrength : undefined,
                   },
           },
         })
@@ -573,7 +615,7 @@ export function HomeComposer() {
                   label="References"
                   tileLabel="IMAGE"
                   items={references}
-                  max={model.maxImages}
+                  max={referenceMax}
                   remaining={referenceSlots}
                   busy={busy}
                   onAdd={() => setPicker('references')}
@@ -672,6 +714,32 @@ export function HomeComposer() {
             ) : null}
           </AnimatePresence>
 
+          <AnimatePresence initial={false}>
+            {loraReference && !loraSupported ? (
+              <motion.div
+                key="lora-note"
+                variants={motionFadeRise}
+                initial="hidden"
+                animate="visible"
+                exit="hidden"
+                className="border-warning/25 bg-warning/10 text-ink/65 mx-3 mt-2 flex items-center gap-2 rounded-lg border px-2 py-1.5 text-[10.5px]"
+              >
+                <span>
+                  LoRA not used with <span className="text-ink/85 font-medium">{model.label}</span>
+                </span>
+                {loraModelChoice?.modelId ? (
+                  <button
+                    type="button"
+                    onClick={() => chooseModel(loraModelChoice.modelId as string)}
+                    className="text-accent hover:text-accent/80 ml-auto font-semibold transition-colors"
+                  >
+                    Switch model
+                  </button>
+                ) : null}
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
+
           <div className="border-line/60 mt-2 flex flex-wrap items-center gap-1.5 border-t px-3 pt-2.5 pb-2.5">
             <ModelCombobox
               className="w-[240px] md:w-[270px]"
@@ -718,6 +786,37 @@ export function HomeComposer() {
               menuMinWidth={190}
               onChange={(option) => setRatio(option.key)}
             />
+
+            <AnimatePresence initial={false}>
+              {loraReference && loraSupported ? (
+                <motion.div
+                  key="lora-strength"
+                  variants={motionPop}
+                  initial="hidden"
+                  animate="visible"
+                  exit="hidden"
+                  transition={motionFast}
+                  className="border-line bg-canvas/55 flex h-8 items-center gap-1.5 rounded-lg border px-2"
+                  title={`${loraReference.lora?.triggerWord ?? 'LoRA'} strength`}
+                >
+                  <span className="text-accent text-[9.5px] font-semibold tracking-[0.06em] uppercase">
+                    LoRA
+                  </span>
+                  <input
+                    type="range"
+                    min={LORA_SCALE_MIN}
+                    max={LORA_SCALE_MAX}
+                    step={0.05}
+                    value={loraStrength}
+                    disabled={busy}
+                    onChange={(event) => setLoraStrength(Number(event.target.value))}
+                    aria-label="LoRA strength"
+                    className="accent-accent h-1 w-14 cursor-pointer disabled:opacity-40"
+                  />
+                  <span className="text-ink/60 w-6 text-[10px] tabular-nums">{loraStrength.toFixed(2)}</span>
+                </motion.div>
+              ) : null}
+            </AnimatePresence>
 
             {isVideo ? (
               <>
@@ -919,6 +1018,11 @@ function SelectionBox({
               className="border-line group relative overflow-hidden rounded-lg border"
             >
               <FadeImage src={item.url} alt="" className="size-12 object-cover" />
+              {item.lora ? (
+                <span className="bg-accent text-canvas absolute bottom-0 left-0 rounded-tr px-1 py-px text-[7px] font-semibold tracking-[0.04em] uppercase">
+                  LoRA
+                </span>
+              ) : null}
               <button
                 type="button"
                 onClick={() => onRemove(item.id)}

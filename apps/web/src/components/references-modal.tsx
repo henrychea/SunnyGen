@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { FadeImage, motionFade, motionFast, motionPop, motionSwap } from '@sunnygen/ui'
 import { useEffect, useState } from 'react'
 import { MediaThumbStrip } from '~/components/media-preview'
+import { assetMediaKind } from '~/lib/media-kind'
 import type { InputAsset } from '~/server/media.server'
 
 function ReferenceMedia({ reference, label }: { reference: InputAsset; label: string }) {
@@ -101,7 +102,10 @@ export function ReferencesModal({ references, onClose }: { references: InputAsse
           </div>
           {references.length > 1 ? (
             <MediaThumbStrip
-              items={references}
+              items={references.map((reference) => ({
+                ...reference,
+                kind: assetMediaKind(reference.kind),
+              }))}
               index={safeIndex}
               onSelect={setIndex}
               label="Choose a reference"
