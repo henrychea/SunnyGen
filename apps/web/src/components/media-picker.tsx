@@ -15,6 +15,7 @@ import {
 import { Check, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useState } from 'react'
+import { thumbSrcSet, thumbUrl } from '~/lib/media-thumbs'
 import { loadMediaAssets } from '~/server/library.functions'
 
 export interface MediaPickerProps {
@@ -129,9 +130,12 @@ export function MediaPicker({
                         ) : (
                           <FadeImage
                             shimmer
-                            src={asset.url}
+                            src={thumbUrl(asset.url, 320)}
+                            srcSet={thumbSrcSet(asset.url, [320, 640])}
+                            sizes="(min-width: 768px) 180px, 33vw"
                             alt=""
                             loading="lazy"
+                            decoding="async"
                             className="size-full object-cover"
                           />
                         )}

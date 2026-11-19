@@ -28,6 +28,7 @@ import { useRef, useState } from 'react'
 import type { StudioItemDto, StudioLibrary } from '~/server/studio.functions'
 import { getGenerationView, submitGeneration } from '~/server/generation.functions'
 import { createFolderFn } from '~/server/library.functions'
+import { thumbSrcSet, thumbUrl } from '~/lib/media-thumbs'
 import { ModelCombobox } from '~/components/model-combobox'
 import { useModelChoices } from '~/lib/use-model-choices'
 
@@ -274,8 +275,11 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
                   {item.assetUrl ? (
                     <FadeImage
                       shimmer
-                      src={item.assetUrl}
+                      src={thumbUrl(item.assetUrl, 160)}
+                      srcSet={thumbSrcSet(item.assetUrl, [160, 320])}
+                      sizes="80px"
                       alt=""
+                      decoding="async"
                       className="aspect-square w-full object-cover"
                     />
                   ) : (
@@ -338,8 +342,11 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
                     {image ? (
                       <FadeImage
                         shimmer
-                        src={image}
+                        src={thumbUrl(image, 320)}
+                        srcSet={thumbSrcSet(image, [160, 320])}
+                        sizes="(min-width: 640px) 120px, 30vw"
                         alt=""
+                        decoding="async"
                         shimmerClassName="inset-x-0 top-0 aspect-square"
                         className="aspect-square w-full object-cover"
                       />

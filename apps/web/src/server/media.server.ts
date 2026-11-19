@@ -1,11 +1,12 @@
 import { createHash, randomUUID } from 'node:crypto'
 import { createReadStream } from 'node:fs'
-import { mkdir, readFile, stat, unlink, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, rename, stat, unlink, writeFile } from 'node:fs/promises'
 import { dirname, join, relative, resolve } from 'node:path'
 import { Readable } from 'node:stream'
 import { createAsset, findAssetBySha256, getAsset, mediaDir } from '@sunnygen/db'
 import { isPrivateHostname, type AssetKind, type AssetRecord, type AssetSource } from '@sunnygen/core'
 import sharp from 'sharp'
+import type { ThumbWidth } from '~/lib/media-thumbs'
 
 export const MAX_UPLOAD_BYTES = 100 * 1024 * 1024
 const MAX_REMOTE_BYTES = 250 * 1024 * 1024
@@ -255,6 +256,65 @@ export async function openAssetFile(
     start,
     end,
     mime: asset.mime,
+  }
+}
+
+interface AssetThumb {
+  path: string
+  totalBytes: number
+}
+
+const thumbJobs = new Map<string, Promise<AssetThumb>>()
+
+function thumbFilePath(assetId: string, width: ThumbWidth): string {
+  const name = assetId.replace(/[^a-zA-Z0-9_-]/g, '_')
+  return join(mediaDir, '.thumbs', `${name}-${width}.webp`)
+}
+
+async function buildAssetThumb(asset: AssetRecord, width: ThumbWidth): Promise<AssetThumb> {
+  const path = thumbFilePath(asset.id, width)
+  const cached = await stat(path).catch(() => null)
+  if (cached && cached.size > 0) return { path, totalBytes: cached.size }
+
+  await mkdir(dirname(path), { recursive: true, mode: 0o700 })
+  const temp = `${path}.${randomUUID()}.tmp`
+  try {
+    await sharp(safeAssetPath(asset.path))
+      .resize({ width, withoutEnlargement: true })
+      .webp({ quality: 80 })
+      .toFile(temp)
+    await rename(temp, path)
+  } catch (error) {
+    await unlink(temp).catch(() => undefined)
+    throw error
+  }
+  const info = await stat(path)
+  return { path, totalBytes: info.size }
+}
+
+export async function openAssetThumbFile(assetId: string, width: ThumbWidth): Promise<AssetFile | null> {
+  const asset = getAsset(assetId)
+  if (!asset) return null
+  if (kindForMime(asset.mime) !== 'image') return null
+
+  const key = `${asset.id}:${width}`
+  let job = thumbJobs.get(key)
+  if (!job) {
+    job = buildAssetThumb(asset, width)
+    thumbJobs.set(key, job)
+    void job.then(
+      () => thumbJobs.delete(key),
+      () => thumbJobs.delete(key),
+    )
+  }
+  const thumb = await job
+  const stream = createReadStream(thumb.path)
+  return {
+    stream: Readable.toWeb(stream) as ReadableStream,
+    totalBytes: thumb.totalBytes,
+    start: 0,
+    end: thumb.totalBytes - 1,
+    mime: 'image/webp',
   }
 }
 

@@ -23,6 +23,7 @@ import { FileAudio, FolderPlus, Loader2, MoreHorizontal, Trash2, Upload, X } fro
 import { AnimatePresence, motion } from 'motion/react'
 import { PageBody, PageHeader, PageScroll } from '~/components/app-shell'
 import { formatBytes, formatDate } from '~/lib/format'
+import { thumbSrcSet, thumbUrl } from '~/lib/media-thumbs'
 import {
   createFolderFn,
   deleteLibraryItemFn,
@@ -377,9 +378,12 @@ function AssetsPage() {
                                   {asset.kind === 'image' ? (
                                     <FadeImage
                                       shimmer
-                                      src={asset.url}
+                                      src={thumbUrl(asset.url, 640)}
+                                      srcSet={thumbSrcSet(asset.url, [320, 640])}
+                                      sizes="(min-width: 1280px) 300px, (min-width: 640px) 45vw, 92vw"
                                       alt=""
                                       loading="lazy"
+                                      decoding="async"
                                       className="size-full object-cover"
                                     />
                                   ) : asset.kind === 'video' ? (

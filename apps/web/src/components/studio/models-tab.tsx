@@ -15,6 +15,7 @@ import { Check, Cpu, Loader2, RotateCcw, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useState } from 'react'
 import { formatDate } from '~/lib/format'
+import { thumbSrcSet, thumbUrl } from '~/lib/media-thumbs'
 import type { LoraRunDto, StudioItemDto } from '~/server/studio.functions'
 
 const STATUS: Record<
@@ -232,9 +233,12 @@ export function StudioModelsTab({
                 <div className="bg-ink/[0.06] aspect-square overflow-hidden">
                   {avatar.assetUrl ? (
                     <FadeImage
-                      src={avatar.assetUrl}
+                      src={thumbUrl(avatar.assetUrl, 320)}
+                      srcSet={thumbSrcSet(avatar.assetUrl, [320, 640])}
+                      sizes="(min-width: 640px) 180px, 33vw"
                       alt=""
                       loading="lazy"
+                      decoding="async"
                       className="size-full object-cover duration-300 group-hover:scale-[1.02]"
                     />
                   ) : null}

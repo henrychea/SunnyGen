@@ -1,6 +1,7 @@
 import { cn, FadeImage, motionFast, motionList, motionListItem } from '@sunnygen/ui'
 import { FileAudio } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
+import { thumbSrcSet, thumbUrl } from '~/lib/media-thumbs'
 
 export type MediaKind = 'image' | 'video' | 'audio'
 
@@ -106,7 +107,16 @@ export function MediaThumbStrip({
               <FileAudio size={16} />
             </span>
           ) : (
-            <FadeImage shimmer src={item.url} alt="" className="size-full object-cover" loading="lazy" />
+            <FadeImage
+              shimmer
+              src={thumbUrl(item.url, 160)}
+              srcSet={thumbSrcSet(item.url, [160, 320])}
+              sizes="64px"
+              alt=""
+              decoding="async"
+              className="size-full object-cover"
+              loading="lazy"
+            />
           )}
         </motion.button>
       ))}

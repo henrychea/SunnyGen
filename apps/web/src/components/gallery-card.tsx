@@ -1,5 +1,6 @@
 import { cn, FadeImage } from '@sunnygen/ui'
 import { Play } from 'lucide-react'
+import { thumbSrcSet, thumbUrl } from '~/lib/media-thumbs'
 import type { GalleryItem } from '~/server/library.functions'
 
 export function GalleryCard({ item, onOpen }: { item: GalleryItem; onOpen: () => void }) {
@@ -29,9 +30,12 @@ export function GalleryCard({ item, onOpen }: { item: GalleryItem; onOpen: () =>
         ) : (
           <FadeImage
             shimmer
-            src={item.url}
+            src={thumbUrl(item.url, 640)}
+            srcSet={thumbSrcSet(item.url, [320, 640])}
+            sizes="(min-width: 1280px) 320px, (min-width: 640px) 45vw, 92vw"
             alt={item.prompt || 'Generated image'}
             loading="lazy"
+            decoding="async"
             className="size-full object-cover group-hover:scale-[1.025]"
           />
         )}
@@ -82,9 +86,12 @@ export function GalleryWallTile({ item, onOpen }: { item: GalleryItem; onOpen: (
         ) : (
           <FadeImage
             shimmer
-            src={item.url}
+            src={thumbUrl(item.url, 640)}
+            srcSet={thumbSrcSet(item.url, [320, 640])}
+            sizes="(min-width: 1280px) 320px, (min-width: 640px) 45vw, 92vw"
             alt={item.prompt || 'Generated image'}
             loading="lazy"
+            decoding="async"
             className="size-full object-cover group-hover:scale-[1.02]"
           />
         )}
