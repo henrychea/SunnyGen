@@ -200,7 +200,7 @@ async function main() {
     return
   }
   if (options.stack) {
-    startCobalt({ stack: true })
+    startCobalt()
     return
   }
   if (options.cobalt) {

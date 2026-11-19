@@ -281,6 +281,22 @@ On Linux the unit is `~/.config/systemd/user/sunnygen.service` and logs go to
 `journalctl --user -u sunnygen.service -f`. It serves the existing production build,
 so run `./sunnygen --build` after changing sources, then `./sunnygen --restart-service`.
 
+## Builds
+
+| Build | How it runs                                                             | Data                                                                                  |
+| ----- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| Prod  | Docker image from the root `Dockerfile`, host network on `0.0.0.0:8977` | `SUNNYGEN_PROD_DATA`, default `~/.local/share/sunnygen-prod/data`, mounted at `/data` |
+| Demo  | `pnpm dev:demo`, the Vite dev server on port 8978                       | `SUNNYGEN_DEMO_DATA`, default `~/.local/share/sunnygen-demo/data`                     |
+
+```bash
+docker compose -p sunnygen-prod up -d --build   # prod
+pnpm dev:demo                                   # demo
+```
+
+The demo build runs a neutral screenshot dataset with no provider keys; never point it
+at prod data. `scripts/deploy-prod.sh` is safe on a timer: it exits quietly when
+`origin/main` has not moved, and a failed build leaves the running container in place.
+
 ## Data & privacy
 
 | What       | Default location   |

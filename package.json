@@ -6,6 +6,7 @@
   "author": "Henry Chea",
   "scripts": {
     "dev": "turbo run dev --filter=@sunnygen/web",
+    "dev:demo": "SUNNYGEN_DATA_DIR=\"${SUNNYGEN_DEMO_DATA:-$HOME/.local/share/sunnygen-demo/data}\" PORT=8978 NITRO_PORT=8978 pnpm --filter @sunnygen/web dev",
     "build": "turbo run build",
     "start": "turbo run start --filter=@sunnygen/web",
     "test": "turbo run test",

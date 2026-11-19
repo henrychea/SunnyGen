@@ -1,5 +1,20 @@
 services:
+  sunnygen:
+    build:
+      context: .
+      args:
+        UID: '${SUNNYGEN_UID:-1000}'
+        GID: '${SUNNYGEN_GID:-1000}'
+    image: sunnygen:prod
+    container_name: sunnygen-prod
+    init: true
+    network_mode: host
+    volumes:
+      - ${SUNNYGEN_PROD_DATA:-${HOME}/.local/share/sunnygen-prod/data}:/data
+    restart: unless-stopped
+
   cobalt:
+    profiles: [cobalt]
     image: ghcr.io/imputnet/cobalt:11
     container_name: sunnygen-cobalt
     init: true
