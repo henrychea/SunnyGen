@@ -61,7 +61,8 @@ export function isLoraStepCount(steps: number): boolean {
 }
 
 export function loraTriggerWord(name: string): string {
-  const slug = name
+  const shortName = name.split(' — ')[0] ?? name
+  const slug = shortName
     .toLowerCase()
     .normalize('NFKD')
     .replace(/[^a-z0-9]+/g, '_')

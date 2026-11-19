@@ -79,7 +79,10 @@ export function StudioLibraryGrid({
                     </Badge>
                   ) : null}
                   {lora ? (
-                    <Badge tone="accent" className="absolute top-2 right-2">
+                    <Badge
+                      tone="accent"
+                      className="border-line bg-surface/95 absolute top-2 right-2 border px-2 whitespace-nowrap backdrop-blur"
+                    >
                       LoRA v{lora.version}
                     </Badge>
                   ) : null}

@@ -143,7 +143,10 @@ export function StudioModelsTab({
                         <Cpu size={20} />
                       </div>
                     )}
-                    <Badge tone={status.tone} className="absolute top-2 left-2">
+                    <Badge
+                      tone={status.tone}
+                      className="border-line bg-surface/95 absolute top-2 left-2 border backdrop-blur"
+                    >
                       {running ? <Loader2 size={9} className="animate-spin" /> : null}
                       {status.label}
                     </Badge>

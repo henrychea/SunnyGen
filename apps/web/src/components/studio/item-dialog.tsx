@@ -346,12 +346,12 @@ function UploadBox({ label, hint, assetId, busy, onPick }: UploadSlot & { busy: 
             initial="hidden"
             animate="visible"
             exit="hidden"
-            className={cn('grid size-full place-items-center', assetId && !busy ? 'absolute inset-0' : '')}
+            className="absolute inset-0 grid place-items-center"
           >
             {busy ? (
               <Loader2 size={18} className="animate-spin" />
             ) : assetId ? (
-              <FadeImage shimmer src={`/api/media/${assetId}`} alt="" className="size-full object-cover" />
+              <FadeImage shimmer src={`/api/media/${assetId}`} alt="" className="size-full object-contain" />
             ) : (
               <span className="flex flex-col items-center gap-1 text-[10.5px]">
                 <ImagePlus size={16} />

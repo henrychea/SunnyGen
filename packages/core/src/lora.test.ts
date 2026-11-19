@@ -36,6 +36,7 @@ test('trigger words slug the avatar name', () => {
   assert.equal(loraTriggerWord('Aria Bloom'), 'aria_bloom')
   assert.equal(loraTriggerWord('  Zoë   Chen '), 'zoe_chen')
   assert.equal(loraTriggerWord('!!!'), 'subject')
+  assert.equal(loraTriggerWord('Ava — character sheet'), 'ava')
 })
 
 test('the trigger word is only prefixed once', () => {
