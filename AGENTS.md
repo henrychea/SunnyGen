@@ -5,19 +5,22 @@ disk, client state in React Query and Zustand. Provider calls run server-side.
 
 ## Commands
 
-| Command                           | Use                                          |
-| --------------------------------- | -------------------------------------------- |
-| `pnpm dev`                        | Vite dev server for `apps/web` on port 8977. |
-| `pnpm build`                      | Production build.                            |
-| `pnpm test`                       | Unit tests (`tsx --test`).                   |
-| `pnpm format`                     | Oxfmt.                                       |
-| `pnpm typecheck`                  | TypeScript across all packages.              |
-| `pnpm lint`                       | Oxlint.                                      |
-| `pnpm --filter @sunnygen/web dev` | Run only the web app.                        |
+| Command                           | Use                                           |
+| --------------------------------- | --------------------------------------------- |
+| `pnpm dev`                        | Vite dev server for `apps/web` on port 8977.  |
+| `pnpm dev:demo`                   | Demo build: dev server on 8978, neutral data. |
+| `pnpm build`                      | Production build.                             |
+| `pnpm test`                       | Unit tests (`tsx --test`).                    |
+| `pnpm format`                     | Oxfmt.                                        |
+| `pnpm typecheck`                  | TypeScript across all packages.               |
+| `pnpm lint`                       | Oxlint.                                       |
+| `pnpm --filter @sunnygen/web dev` | Run only the web app.                         |
 
 Run the production build with `./sunnygen`; the launcher builds when stale, serves
 `0.0.0.0:8977`, and manages the login service (launchd on macOS, `systemd --user` on
 Linux — `./sunnygen --install-service`, logs in `journalctl --user -u sunnygen`).
+Prod also runs as a Docker image (`compose.yaml`, `sunnygen:prod`, rebuilds from
+`origin/main` through `scripts/deploy-prod.sh`); the demo build is `pnpm dev:demo`.
 
 ## Layout
 
