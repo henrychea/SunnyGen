@@ -16,6 +16,7 @@ import { FailureActions } from '~/components/failure-actions'
 import { MediaActionBar } from '~/components/media-action-bar'
 import { MediaCard, MediaThumbStrip } from '~/components/media-preview'
 import { ReferencesModal } from '~/components/references-modal'
+import { thumbSrcSet, thumbUrl } from '~/lib/media-thumbs'
 import { deleteLibraryItemFn, type GenerationWallItem } from '~/server/library.functions'
 
 export const WALL_CARD_HEIGHT = 'h-[180px] md:h-[230px]'
@@ -82,9 +83,12 @@ export function OutputCard({
         </div>
       ) : (
         <FadeImage
-          src={output.url}
+          src={thumbUrl(output.url, 640)}
+          srcSet={thumbSrcSet(output.url, [320, 640])}
+          sizes="(min-width: 768px) 320px, 280px"
           alt={generation.prompt || 'Generated image'}
           loading="lazy"
+          decoding="async"
           className="size-full object-cover duration-500 group-hover:scale-[1.02]"
         />
       )}
@@ -223,9 +227,12 @@ export function GroupCard({
                   />
                 ) : (
                   <FadeImage
-                    src={output.url}
+                    src={thumbUrl(output.url, 320)}
+                    srcSet={thumbSrcSet(output.url, [160, 320])}
+                    sizes="(min-width: 768px) 160px, 140px"
                     alt=""
                     loading="lazy"
+                    decoding="async"
                     className="size-full object-cover duration-500 group-hover:scale-[1.02]"
                   />
                 )}

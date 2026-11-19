@@ -28,6 +28,7 @@ import {
   type WallOutput,
 } from '~/components/home/wall-cards'
 import { PageScroll } from '~/components/app-shell'
+import { thumbSrcSet, thumbUrl } from '~/lib/media-thumbs'
 import { formatBytes } from '~/lib/format'
 import { loadDashboard } from '~/server/dashboard.functions'
 import {
@@ -108,6 +109,7 @@ function HomePage() {
   const [query, setQuery] = useState('')
   const [preview, setPreview] = useState<Preview | null>(null)
   const [groupModal, setGroupModal] = useState<{ title: string; cards: WallCard[] } | null>(null)
+  const [pickerOpen, setPickerOpen] = useState(false)
 
   const wall = useQuery({
     queryKey: ['home-generations'],
@@ -115,6 +117,7 @@ function HomePage() {
     initialData: data.generations,
     placeholderData: keepPreviousData,
     refetchInterval: (query) => {
+      if (pickerOpen) return false
       const items = query.state.data ?? []
       return items.some((item) => item.status === 'queued' || item.status === 'running') ? 3000 : false
     },
@@ -425,7 +428,7 @@ function HomePage() {
         </div>
       </PageScroll>
 
-      <HomeComposer initialAvatar={data.initialAvatar} />
+      <HomeComposer initialAvatar={data.initialAvatar} onPickerOpenChange={setPickerOpen} />
 
       <AnimatePresence>
         {groupModal ? (
@@ -531,9 +534,12 @@ function UploadTile({ item, onOpen }: { item: PublicAsset; onOpen: () => void })
         </div>
       ) : (
         <FadeImage
-          src={item.url}
+          src={thumbUrl(item.url, 640)}
+          srcSet={thumbSrcSet(item.url, [320, 640])}
+          sizes="(min-width: 768px) 320px, 280px"
           alt=""
           loading="lazy"
+          decoding="async"
           className="size-full object-cover duration-500 group-hover:scale-[1.02]"
         />
       )}
@@ -597,9 +603,12 @@ function UploadFolderCard({
                 />
               ) : (
                 <FadeImage
-                  src={asset.url}
+                  src={thumbUrl(asset.url, 320)}
+                  srcSet={thumbSrcSet(asset.url, [160, 320])}
+                  sizes="(min-width: 768px) 160px, 140px"
                   alt=""
                   loading="lazy"
+                  decoding="async"
                   className="size-full object-cover duration-500 group-hover:scale-[1.02]"
                 />
               )}

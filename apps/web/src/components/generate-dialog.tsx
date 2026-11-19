@@ -19,6 +19,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useRef, useState } from 'react'
 import { MediaPicker } from './media-picker'
 import { ModelCombobox } from './model-combobox'
+import { thumbSrcSet, thumbUrl } from '~/lib/media-thumbs'
 import { getGenerationView, submitGeneration } from '~/server/generation.functions'
 import { useModelChoices } from '~/lib/use-model-choices'
 
@@ -510,8 +511,11 @@ export function GenerateDialog({
                       >
                         <FadeImage
                           shimmer
-                          src={`/api/media/${assetId}`}
+                          src={thumbUrl(`/api/media/${assetId}`, 160)}
+                          srcSet={thumbSrcSet(`/api/media/${assetId}`, [160, 320])}
+                          sizes="56px"
                           alt=""
+                          decoding="async"
                           className="size-14 object-cover"
                         />
                         <button

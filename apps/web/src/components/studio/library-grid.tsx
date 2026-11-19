@@ -9,6 +9,7 @@ import {
 import { Badge, Button, Card, cn, FadeImage, motionFast } from '@sunnygen/ui'
 import { ImagePlus, Pencil, Plus, Sparkles, Trash2 } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
+import { thumbSrcSet, thumbUrl } from '~/lib/media-thumbs'
 import type { StudioItemDto } from '~/server/studio.functions'
 
 export function StudioLibraryGrid({
@@ -62,7 +63,16 @@ export function StudioLibraryGrid({
               <Card className="hover:border-ink/20 h-full overflow-hidden transition-[border-color,box-shadow,transform] duration-200 ease-out hover:-translate-y-0.5">
                 <div className="bg-ink/[0.04] relative aspect-[4/3]">
                   {image ? (
-                    <FadeImage shimmer src={image} alt="" loading="lazy" className="size-full object-cover" />
+                    <FadeImage
+                      shimmer
+                      src={thumbUrl(image, 640)}
+                      srcSet={thumbSrcSet(image, [320, 640])}
+                      sizes="(min-width: 1280px) 280px, (min-width: 640px) 45vw, 92vw"
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      className="size-full object-cover"
+                    />
                   ) : (
                     <div className="grid size-full place-items-center bg-[#FFFDF8]">
                       <span className="bg-ink/[0.04] size-8 rounded-full" />

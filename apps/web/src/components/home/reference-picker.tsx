@@ -6,21 +6,21 @@ import {
   motionFade,
   motionFadeRise,
   motionFast,
-  motionList,
-  motionListItem,
+  motionMountFade,
   motionPop,
   motionPress,
   motionSpring,
-  motionSwap,
 } from '@sunnygen/ui'
 import { Check, ImageIcon, Loader2, Upload, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
-import { useEffect, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { thumbSrcSet, thumbUrl } from '~/lib/media-thumbs'
 import { appendReferences, referenceImageCount, type ReferenceItem } from '~/lib/reference-images'
 import { loadReferenceLibrary } from '~/server/library.functions'
 import type { PublicAsset } from '~/server/media.server'
 
 type PickerTab = 'avatars' | 'uploads' | 'assets' | 'cobalt'
+const PICKER_PAGE_SIZE = 30
 
 const TAB_LABELS: Record<PickerTab, string> = {
   avatars: 'Avatars',
@@ -64,7 +64,7 @@ function PickerSkeleton() {
   )
 }
 
-function PickerTile({
+const PickerTile = memo(function PickerTile({
   item,
   selected,
   disabled,
@@ -73,27 +73,28 @@ function PickerTile({
   item: ReferenceItem
   selected: boolean
   disabled: boolean
-  onToggle: () => void
+  onToggle: (item: ReferenceItem) => void
 }) {
   return (
-    <motion.button
-      variants={motionListItem}
+    <button
       type="button"
-      onClick={onToggle}
+      onClick={() => onToggle(item)}
       disabled={disabled}
       aria-pressed={selected}
       className={cn(
-        'group border-line bg-canvas/40 relative overflow-hidden rounded-xl border text-left transition-[border-color,box-shadow,transform] active:scale-[0.98] disabled:opacity-40 motion-reduce:active:scale-100',
+        'group border-line bg-canvas/40 relative overflow-hidden rounded-xl border text-left transition-[border-color,box-shadow,transform] [contain-intrinsic-size:auto_160px] [content-visibility:auto] active:scale-[0.98] disabled:opacity-40 motion-reduce:active:scale-100',
         selected ? 'border-accent ring-accent/20 ring-2' : 'hover:border-ink/25',
       )}
     >
       <div className="bg-ink/[0.06] relative aspect-square overflow-hidden">
         <FadeImage
-          shimmer
-          src={item.url}
+          src={thumbUrl(item.url, 320)}
+          srcSet={thumbSrcSet(item.url, [320, 640])}
+          sizes="(min-width: 768px) 180px, 33vw"
           alt=""
           loading="lazy"
-          className="relative size-full object-cover duration-300 group-hover:scale-[1.02]"
+          decoding="async"
+          className="relative size-full object-cover duration-300 [@media(hover:hover)]:group-hover:scale-[1.02]"
         />
       </div>
       {item.lora ? (
@@ -102,16 +103,18 @@ function PickerTile({
         </span>
       ) : null}
       <span className="text-ink/55 block truncate px-2 py-1.5 text-[10px]">{item.name}</span>
-      <motion.span
-        animate={{ scale: selected ? 1 : 0.85, opacity: selected ? 1 : 0 }}
-        transition={motionFast}
-        className="border-accent bg-accent absolute top-1.5 right-1.5 grid size-5 place-items-center rounded-full border text-white"
+      <span
+        aria-hidden="true"
+        className={cn(
+          'border-accent bg-accent absolute top-1.5 right-1.5 grid size-5 place-items-center rounded-full border text-white transition-[opacity,scale] duration-150 ease-out motion-reduce:transition-none',
+          selected ? 'scale-100 opacity-100' : 'scale-90 opacity-0',
+        )}
       >
         <Check size={11} />
-      </motion.span>
-    </motion.button>
+      </span>
+    </button>
   )
-}
+})
 
 export function ReferencePicker({
   title,
@@ -135,7 +138,9 @@ export function ReferencePicker({
   const [linkText, setLinkText] = useState('')
   const [importing, setImporting] = useState(false)
   const [importError, setImportError] = useState<string | null>(null)
+  const [page, setPage] = useState<{ tab: PickerTab; count: number } | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+  const loadMoreRef = useRef<HTMLDivElement>(null)
   const queryClient = useQueryClient()
   const library = useQuery({
     queryKey: ['reference-library'],
@@ -151,25 +156,27 @@ export function ReferencePicker({
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  const existing = new Set(existingIds)
+  const existing = useMemo(() => new Set(existingIds), [existingIds])
   const pickedCount = referenceImageCount(picked)
-  const allAssets = library.data?.assets ?? []
-  const groups: Record<PickerTab, ReferenceItem[]> = {
-    avatars: (library.data?.avatars ?? []).map((avatar) => ({
-      id: avatar.id,
-      name: avatar.name,
-      url: avatar.url,
-      assetIds: avatar.assetIds,
-      avatar: true,
-      avatarId: avatar.avatarId,
-      lora: avatar.lora,
-    })),
-    uploads: allAssets.filter((asset) => asset.source === 'upload').map(assetItem),
-    assets: allAssets
-      .filter((asset) => asset.source === 'generated' || asset.source === 'studio')
-      .map(assetItem),
-    cobalt: allAssets.filter((asset) => asset.source === 'social').map(assetItem),
-  }
+  const groups = useMemo<Record<PickerTab, ReferenceItem[]>>(() => {
+    const allAssets = library.data?.assets ?? []
+    return {
+      avatars: (library.data?.avatars ?? []).map((avatar) => ({
+        id: avatar.id,
+        name: avatar.name,
+        url: avatar.url,
+        assetIds: avatar.assetIds,
+        avatar: true,
+        avatarId: avatar.avatarId,
+        lora: avatar.lora,
+      })),
+      uploads: allAssets.filter((asset) => asset.source === 'upload').map(assetItem),
+      assets: allAssets
+        .filter((asset) => asset.source === 'generated' || asset.source === 'studio')
+        .map(assetItem),
+      cobalt: allAssets.filter((asset) => asset.source === 'social').map(assetItem),
+    }
+  }, [library.data])
   const order: PickerTab[] = allowAvatars
     ? ['avatars', 'uploads', 'assets', 'cobalt']
     : ['uploads', 'assets', 'cobalt']
@@ -180,22 +187,53 @@ export function ReferencePicker({
       ? preferred
       : (order.find((entry) => groups[entry].length > 0) ?? preferred)
   const tabs = order
-  const pickedAssetIds = new Set(picked.flatMap((item) => item.assetIds ?? [item.id]))
-  const visible = groups[tab].filter((item) => {
-    if (existing.has(item.id)) return false
-    if (picked.some((entry) => entry.id === item.id)) return true
-    return !(item.assetIds ?? [item.id]).some((id) => pickedAssetIds.has(id))
-  })
+  const pickedIds = useMemo(() => new Set(picked.map((item) => item.id)), [picked])
+  const pickedAssetIds = useMemo(
+    () => new Set(picked.flatMap((item) => item.assetIds ?? [item.id])),
+    [picked],
+  )
+  const visible = useMemo(
+    () =>
+      groups[tab].filter((item) => {
+        if (existing.has(item.id)) return false
+        if (pickedIds.has(item.id)) return true
+        return !(item.assetIds ?? [item.id]).some((id) => pickedAssetIds.has(id))
+      }),
+    [groups, tab, existing, pickedIds, pickedAssetIds],
+  )
+  const visibleCount = page?.tab === tab ? page.count : PICKER_PAGE_SIZE
+  const shown = visible.slice(0, visibleCount)
 
-  const toggle = (item: ReferenceItem) => {
-    setPicked((current) => {
-      if (current.some((entry) => entry.id === item.id)) {
-        return current.filter((entry) => entry.id !== item.id)
-      }
-      if (referenceImageCount(current) + (item.assetIds?.length ?? 1) > max) return current
-      return appendReferences(current, [item], max)
-    })
-  }
+  useEffect(() => {
+    if (visible.length <= visibleCount) return
+    const node = loadMoreRef.current
+    if (!node) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((entry) => entry.isIntersecting)) return
+        setPage((current) => {
+          const count = current?.tab === tab ? current.count : PICKER_PAGE_SIZE
+          return { tab, count: Math.min(count + PICKER_PAGE_SIZE, visible.length) }
+        })
+      },
+      { rootMargin: '400px' },
+    )
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [tab, visible.length, visibleCount])
+
+  const toggle = useCallback(
+    (item: ReferenceItem) => {
+      setPicked((current) => {
+        if (current.some((entry) => entry.id === item.id)) {
+          return current.filter((entry) => entry.id !== item.id)
+        }
+        if (referenceImageCount(current) + (item.assetIds?.length ?? 1) > max) return current
+        return appendReferences(current, [item], max)
+      })
+    },
+    [max],
+  )
 
   const uploadFiles = async (files: FileList | null) => {
     if (!files?.length) return
@@ -255,12 +293,7 @@ export function ReferencePicker({
       if (!response.ok) throw new Error(payload?.error ?? 'Import failed')
       const next = (payload?.assets ?? [])
         .map(assetItem)
-        .filter(
-          (item) =>
-            !existing.has(item.id) &&
-            !pickedAssetIds.has(item.id) &&
-            !picked.some((entry) => entry.id === item.id),
-        )
+        .filter((item) => !existing.has(item.id) && !pickedAssetIds.has(item.id) && !pickedIds.has(item.id))
       setPicked((current) => appendReferences(current, next, max))
       setLinkText('')
       setSelectedTab('cobalt')
@@ -284,7 +317,7 @@ export function ReferencePicker({
       initial="hidden"
       animate="visible"
       exit="hidden"
-      className="bg-ink/35 fixed inset-0 z-[70] flex items-center justify-center p-3 backdrop-blur-sm md:p-8"
+      className="bg-ink/35 fixed inset-0 z-[70] flex items-center justify-center p-3 md:p-8 md:backdrop-blur-sm"
       onClick={onClose}
     >
       <motion.div
@@ -401,57 +434,47 @@ export function ReferencePicker({
         ) : null}
 
         <div className="min-h-0 flex-1 overflow-y-auto p-3">
-          <AnimatePresence initial={false} mode="popLayout">
-            <motion.div
-              key={library.isPending ? 'loading' : visible.length === 0 ? `empty-${tab}` : tab}
-              variants={motionSwap}
-              initial="hidden"
-              animate="visible"
-              exit="exit"
-              transition={motionFast}
-              className="w-full"
+          <div key={library.isPending ? 'loading' : tab} className={cn('w-full', motionMountFade)}>
+            <div
+              className={cn(
+                'transition-opacity duration-150',
+                library.isFetching && !library.isPending ? 'opacity-55' : 'opacity-100',
+              )}
             >
-              <motion.div
-                animate={{ opacity: library.isFetching && !library.isPending ? 0.55 : 1 }}
-                transition={motionFast}
-              >
-                {library.isPending ? (
-                  <PickerSkeleton />
-                ) : visible.length === 0 ? (
-                  <div className="text-ink/35 grid h-full place-items-center text-center">
-                    <div>
-                      <ImageIcon size={22} className="mx-auto" />
-                      <p className="mt-2 text-[12px]">
-                        {groups[tab].length === 0
-                          ? `No ${TAB_LABELS[tab].toLowerCase()} yet.`
-                          : 'Everything here is already selected.'}
-                      </p>
-                    </div>
+              {library.isPending ? (
+                <PickerSkeleton />
+              ) : visible.length === 0 ? (
+                <div className="text-ink/35 grid h-full place-items-center text-center">
+                  <div>
+                    <ImageIcon size={22} className="mx-auto" />
+                    <p className="mt-2 text-[12px]">
+                      {groups[tab].length === 0
+                        ? `No ${TAB_LABELS[tab].toLowerCase()} yet.`
+                        : 'Everything here is already selected.'}
+                    </p>
                   </div>
-                ) : (
-                  <motion.div
-                    variants={motionList}
-                    initial="hidden"
-                    animate="visible"
-                    className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5"
-                  >
-                    {visible.map((item) => {
-                      const selected = picked.some((entry) => entry.id === item.id)
-                      return (
-                        <PickerTile
-                          key={item.id}
-                          item={item}
-                          selected={selected}
-                          disabled={!selected && pickedCount + (item.assetIds?.length ?? 1) > max}
-                          onToggle={() => toggle(item)}
-                        />
-                      )
-                    })}
-                  </motion.div>
-                )}
-              </motion.div>
-            </motion.div>
-          </AnimatePresence>
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
+                  {shown.map((item) => {
+                    const selected = pickedIds.has(item.id)
+                    return (
+                      <PickerTile
+                        key={item.id}
+                        item={item}
+                        selected={selected}
+                        disabled={!selected && pickedCount + (item.assetIds?.length ?? 1) > max}
+                        onToggle={toggle}
+                      />
+                    )
+                  })}
+                </div>
+              )}
+              {visible.length > shown.length ? (
+                <div ref={loadMoreRef} aria-hidden="true" className="h-px w-full" />
+              ) : null}
+            </div>
+          </div>
         </div>
 
         <div className="border-line flex flex-col gap-1.5 border-t px-4 py-3">

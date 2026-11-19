@@ -1,5 +1,17 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { openAssetFile, kindForMime } from '~/server/media.server'
+import { snapThumbWidth } from '~/lib/media-thumbs'
+import { openAssetFile, openAssetThumbFile, kindForMime } from '~/server/media.server'
+
+const IMMUTABLE_CACHE = 'public, max-age=31536000, immutable'
+
+function thumbHeaders(totalBytes: number): Headers {
+  return new Headers({
+    'Content-Type': 'image/webp',
+    'Content-Length': String(totalBytes),
+    'Cache-Control': IMMUTABLE_CACHE,
+    'X-Content-Type-Options': 'nosniff',
+  })
+}
 
 function parseRange(header: string | null, total: number): { start: number; end: number } | null {
   if (!header?.startsWith('bytes=')) return null
@@ -21,6 +33,15 @@ export const Route = createFileRoute('/api/media/$id')({
   server: {
     handlers: {
       GET: async ({ params, request }) => {
+        const url = new URL(request.url)
+        const width = url.searchParams.has('download') ? null : snapThumbWidth(url.searchParams.get('w'))
+        if (width) {
+          const thumb = await openAssetThumbFile(params.id, width).catch(() => null)
+          if (thumb) {
+            return new Response(thumb.stream, { status: 200, headers: thumbHeaders(thumb.totalBytes) })
+          }
+        }
+
         const initial = await openAssetFile(params.id)
         if (!initial) return new Response('Not found', { status: 404 })
 
@@ -29,12 +50,12 @@ export const Route = createFileRoute('/api/media/$id')({
         if (!file) return new Response('Not found', { status: 404 })
 
         const length = file.end - file.start + 1
-        const download = new URL(request.url).searchParams.has('download') || !kindForMime(file.mime)
+        const download = url.searchParams.has('download') || !kindForMime(file.mime)
         const headers = new Headers({
           'Content-Type': download ? 'application/octet-stream' : file.mime,
           'Content-Length': String(length),
           'Accept-Ranges': 'bytes',
-          'Cache-Control': 'public, max-age=31536000, immutable',
+          'Cache-Control': IMMUTABLE_CACHE,
           'X-Content-Type-Options': 'nosniff',
         })
         if (range) {
@@ -53,7 +74,12 @@ export const Route = createFileRoute('/api/media/$id')({
           headers,
         })
       },
-      HEAD: async ({ params }) => {
+      HEAD: async ({ params, request }) => {
+        const width = snapThumbWidth(new URL(request.url).searchParams.get('w'))
+        if (width) {
+          const thumb = await openAssetThumbFile(params.id, width).catch(() => null)
+          if (thumb) return new Response(null, { status: 200, headers: thumbHeaders(thumb.totalBytes) })
+        }
         const file = await openAssetFile(params.id)
         if (!file) return new Response(null, { status: 404 })
         return new Response(null, {

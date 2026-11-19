@@ -25,6 +25,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useState } from 'react'
 import type { LoraTrainingRun, StudioItemDto } from '~/server/studio.functions'
 import { prepareAvatarTrainingSet, trainAvatarLora } from '~/server/studio.functions'
+import { thumbSrcSet, thumbUrl } from '~/lib/media-thumbs'
 
 type Step = 1 | 2 | 3
 
@@ -199,9 +200,12 @@ export function StudioTrainDialog({
                             )}
                           >
                             <FadeImage
-                              src={image.url}
+                              src={thumbUrl(image.url, 320)}
+                              srcSet={thumbSrcSet(image.url, [160, 320])}
+                              sizes="(min-width: 640px) 140px, 30vw"
                               alt=""
                               loading="lazy"
+                              decoding="async"
                               className="size-full object-cover"
                             />
                             <motion.span
