@@ -513,14 +513,14 @@ export function cobaltStatus() {
   run('docker', ['compose', 'ps', 'cobalt'])
 }
 
-export function startCobalt({ stack = false } = {}) {
+export function startCobalt() {
   if (!which('docker')) {
     throw new Error('Docker is required for cobalt — install Docker Desktop or OrbStack.')
   }
   if (run('docker', ['info'], { stdio: 'ignore' }) !== 0) {
     throw new Error('Docker is not running — start Docker Desktop or OrbStack first.')
   }
-  const args = stack ? ['compose', 'up', '-d'] : ['compose', 'up', '-d', 'cobalt']
+  const args = ['compose', '--profile', 'cobalt', 'up', '-d', 'cobalt']
   if (run('docker', args) !== 0) {
     throw new Error('Could not start cobalt.')
   }
