@@ -5,7 +5,7 @@
 
   <p><strong>Your models. Your machine. Your library.</strong></p>
 
-  <p>A local-first studio for building image and video generation pipelines on an infinite canvas.</p>
+  <p>Self-hosted, open-source AI image and video generation: node-based canvas pipelines, a Studio for avatars and lookbooks, and FLUX LoRA training on your own characters.</p>
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-A31621?style=flat-square)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%E2%89%A522.20-2A1E17?style=flat-square)](https://nodejs.org)
@@ -14,17 +14,25 @@
 
 </div>
 
-<img src="docs/screenshots/studio.webp" alt="SunnyGen Studio look builder with avatar, wardrobe, pose, scene, and angle controls" width="100%" />
+<img src="docs/screenshots/studio.webp" alt="SunnyGen Studio outfit builder: one avatar, five wardrobe pieces in garment slots, pose and scene pickers, and angle controls for a multi-angle render" width="100%" />
 
 <p align="center"><sub><strong>Studio</strong> — one avatar, up to six garments, one camera angle per render.</sub></p>
 
 ---
 
-SunnyGen is a self-hosted alternative to cloud AI studios. Chain prompts, models, and
-reference images into reusable workflows, render across your own provider accounts, and
-keep every project, key, and asset on your disk.
+SunnyGen is an open-source, self-hosted AI image and video generator. Build reusable
+pipelines on a node-based canvas, run avatar and lookbook shoots in Studio, and train FLUX
+LoRAs on your own characters. Providers are bring-your-own-keys — Sunra.ai, fal.ai, Azure
+AI Foundry, or a local Codex CLI — so prompts, models, and references chain into workflows
+that render on your own accounts, with every project, key, and asset on your disk.
 
-No account. No shared credit pool. No markup. No telemetry.
+A self-hosted alternative to cloud AI studios: no account, no shared credit pool, no
+markup, no telemetry.
+
+**Contents:** [Why SunnyGen](#why-sunnygen) · [Quick start](#quick-start) ·
+[A look inside](#a-look-inside) · [Features](#features) · [Providers](#providers) ·
+[Architecture](#architecture) · [Commands](#commands) · [Builds](#builds) ·
+[Data & privacy](#data--privacy) · [FAQ](#faq) · [Contributing](#contributing)
 
 ## Why SunnyGen
 
@@ -57,8 +65,14 @@ Prefer hot reload?
 pnpm dev
 ```
 
-**Requirements:** Node.js 22.20+ (24 recommended), pnpm 9.15. Docker is optional and only
-needed for social imports.
+Prefer a demo instance? `pnpm dev:demo` serves a second copy on port 8978 against neutral
+demo data, with no provider keys.
+
+Prefer Docker? `docker compose -p sunnygen-prod up -d --build` builds the `sunnygen:prod`
+image from the root `Dockerfile` and serves it on `0.0.0.0:8977`. See [Builds](#builds).
+
+**Requirements:** Node.js 22.20+ (24 recommended), pnpm 9.15. Docker is optional: it runs
+the production container, and social imports need a local cobalt container.
 
 ### Install as an app
 
@@ -81,7 +95,7 @@ choose a pose and scene, then render one to four angles over the same reference 
 On-model and supplier photos can be prepped into clean product references without leaving
 the app.
 
-<img src="docs/screenshots/studio-wardrobe.webp" alt="Wardrobe library with garment slots and prep actions" width="100%" />
+<img src="docs/screenshots/studio-wardrobe.webp" alt="Studio wardrobe slots filled with a bag, sneakers, a tobacco bomber, jeans, and a heavyweight tee, next to the shot angle, model, ratio, and quality pickers" width="100%" />
 
 <p align="center"><sub>The wardrobe library stores slot, source type, notes, and a prepared clean reference per piece.</sub></p>
 
@@ -162,19 +176,39 @@ A shorthand map works when you only need names or per-file overrides:
 Files not listed in a manifest are skipped with a reason, and `"include": false` excludes
 an entry. The import dialog reports counts plus the first few skips and failures.
 
+### LoRA training
+
+Train a FLUX LoRA on an avatar you already keep in Studio, then reuse that likeness in
+every later render. Pick the avatar, choose 10–40 crops cut from its character sheet and
+4×4 panel, pick a training length, and set the trigger word SunnyGen prepends to prompts
+that use the model. Training runs on fal.ai at $2 per 1,000 steps — 500 steps for $1.00,
+1,000 for $2.00, 2,000 for $4.00 — charged to your own fal account.
+
+<img src="docs/screenshots/studio-train-settings.webp" alt="SunnyGen Train model dialog for an avatar, step 2 of 3: training length presets Fast 500 steps $1.00, Balanced 1,000 steps $2.00, Best 2,000 steps $4.00, and a trigger word field" width="100%" />
+
+<p align="center"><sub>Three training lengths, an explicit total cost before you start, and one trigger word per model.</sub></p>
+
+<img src="docs/screenshots/studio-models.webp" alt="SunnyGen Studio Models tab listing trained FLUX LoRA models with their status, step count, cost, and training date, plus a retry button on a failed run" width="100%" />
+
+<p align="center"><sub>Every run is listed with its status, steps, and cost; a failed run keeps its reason and a retry.</sub></p>
+
+<img src="docs/screenshots/home-lora.webp" alt="SunnyGen home prompt bar generating with the FLUX.1 LoRA model from an avatar reference, showing the LoRA strength slider and per-megapixel price" width="100%" />
+
+<p align="center"><sub>A trained model shows up as FLUX.1 LoRA in the prompt bar, with a strength slider and its per-megapixel price.</sub></p>
+
 ### Gallery and canvas
 
-| Gallery                                                                                                                       | Canvas                                                                                                                     |
-| ----------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| <img src="docs/screenshots/gallery.webp" alt="SunnyGen gallery canvas wall with folders and generated images" width="100%" /> | <img src="docs/screenshots/canvas.webp" alt="SunnyGen canvas with prompt, image input, and generate nodes" width="100%" /> |
-| Canvas wall or grid, folders, retries, lightbox, and one-off renders.                                                         | Reusable node pipelines with per-node models, references, and autosave.                                                    |
+| Gallery                                                                                                                                                                                                  | Canvas                                                                                                                                                                                            |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <img src="docs/screenshots/gallery.webp" alt="SunnyGen gallery as a canvas wall of finished AI image renders, with folder filters, an images/videos toggle, and a canvas or grid switch" width="100%" /> | <img src="docs/screenshots/canvas.webp" alt="SunnyGen node canvas: a Prompt node wired into a Generate image node set to Nano Banana 2, plus an Image input node for a reference" width="100%" /> |
+| Canvas wall or grid, folders, retries, lightbox, and one-off renders.                                                                                                                                    | Reusable node pipelines with per-node models, references, and autosave.                                                                                                                           |
 
 ### Assistant and assets
 
-| Assistant                                                                                                        | Assets                                                                                                        |
-| ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| <img src="docs/screenshots/assistant.webp" alt="SunnyGen assistant with a lookbook conversation" width="100%" /> | <img src="docs/screenshots/assets.webp" alt="SunnyGen asset library with uploads and folders" width="100%" /> |
-| Prompt drafting and rewrites with selectable response modes.                                                     | Uploads and imported references, deduplicated and ready to reuse.                                             |
+| Assistant                                                                                                                                                                     | Assets                                                                                                                                                                          |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <img src="docs/screenshots/assistant.webp" alt="SunnyGen assistant drafting a warm autumn lookbook direction, with Standard response mode and a model picker" width="100%" /> | <img src="docs/screenshots/assets.webp" alt="SunnyGen asset library with uploaded garment references, file sizes, folders, and image, video, and audio filters" width="100%" /> |
+| Prompt drafting and rewrites with selectable response modes.                                                                                                                  | Uploads and imported references, deduplicated and ready to reuse.                                                                                                               |
 
 <p align="center"><sub>Screenshots use demo content. Demo photography from <a href="https://unsplash.com">Unsplash</a>.</sub></p>
 
@@ -183,6 +217,7 @@ an entry. The import dialog reports counts plus the first few skips and failures
 | Surface       | What it does                                                                                                                 |
 | ------------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | **Studio**    | Avatar sheets, wardrobe slots, garment prep, pose and scene references, then 1–4 angle renders per look.                     |
+| **LoRA**      | FLUX LoRA training on an avatar from 10–40 crops at $2 per 1,000 steps, then FLUX.1 LoRA renders on fal.ai.                  |
 | **Canvas**    | Infinite node editor with prompt, media, generate, note, and comment nodes. Graphs autosave and execute in dependency order. |
 | **Gallery**   | Image and video renders in a canvas wall or grid, folders, failed-job retry, lightbox, download, and social imports.         |
 | **Assets**    | Uploads and imported references, deduplicated by SHA-256 and served with byte-range support.                                 |
@@ -195,7 +230,7 @@ an entry. The import dialog reports counts plus the first few skips and failures
 | Provider                                         | Models                                                     | Credential                |
 | ------------------------------------------------ | ---------------------------------------------------------- | ------------------------- |
 | [**Sunra.ai**](https://sunra.ai)                 | Nano Banana, Seedream, GPT Image, Veo, Kling, Grok Imagine | Sunra API key             |
-| [**fal.ai**](https://fal.ai)                     | GPT Image 2 on fal                                         | fal API key               |
+| [**fal.ai**](https://fal.ai)                     | GPT Image 2, FLUX.1 LoRA, LoRA training                    | fal API key               |
 | [**Azure AI Foundry**](https://ai.azure.com)     | GPT Image 2 in your own deployment                         | Key, base URL, deployment |
 | [**Codex CLI**](https://github.com/openai/codex) | GPT Image 2 through a ChatGPT plan                         | Local `codex` login       |
 | [**OpenRouter**](https://openrouter.ai)          | Assistant chat only                                        | OpenRouter key            |
@@ -353,6 +388,44 @@ on the machine running SunnyGen. Containers cannot reach host binaries.
 `codex login` in a terminal if they are not.
 
 </details>
+
+## FAQ
+
+### Is SunnyGen free?
+
+The app is MIT-licensed and costs nothing to run. You pay the providers you connect —
+Sunra.ai, fal.ai, Azure, or your own ChatGPT plan through the Codex CLI — at their prices,
+with no subscription and no markup.
+
+### Does it run fully offline, and where are my images stored?
+
+Generation needs a network connection to the provider you choose; everything else is
+local. Renders, uploads, references, the SQLite database, and the encrypted key file live
+under `data/` on your machine, and an installed PWA still opens its shell offline.
+
+### Which AI models does it support?
+
+Nano Banana 2 and Pro, Seedream 5.0 Lite and Pro, GPT Image 2, Grok Imagine, FLUX.1 LoRA,
+Veo 3.1, and Kling 3.0, routed through Sunra.ai, fal.ai, Azure AI Foundry, or the Codex
+CLI. The catalog lives in [`packages/core`](packages/core) and grows with each release.
+
+### Can I train a LoRA on my own face or character?
+
+Yes. Any avatar in Studio can become a FLUX LoRA from 10–40 crops of its character sheet
+and 4×4 panel, at $2 per 1,000 training steps on your fal.ai account. Attach the avatar as
+a reference in the home prompt bar and the composer points you to the FLUX.1 LoRA model.
+
+### Does it work on mobile?
+
+The interface is responsive and installs as a PWA on iOS and Android, with a cached shell
+that opens offline. Renders still go through your SunnyGen server, so reach it over your
+LAN, Tailscale, or a Cloudflare Tunnel.
+
+### Can I self-host with Docker?
+
+Yes. `docker compose -p sunnygen-prod up -d --build` builds the `sunnygen:prod` image from
+the root `Dockerfile`, serves it on `0.0.0.0:8977`, and mounts the data directory from the
+host — `SUNNYGEN_PROD_DATA`, default `~/.local/share/sunnygen-prod/data`.
 
 ## Contributing
 
