@@ -1,0 +1,28 @@
+{
+  "name": "SunnyGen",
+  "short_name": "SunnyGen",
+  "description": "Self-hosted, open-source AI image and video generation studio.",
+  "lang": "en",
+  "start_url": "/SunnyGen/",
+  "scope": "/SunnyGen/",
+  "display": "browser",
+  "background_color": "#FAF6EF",
+  "theme_color": "#FAF6EF",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

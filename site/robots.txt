@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://henrychea.github.io/SunnyGen/sitemap.xml

@@ -1,0 +1,32 @@
+# SunnyGen
+
+> Free, MIT-licensed, self-hosted, local-first AI image and video generation studio. Node-based infinite canvas for reusable pipelines, a Studio for avatars and lookbooks, and FLUX LoRA training on your own avatars. Bring your own API keys; no account, no telemetry.
+
+- Source: https://github.com/henrychea/SunnyGen
+- License: MIT
+- Author: Henry Chea (https://github.com/henrychea)
+- Built with: TanStack Start, React, TypeScript; SQLite (node:sqlite) and media files on disk
+- Install: git clone https://github.com/henrychea/SunnyGen.git && cd SunnyGen && pnpm install && ./sunnygen, then open http://localhost:8977
+- Requirements: Node.js 22.20+ and pnpm 9.15; Docker optional
+
+## Features
+
+- Canvas: infinite node editor with prompt, media, generate, note, and comment nodes; autosave; runs in dependency order
+- Studio: avatars, up to six garments in slots, poses, scenes, and 1-4 angle lookbooks; garment prep; pack import
+- LoRA: FLUX LoRA training on a Studio avatar from 10-40 crops through fal.ai at $2 per 1,000 steps; FLUX.1 LoRA renders at $0.035 per megapixel
+- Gallery and assets: canvas wall or grid, folders, retry, lightbox, downloads; SHA-256 deduplicated uploads; social imports through cobalt
+- Assistant: prompt drafting through OpenRouter, never used for generation
+- Providers: Sunra.ai, fal.ai, Azure AI Foundry, Codex CLI, OpenRouter (assistant only)
+- Models: Nano Banana 2 and Pro, Seedream 5.0 Lite and Pro, GPT Image 2, Grok Imagine, FLUX.1 LoRA, Veo 3.1, Kling 3.0
+- Privacy: no account, no telemetry, API keys encrypted with AES-256-GCM in local SQLite
+- Runs as: PWA on desktop and mobile, Docker image, launchd or systemd service; LAN, Tailscale, and Cloudflare Tunnel friendly
+
+## Pages
+
+- [Home](https://henrychea.github.io/SunnyGen/): overview
+- [AI avatar studio](https://henrychea.github.io/SunnyGen/ai-avatar-studio/): avatars, wardrobe, poses, scenes, lookbooks
+- [Node canvas](https://henrychea.github.io/SunnyGen/node-canvas/): reusable image and video pipelines
+- [FLUX LoRA training](https://henrychea.github.io/SunnyGen/lora-training/): training flow and costs
+- [Self-hosted AI image generator](https://henrychea.github.io/SunnyGen/self-hosted-ai-image-generator/): storage, keys, providers, deployment
+- [Quick start](https://henrychea.github.io/SunnyGen/install/): install and run
+- [FAQ](https://henrychea.github.io/SunnyGen/faq/): common questions
