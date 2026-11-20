@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SunnyGen FAQ: Pricing, Models, Privacy, Self-Hosting</title>
+    <meta
+      name="description"
+      content="Answers about SunnyGen: is it free, which AI models and providers it supports, where data is stored, LoRA training costs, mobile, Docker, and security."
+    />
+    <link rel="canonical" href="https://henrychea.github.io/SunnyGen/faq/" />
+    <meta name="theme-color" content="#FAF6EF" />
+    <meta name="color-scheme" content="light" />
+    <meta name="author" content="Henry Chea" />
+    <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png" />
+    <link rel="manifest" href="../site.webmanifest" />
+    <link rel="preload" href="../assets/fonts/space-grotesk.woff2" as="font" type="font/woff2" crossorigin />
+
+    <link rel="stylesheet" href="../assets/site.css" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="SunnyGen" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:title" content="SunnyGen FAQ: Pricing, Models, Privacy, Self-Hosting" />
+    <meta
+      property="og:description"
+      content="Answers about SunnyGen: is it free, which AI models and providers it supports, where data is stored, LoRA training costs, mobile, Docker, and security."
+    />
+    <meta property="og:url" content="https://henrychea.github.io/SunnyGen/faq/" />
+    <meta property="og:image" content="https://henrychea.github.io/SunnyGen/assets/og/home.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="SunnyGen, a self-hosted AI image and video studio" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="SunnyGen FAQ: Pricing, Models, Privacy, Self-Hosting" />
+    <meta
+      name="twitter:description"
+      content="Answers about SunnyGen: is it free, which AI models and providers it supports, where data is stored, LoRA training costs, mobile, Docker, and security."
+    />
+    <meta name="twitter:image" content="https://henrychea.github.io/SunnyGen/assets/og/home.png" />
+    <meta name="twitter:image:alt" content="SunnyGen, a self-hosted AI image and video studio" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "Is SunnyGen free?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. SunnyGen is MIT-licensed and costs nothing to run. You pay the providers you connect, such as Sunra.ai, fal.ai, Azure, or your own ChatGPT plan through the Codex CLI, at their prices, with no subscription and no markup."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Which AI models does it support?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Nano Banana 2 and Pro, Seedream 5.0 Lite and Pro, GPT Image 2, Grok Imagine, FLUX.1 LoRA, Veo 3.1, and Kling 3.0, routed through Sunra.ai, fal.ai, Azure AI Foundry, or the Codex CLI."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Where are my images and API keys stored?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "On your machine. Renders, uploads, references, and the SQLite database live under data/. Provider keys are encrypted in SQLite with AES-256-GCM and only sent to the provider you choose."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I train a LoRA on my own character?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. Any avatar in Studio can become a FLUX LoRA from 10 to 40 crops of its character sheet and 4×4 panel, at $2 per 1,000 training steps on your own fal.ai account."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Does SunnyGen need an account or send telemetry?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "No. There is no account system and no telemetry. The app talks only to the providers you configure, with your own keys."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Does it run fully offline?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Generation needs a network connection to the provider you choose; everything else is local. An installed PWA still opens its shell offline, but renders, assets, and provider calls need the local server."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What does FLUX LoRA training cost?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Training runs on fal.ai at $2 per 1,000 steps: 500 steps for $1.00, 1,000 for $2.00, and 2,000 for $4.00, charged to your own fal account. FLUX.1 LoRA renders cost $0.035 per megapixel, about $0.035 for a one-megapixel image."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Does it work on mobile?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "The interface is responsive and installs as a PWA on iOS and Android. Renders still go through your SunnyGen server, so reach it over your LAN, Tailscale, or a Cloudflare Tunnel."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I self-host SunnyGen with Docker?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. The root Dockerfile builds a production image that serves on port 8977 and mounts the data directory from the host. You can also run it directly with Node.js and the ./sunnygen launcher."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Is it safe to expose SunnyGen to the internet?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "SunnyGen has no login. If you expose it beyond localhost or your private network, put an authenticating proxy in front of it, for example Cloudflare Access."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Which providers can I connect?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Sunra.ai, fal.ai, Azure AI Foundry, and a local Codex CLI for generation, plus OpenRouter for the prompt assistant only. If the selected provider is not configured, SunnyGen falls back to another configured provider that supports the same model."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What is SunnyGen built with?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "TanStack Start, React, and TypeScript in a pnpm and Turborepo monorepo, with a node:sqlite database and media files on disk."
+                }
+              }
+            ]
+          },
+          {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://henrychea.github.io/SunnyGen/"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "FAQ",
+                "item": "https://henrychea.github.io/SunnyGen/faq/"
+              }
+            ]
+          },
+          {
+            "@type": "WebPage",
+            "@id": "https://henrychea.github.io/SunnyGen/faq/#webpage",
+            "url": "https://henrychea.github.io/SunnyGen/faq/",
+            "name": "SunnyGen FAQ: Pricing, Models, Privacy, Self-Hosting",
+            "description": "Answers about SunnyGen: is it free, which AI models and providers it supports, where data is stored, LoRA training costs, mobile, Docker, and security.",
+            "isPartOf": { "@id": "https://henrychea.github.io/SunnyGen/#website" },
+            "about": { "@id": "https://henrychea.github.io/SunnyGen/#software" },
+            "inLanguage": "en"
+          }
+        ]
+      }
+    </script>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <header class="site-header">
+      <div class="wrap">
+        <a class="brand" href="../"
+          ><svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+            <rect width="64" height="64" rx="16" fill="#A31621" />
+            <circle cx="32" cy="32" r="9" fill="#FAF6EF" />
+            <g stroke="#FAF6EF" stroke-width="3.5" stroke-linecap="round">
+              <path
+                d="M32 12v7M32 45v7M12 32h7M45 32h7M18.3 18.3l5 5M40.7 40.7l5 5M45.7 18.3l-5 5M23.3 40.7l-5 5"
+              />
+            </g></svg
+          >SunnyGen</a
+        >
+        <nav class="nav" aria-label="Main">
+          <ul>
+            <li><a href="../ai-avatar-studio/">Studio</a></li>
+            <li><a href="../node-canvas/">Canvas</a></li>
+            <li><a href="../lora-training/">LoRA training</a></li>
+            <li><a href="../self-hosted-ai-image-generator/">Self-hosting</a></li>
+            <li><a href="../install/">Quick start</a></li>
+            <li><a href="../faq/" aria-current="page">FAQ</a></li>
+            <li><a href="https://github.com/henrychea/SunnyGen">GitHub</a></li>
+          </ul>
+        </nav>
+      </div>
+    </header>
+    <nav class="crumbs wrap" aria-label="Breadcrumb">
+      <ol>
+        <li><a href="../">Home</a></li>
+        <li><span aria-current="page">FAQ</span></li>
+      </ol>
+    </nav>
+    <main id="main">
+      <section class="page-hero wrap prose" aria-labelledby="title">
+        <span class="eyebrow">FAQ</span>
+        <h1 id="title">Frequently asked questions</h1>
+        <p class="lead">Short answers about cost, models, privacy, and running SunnyGen yourself.</p>
+      </section>
+      <section class="section" aria-label="Questions and answers">
+        <div class="wrap prose faq">
+          <h2>Is SunnyGen free?</h2>
+          <p>
+            Yes. SunnyGen is MIT-licensed and costs nothing to run. You pay the providers you connect, such as
+            Sunra.ai, fal.ai, Azure, or your own ChatGPT plan through the Codex CLI, at their prices, with no
+            subscription and no markup.
+          </p>
+          <h2>Which AI models does it support?</h2>
+          <p>
+            Nano Banana 2 and Pro, Seedream 5.0 Lite and Pro, GPT Image 2, Grok Imagine, FLUX.1 LoRA, Veo 3.1,
+            and Kling 3.0, routed through Sunra.ai, fal.ai, Azure AI Foundry, or the Codex CLI.
+          </p>
+          <h2>Where are my images and API keys stored?</h2>
+          <p>
+            On your machine. Renders, uploads, references, and the SQLite database live under data/. Provider
+            keys are encrypted in SQLite with AES-256-GCM and only sent to the provider you choose.
+          </p>
+          <h2>Can I train a LoRA on my own character?</h2>
+          <p>
+            Yes. Any avatar in Studio can become a FLUX LoRA from 10 to 40 crops of its character sheet and
+            4×4 panel, at $2 per 1,000 training steps on your own fal.ai account.
+          </p>
+          <h2>Does SunnyGen need an account or send telemetry?</h2>
+          <p>
+            No. There is no account system and no telemetry. The app talks only to the providers you
+            configure, with your own keys.
+          </p>
+          <h2>Does it run fully offline?</h2>
+          <p>
+            Generation needs a network connection to the provider you choose; everything else is local. An
+            installed PWA still opens its shell offline, but renders, assets, and provider calls need the
+            local server.
+          </p>
+          <h2>What does FLUX LoRA training cost?</h2>
+          <p>
+            Training runs on fal.ai at $2 per 1,000 steps: 500 steps for $1.00, 1,000 for $2.00, and 2,000 for
+            $4.00, charged to your own fal account. FLUX.1 LoRA renders cost $0.035 per megapixel, about
+            $0.035 for a one-megapixel image.
+          </p>
+          <h2>Does it work on mobile?</h2>
+          <p>
+            The interface is responsive and installs as a PWA on iOS and Android. Renders still go through
+            your SunnyGen server, so reach it over your LAN, Tailscale, or a Cloudflare Tunnel.
+          </p>
+          <h2>Can I self-host SunnyGen with Docker?</h2>
+          <p>
+            Yes. The root Dockerfile builds a production image that serves on port 8977 and mounts the data
+            directory from the host. You can also run it directly with Node.js and the ./sunnygen launcher.
+          </p>
+          <h2>Is it safe to expose SunnyGen to the internet?</h2>
+          <p>
+            SunnyGen has no login. If you expose it beyond localhost or your private network, put an
+            authenticating proxy in front of it, for example Cloudflare Access.
+          </p>
+          <h2>Which providers can I connect?</h2>
+          <p>
+            Sunra.ai, fal.ai, Azure AI Foundry, and a local Codex CLI for generation, plus OpenRouter for the
+            prompt assistant only. If the selected provider is not configured, SunnyGen falls back to another
+            configured provider that supports the same model.
+          </p>
+          <h2>What is SunnyGen built with?</h2>
+          <p>
+            TanStack Start, React, and TypeScript in a pnpm and Turborepo monorepo, with a node:sqlite
+            database and media files on disk.
+          </p>
+          <p style="margin-top: 2rem">
+            More detail: <a href="../install/">quick start</a>, <a href="../lora-training/">LoRA training</a>,
+            <a href="../self-hosted-ai-image-generator/">self-hosting</a>.
+          </p>
+          <div class="cta">
+            <a class="btn btn-primary" href="https://github.com/henrychea/SunnyGen"
+              ><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                <path
+                  d="M8 0a8 8 0 0 0-2.53 15.59c.4.07.55-.17.55-.38v-1.34c-2.23.48-2.7-1.07-2.7-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.06-.49.06-.49.8.06 1.23.83 1.23.83.72 1.22 1.87.87 2.33.66.07-.52.28-.87.5-1.07-1.78-.2-3.65-.89-3.65-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.28.82 2.15 0 3.07-1.87 3.75-3.66 3.95.29.25.54.73.54 1.48v2.2c0 .21.15.46.55.38A8 8 0 0 0 8 0Z"
+                /></svg
+              >View on GitHub</a
+            ><a class="btn btn-secondary" href="../install/">Quick start</a>
+          </div>
+        </div>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div class="wrap">
+        <div class="cols">
+          <div>
+            <a class="brand" href="../"
+              ><svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+                <rect width="64" height="64" rx="16" fill="#A31621" />
+                <circle cx="32" cy="32" r="9" fill="#FAF6EF" />
+                <g stroke="#FAF6EF" stroke-width="3.5" stroke-linecap="round">
+                  <path
+                    d="M32 12v7M32 45v7M12 32h7M45 32h7M18.3 18.3l5 5M40.7 40.7l5 5M45.7 18.3l-5 5M23.3 40.7l-5 5"
+                  />
+                </g></svg
+              >SunnyGen</a
+            >
+            <p>
+              A free, MIT-licensed, self-hosted studio for AI image and video generation. Your models. Your
+              machine. Your library.
+            </p>
+          </div>
+          <nav aria-label="Features">
+            <h2>Features</h2>
+            <ul>
+              <li><a href="../ai-avatar-studio/">AI avatar studio</a></li>
+              <li><a href="../node-canvas/">Node canvas</a></li>
+              <li><a href="../lora-training/">FLUX LoRA training</a></li>
+              <li><a href="../self-hosted-ai-image-generator/">Self-hosted generator</a></li>
+            </ul>
+          </nav>
+          <nav aria-label="Project">
+            <h2>Project</h2>
+            <ul>
+              <li><a href="../install/">Quick start</a></li>
+              <li><a href="../faq/">FAQ</a></li>
+              <li><a href="https://github.com/henrychea/SunnyGen">Source on GitHub</a></li>
+              <li><a href="https://github.com/henrychea/SunnyGen/blob/main/LICENSE">MIT license</a></li>
+            </ul>
+          </nav>
+        </div>
+        <p class="fine">
+          Built by <a href="https://github.com/henrychea">Henry Chea</a> with TanStack Start, React, and
+          TypeScript. Screenshots show demo content.
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>
