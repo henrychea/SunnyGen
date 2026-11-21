@@ -254,15 +254,19 @@ export const falImageFlow: ProviderFlow = {
     }
 
     requireFalKey(context)
-    const urls = await Promise.all(request.assets.map((asset) => uploadFalAsset(context, asset)))
+    const wantsImages = request.assets.length > 0
     const endpoint = dynamic
-      ? urls.length > 0 && model.editSourceId
+      ? wantsImages && model.editSourceId
         ? model.editSourceId
         : (model.sourceId as string)
-      : urls.length > 0 && spec?.editEndpoint
+      : wantsImages && spec?.editEndpoint
         ? spec.editEndpoint
         : (spec?.endpoint as string)
     const schema = await fetchFalSchema(context, endpoint)
+    if (schema && wantsImages && !schemaImageField(schema.properties, schema.components)) {
+      throw new ProviderError('fal', `${model.label} can't edit images. Pick a model that supports Edit.`)
+    }
+    const urls = await Promise.all(request.assets.map((asset) => uploadFalAsset(context, asset)))
     const body = schema
       ? buildSchemaBody(model, request, urls, schema)
       : buildFallbackBody(model, request, urls, spec)

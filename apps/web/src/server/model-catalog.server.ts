@@ -19,6 +19,7 @@ import {
 } from '@sunnygen/providers'
 import { readSetting, writeSetting } from '@sunnygen/db'
 import { falModelCapabilities, sunraEditOperation, sunraModelCapabilities } from './model-capabilities'
+import { CATALOG_VERSION, catalogNeedsResync, storedEntryCapabilities } from './model-catalog.stale'
 import type {
   CatalogProvider,
   ModelCatalogEntry,
@@ -31,8 +32,10 @@ const SUNRA_PRICING_URL = 'https://api.sunra.ai/v1/pricing?limit=1000'
 const FAL_DOCS_URL = 'https://fal.ai/docs/documentation/model-apis/models.md'
 const FAL_PRICING_URL = 'https://api.fal.ai/v1/models/pricing'
 const CATALOG_SETTING = (provider: CatalogProvider) => `models.catalog.${provider}`
+const CATALOG_SYNC_RETRY_MS = 5 * 60_000
 
 interface StoredCatalog {
+  version?: number
   updatedAt: number
   priced: boolean
   entries: ModelCatalogEntry[]
@@ -128,6 +131,20 @@ function readStored(provider: CatalogProvider): StoredCatalog | null {
   }
 }
 
+const catalogSyncs = new Set<CatalogProvider>()
+const catalogSyncAttempts = new Map<CatalogProvider, number>()
+
+function scheduleCatalogSync(provider: CatalogProvider): void {
+  if (catalogSyncs.has(provider)) return
+  const attempted = catalogSyncAttempts.get(provider) ?? 0
+  if (Date.now() - attempted < CATALOG_SYNC_RETRY_MS) return
+  catalogSyncs.add(provider)
+  catalogSyncAttempts.set(provider, Date.now())
+  void syncCatalog(provider)
+    .catch(() => undefined)
+    .finally(() => catalogSyncs.delete(provider))
+}
+
 function sourceIdFor(model: ModelDefinition, provider: ProviderId): string {
   if (provider === 'sunra') {
     return model.kind === 'image'
@@ -186,6 +203,7 @@ export function buildModelCatalog(): ModelCatalogView {
         }
         if (byKey.has(storedEntry.key)) continue
         const sourceId = storedEntry.sourceId || storedEntry.key
+        const capabilities = storedEntryCapabilities(storedEntry)
         byKey.set(storedEntry.key, {
           ...storedEntry,
           sourceId,
@@ -194,15 +212,16 @@ export function buildModelCatalog(): ModelCatalogView {
           schemaUrl: storedEntry.schemaUrl ?? null,
           available: storedEntry.available ?? true,
           limitation: storedEntry.limitation ?? null,
-          supportsImages: storedEntry.supportsImages ?? storedEntry.kind === 'image',
-          supportsText: storedEntry.supportsText ?? true,
-          maxImages: storedEntry.maxImages ?? (storedEntry.kind === 'image' ? 4 : 2),
+          supportsImages: capabilities.supportsImages,
+          supportsText: capabilities.supportsText,
+          maxImages: capabilities.maxImages,
           company:
             storedEntry.company ||
             (storedEntry.provider === 'fal' ? falCompany(sourceId) : companyName(undefined, sourceId)),
         })
       }
     }
+    if (catalogNeedsResync(stored)) scheduleCatalogSync(provider)
     sources.push({
       id: provider,
       label: info.label,
@@ -343,8 +362,6 @@ async function fetchSunraImageSchemas(models: SunraModel[]): Promise<Map<string,
         result.set(
           alias,
           sunraImageCapabilities({
-            alias,
-            docs: model.openapi as string,
             operations,
             components: parsed.components,
           }),
@@ -634,6 +651,7 @@ export async function syncCatalog(provider: CatalogProvider): Promise<{
 }> {
   const synced = provider === 'sunra' ? await syncSunra() : await syncFal()
   const snapshot: StoredCatalog = {
+    version: CATALOG_VERSION,
     updatedAt: Date.now(),
     priced: synced.priced,
     entries: synced.entries,

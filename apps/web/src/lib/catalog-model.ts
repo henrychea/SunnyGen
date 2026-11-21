@@ -14,7 +14,7 @@ export function catalogModelDefinition(
     providerLabel: entry.company,
     providers: [entry.provider],
     kind: entry.kind,
-    supportsImages: entry.supportsImages,
+    supportsImages: entry.supportsImages === true,
     supportsText: entry.supportsText,
     price: entry.price ?? undefined,
     sourceId: entry.sourceId,

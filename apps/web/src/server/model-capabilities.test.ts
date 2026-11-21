@@ -13,6 +13,32 @@ test('Sunra edit operations follow the documented endpoint order', () => {
   assert.equal(sunraEditOperation(['text-to-image', 'layerize']), null)
 })
 
+test('Sunra models with blending or face swap but no edit endpoint never offer edit', () => {
+  const endpoints = ['text-to-image', 'image-blending', 'face-swap', 'action', 'describe']
+  const withoutSchema = sunraModelCapabilities(endpoints, null, 'midjourney/v8.2')
+  assert.equal(withoutSchema.supportsImages, false)
+  assert.equal(withoutSchema.maxImages, 0)
+  assert.equal(withoutSchema.editSourceId, null)
+  assert.equal(withoutSchema.supportsText, true)
+
+  const staleDoc = sunraModelCapabilities(
+    endpoints,
+    {
+      textOperation: 'text-to-image',
+      editOperation: 'image-editing',
+      editPath: '/midjourney/v8.2/image-editing',
+      imageField: 'image_urls',
+      maxImages: 4,
+      supportsImages: true,
+      supportsText: true,
+    },
+    'midjourney/v8.2',
+  )
+  assert.equal(staleDoc.supportsImages, false)
+  assert.equal(staleDoc.maxImages, 0)
+  assert.equal(staleDoc.editSourceId, null)
+})
+
 test('Sunra models without an edit endpoint cannot be used in edit mode', () => {
   const capabilities = sunraModelCapabilities(
     ['text-to-image', 'layerize'],
