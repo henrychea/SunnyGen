@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 import type { ProviderId } from '@sunnygen/core'
+import { normalizeAsset } from './normalize'
 import { ProviderError, type AdapterContext, type ProviderAsset } from './types'
 
 export const FAL_UPLOAD_TTL = 5 * 24 * 60 * 60_000
@@ -31,9 +32,15 @@ export function rememberUpload(
   context.uploads?.save(provider, hash, url, ttl === null ? null : Date.now() + ttl)
 }
 
-export function forgetUploads(context: AdapterContext, provider: ProviderId, assets: ProviderAsset[]): void {
+export async function forgetUploads(
+  context: AdapterContext,
+  provider: ProviderId,
+  assets: ProviderAsset[],
+): Promise<void> {
   if (!context.uploads) return
-  for (const asset of assets) context.uploads.remove(provider, assetSha256(asset))
+  for (const asset of assets) {
+    context.uploads.remove(provider, assetSha256(await normalizeAsset(asset)))
+  }
 }
 
 const URL_REJECTIONS = new Set([400, 404, 410, 422])

@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict'
+import { randomBytes } from 'node:crypto'
 import { test } from 'node:test'
 import { getModel, type ImageModelDefinition } from '@sunnygen/core'
+import sharp from 'sharp'
 import { resetFalUploadCache, uploadFalAsset } from './fal/client'
+import { normalizeAsset } from './normalize'
 import { getAdapter } from './registry'
 import { resetSunraUploadCache, uploadSunraAsset } from './sunra/client'
 import type { AdapterContext, ProviderAsset, ProviderUpload, ProviderUploadCache } from './types'
@@ -28,8 +31,13 @@ function memoryUploads(): ProviderUploadCache & { entries: Map<string, ProviderU
   }
 }
 
-function mockFal(uploads: ProviderUploadCache): { context: AdapterContext; calls: string[] } {
+function mockFal(uploads: ProviderUploadCache): {
+  context: AdapterContext
+  calls: string[]
+  initiated: Array<{ content_type: string; file_name: string }>
+} {
   const calls: string[] = []
+  const initiated: Array<{ content_type: string; file_name: string }> = []
   const context: AdapterContext = {
     apiKey: 'test',
     baseUrl: null,
@@ -39,6 +47,7 @@ function mockFal(uploads: ProviderUploadCache): { context: AdapterContext; calls
       const url = String(input)
       calls.push(`${init?.method ?? 'GET'} ${url}`)
       if (url.includes('/storage/upload/initiate')) {
+        initiated.push(JSON.parse(String(init?.body)))
         return Response.json({
           upload_url: 'https://upload.test/put',
           file_url: 'https://cdn.test/sheet.png',
@@ -48,7 +57,7 @@ function mockFal(uploads: ProviderUploadCache): { context: AdapterContext; calls
       return new Response('unexpected', { status: 500 })
     },
   }
-  return { context, calls }
+  return { context, calls, initiated }
 }
 
 function uploadsIn(calls: string[]): number {
@@ -97,6 +106,29 @@ test('concurrent identical uploads share one request', async () => {
   ])
   assert.equal(left, right)
   assert.equal(uploadsIn(mock.calls), 1)
+})
+
+test('a large reference is uploaded normalized and reused by its normalized hash', async () => {
+  const uploads = memoryUploads()
+  resetFalUploadCache()
+  const buffer = await sharp(randomBytes(5000 * 800 * 3), {
+    raw: { width: 5000, height: 800, channels: 3 },
+  })
+    .png()
+    .toBuffer()
+  const source: ProviderAsset = { buffer, mime: 'image/png', fileName: 'sheet.png' }
+
+  const mock = mockFal(uploads)
+  const url = await uploadFalAsset(mock.context, source)
+  assert.equal(uploadsIn(mock.calls), 1)
+  assert.deepEqual(mock.initiated[0], { content_type: 'image/jpeg', file_name: 'sheet.jpg' })
+  assert.ok(uploads.get('fal', assetSha256(await normalizeAsset(source))))
+  assert.equal(uploads.get('fal', assetSha256(source)), null)
+
+  resetFalUploadCache()
+  const restarted = mockFal(uploads)
+  assert.equal(await uploadFalAsset(restarted.context, source), url)
+  assert.deepEqual(restarted.calls, [])
 })
 
 test('Sunra uploads are reused forever because asset URLs do not expire', async () => {

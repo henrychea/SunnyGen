@@ -1,5 +1,6 @@
 import type { GenerationKind } from '@sunnygen/core'
 import { downloadOutput, errorMessage, responseError } from '../http'
+import { normalizeAsset } from '../normalize'
 import {
   ProviderError,
   type AdapterContext,
@@ -46,7 +47,8 @@ function failureDetail(error: unknown): ProviderFailure {
 
 export async function uploadSunraAsset(context: AdapterContext, asset: ProviderAsset): Promise<string> {
   const key = requireSunraKey(context)
-  const hash = assetSha256(asset)
+  const normalized = await normalizeAsset(asset)
+  const hash = assetSha256(normalized)
   const cached = uploadCache.get(hash)
   if (cached) return cached
   const stored = cachedUpload(context, 'sunra', hash)
@@ -56,7 +58,7 @@ export async function uploadSunraAsset(context: AdapterContext, asset: ProviderA
     const initiate = await context.fetch(`${SUNRA_BASE}/storage/upload/initiate`, {
       method: 'POST',
       headers: { Authorization: `Key ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ file_name: asset.fileName, content_type: asset.mime }),
+      body: JSON.stringify({ file_name: normalized.fileName, content_type: normalized.mime }),
       signal: AbortSignal.timeout(30_000),
     })
     if (!initiate.ok) {
@@ -72,8 +74,8 @@ export async function uploadSunraAsset(context: AdapterContext, asset: ProviderA
     }
     const put = await context.fetch(initiated.upload_url, {
       method: 'PUT',
-      headers: { 'Content-Type': asset.mime },
-      body: new Uint8Array(asset.buffer),
+      headers: { 'Content-Type': normalized.mime },
+      body: new Uint8Array(normalized.buffer),
       signal: AbortSignal.timeout(120_000),
     })
     if (!put.ok) {
@@ -117,7 +119,7 @@ export async function submitSunraQueue(
     const detail = await responseError(response, `Sunra error ${response.status}`)
     const message = response.status === 401 ? `Sunra rejected the request (401): ${detail}` : detail
     const error = new ProviderError('sunra', message, response.status)
-    if (isUrlRejection(error)) forgetUploads(context, 'sunra', assets)
+    if (isUrlRejection(error)) await forgetUploads(context, 'sunra', assets)
     throw error
   }
 
