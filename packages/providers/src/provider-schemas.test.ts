@@ -8,6 +8,7 @@ import {
 } from '@sunnygen/core'
 import { azureImageEndpoint, azureImagePayload } from './azure'
 import { codexCommand } from './codex'
+import { resetFalUploadCache } from './fal/client'
 import { resetFalSchemaCache } from './fal/image'
 import {
   documentedOperation,
@@ -29,6 +30,7 @@ import {
 } from './fixtures'
 import { SUNRA_IMAGE_SPECS, SUNRA_VIDEO_SPECS } from './models'
 import { getAdapter } from './registry'
+import { resetSunraUploadCache } from './sunra/client'
 import { resetSunraSchemaCache } from './sunra/schema'
 import type { ProviderRequest } from './types'
 
@@ -118,6 +120,8 @@ function assertNoProblems(problems: string[], label: string): void {
 beforeEach(() => {
   resetSunraSchemaCache()
   resetFalSchemaCache()
+  resetSunraUploadCache()
+  resetFalUploadCache()
 })
 
 test('Sunra image requests follow each model OpenAPI document', async (t) => {
@@ -181,7 +185,7 @@ test('Sunra image requests follow each model OpenAPI document', async (t) => {
             params: {},
             assets: [imageAsset(1)],
           }),
-          /edit endpoint|does not accept reference images/i,
+          /edit endpoint|does not accept reference images|can't edit images/i,
         )
         assert.equal(mock.queueCalls().length, 0)
         return

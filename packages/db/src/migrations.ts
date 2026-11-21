@@ -1,4 +1,4 @@
-export const SCHEMA_VERSION = 2
+export const SCHEMA_VERSION = 3
 
 export const MIGRATIONS: readonly string[] = [
   `
@@ -105,5 +105,15 @@ export const MIGRATIONS: readonly string[] = [
   ALTER TABLE generations ADD COLUMN error_code TEXT;
   ALTER TABLE generations ADD COLUMN error_reason TEXT;
   ALTER TABLE generations ADD COLUMN error_retryable INTEGER;
+  `,
+  `
+  CREATE TABLE provider_uploads (
+    provider TEXT NOT NULL,
+    sha256 TEXT NOT NULL,
+    url TEXT NOT NULL,
+    expires_at INTEGER,
+    created_at INTEGER NOT NULL,
+    PRIMARY KEY (provider, sha256)
+  ) STRICT;
   `,
 ]

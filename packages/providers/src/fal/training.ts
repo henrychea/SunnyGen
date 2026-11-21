@@ -45,6 +45,7 @@ export const falTrainingFlow: ProviderFlow = {
         ...(triggerWord ? { trigger_word: triggerWord } : {}),
       },
       request.webhookUrl,
+      request.assets,
     )
   },
 }

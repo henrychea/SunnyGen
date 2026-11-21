@@ -1,13 +1,21 @@
 import assert from 'node:assert/strict'
-import { test } from 'node:test'
+import { beforeEach, test } from 'node:test'
 import {
   LORA_TRAINER_MODEL,
   getModel,
   type ImageModelDefinition,
   type VideoModelDefinition,
 } from '@sunnygen/core'
+import { openApiFixture } from './fixtures'
 import { getAdapter, getWebhook, providerFlows } from './registry'
-import type { AdapterContext } from './types'
+import { resetFalSchemaCache } from './fal/image'
+import { resetSunraSchemaCache } from './sunra/schema'
+import { ProviderError, type AdapterContext } from './types'
+
+beforeEach(() => {
+  resetSunraSchemaCache()
+  resetFalSchemaCache()
+})
 
 const SUNRA_TEST_DOCS = 'https://oapi.sunra.ai/main/test/image/ddf6cb742904d9f8bc15081a014eb7c7ba010943.json'
 
@@ -261,6 +269,119 @@ test('sends fal references to the edit endpoint', async () => {
   assert.equal(queue?.url, 'https://queue.fal.run/test/image/edit')
   assert.ok(queue?.body && typeof queue.body === 'object' && 'image_urls' in queue.body)
   assert.deepEqual(queue.body.image_urls, ['https://cdn.test/reference.png'])
+})
+
+function editGuardContext(handler: (url: string) => Response | null): {
+  context: AdapterContext
+  calls: Array<{ url: string; method: string }>
+} {
+  const calls: Array<{ url: string; method: string }> = []
+  return {
+    calls,
+    context: {
+      apiKey: 'test',
+      baseUrl: null,
+      deployment: null,
+      fetch: async (input, init) => {
+        const url = String(input)
+        calls.push({ url, method: init?.method ?? 'GET' })
+        return handler(url) ?? new Response('unexpected', { status: 500 })
+      },
+    },
+  }
+}
+
+test('Sunra rejects edit requests for models without an edit endpoint', async () => {
+  const docs = 'https://oapi.sunra.ai/main/midjourney/v8.2/ddf6cb742904d9f8bc15081a014eb7c7ba010943.json'
+  const { context, calls } = editGuardContext((url) => {
+    if (url.startsWith('https://api.sunra.ai/v1/models')) {
+      return Response.json({
+        data: [
+          {
+            id: 'model_midjourney_v8_2',
+            name: 'midjourney/v8.2',
+            alias: 'midjourney/v8.2',
+            openapi: docs,
+            endpoints: ['text-to-image', 'image-blending', 'face-swap', 'action', 'describe'].map((name) => ({
+              name,
+            })),
+          },
+        ],
+        has_more: false,
+      })
+    }
+    if (url === docs) return Response.json(openApiFixture('sunra', 'midjourney__v8.2'))
+    return null
+  })
+
+  await assert.rejects(
+    getAdapter('sunra').submit(context, {
+      kind: 'image',
+      model: {
+        ...dynamicImage('sunra'),
+        id: 'sunra:midjourney/v8.2',
+        label: 'Midjourney v8.2',
+        sourceId: 'midjourney/v8.2',
+      },
+      prompt: 'edit',
+      params: {},
+      assets: [imageAsset],
+    }),
+    (error: unknown) =>
+      error instanceof ProviderError &&
+      error.message === "Midjourney v8.2 can't edit images. Pick a model that supports Edit.",
+  )
+  assert.equal(
+    calls.some((call) => call.method === 'POST'),
+    false,
+  )
+})
+
+test('fal rejects edit requests on endpoints without an image field', async () => {
+  const endpoint = 'fal-ai/flux/schnell-guard-test'
+  const { context, calls } = editGuardContext((url) => {
+    if (url.startsWith('https://fal.ai/api/openapi/queue/openapi.json')) {
+      return Response.json({
+        openapi: '3.0.0',
+        info: { title: 'Text only' },
+        paths: {
+          [`/${endpoint}`]: {
+            post: {
+              requestBody: {
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: { prompt: { type: 'string' } },
+                      required: ['prompt'],
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      })
+    }
+    return null
+  })
+
+  await assert.rejects(
+    getAdapter('fal').submit(context, {
+      kind: 'image',
+      model: { ...dynamicImage('fal'), sourceId: endpoint, editSourceId: undefined },
+      prompt: 'edit',
+      params: {},
+      assets: [imageAsset],
+    }),
+    (error: unknown) =>
+      error instanceof ProviderError &&
+      error.message === "Test Image can't edit images. Pick a model that supports Edit.",
+  )
+  assert.equal(
+    calls.some((call) => call.method === 'POST'),
+    false,
+  )
 })
 
 test('zips the training set and submits it to the fal LoRA trainer', async () => {

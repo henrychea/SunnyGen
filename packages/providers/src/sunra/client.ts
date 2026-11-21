@@ -1,6 +1,6 @@
-import { createHash } from 'node:crypto'
 import type { GenerationKind } from '@sunnygen/core'
 import { downloadOutput, errorMessage, responseError } from '../http'
+import { normalizeAsset } from '../normalize'
 import {
   ProviderError,
   type AdapterContext,
@@ -11,11 +11,23 @@ import {
   type ProviderPoll,
   type ProviderSubmit,
 } from '../types'
+import {
+  SUNRA_UPLOAD_TTL,
+  assetSha256,
+  cachedUpload,
+  forgetUploads,
+  isUrlRejection,
+  rememberUpload,
+} from '../uploads'
 import { sunraWebhook } from './webhook'
 
 export const SUNRA_BASE = process.env.SUNRA_API_BASE?.replace(/\/$/, '') ?? 'https://api.sunra.ai/v1'
 
 const uploadCache = new Map<string, Promise<string>>()
+
+export function resetSunraUploadCache(): void {
+  uploadCache.clear()
+}
 
 export function requireSunraKey(context: AdapterContext): string {
   if (!context.apiKey) {
@@ -35,15 +47,18 @@ function failureDetail(error: unknown): ProviderFailure {
 
 export async function uploadSunraAsset(context: AdapterContext, asset: ProviderAsset): Promise<string> {
   const key = requireSunraKey(context)
-  const hash = createHash('sha256').update(asset.buffer).digest('hex')
+  const normalized = await normalizeAsset(asset)
+  const hash = assetSha256(normalized)
   const cached = uploadCache.get(hash)
   if (cached) return cached
+  const stored = cachedUpload(context, 'sunra', hash)
+  if (stored) return stored
 
   const pending = (async () => {
     const initiate = await context.fetch(`${SUNRA_BASE}/storage/upload/initiate`, {
       method: 'POST',
       headers: { Authorization: `Key ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ file_name: asset.fileName, content_type: asset.mime }),
+      body: JSON.stringify({ file_name: normalized.fileName, content_type: normalized.mime }),
       signal: AbortSignal.timeout(30_000),
     })
     if (!initiate.ok) {
@@ -59,13 +74,14 @@ export async function uploadSunraAsset(context: AdapterContext, asset: ProviderA
     }
     const put = await context.fetch(initiated.upload_url, {
       method: 'PUT',
-      headers: { 'Content-Type': asset.mime },
-      body: new Uint8Array(asset.buffer),
+      headers: { 'Content-Type': normalized.mime },
+      body: new Uint8Array(normalized.buffer),
       signal: AbortSignal.timeout(120_000),
     })
     if (!put.ok) {
       throw new ProviderError('sunra', `Sunra storage upload failed (${put.status})`, put.status)
     }
+    rememberUpload(context, 'sunra', hash, initiated.file_url, SUNRA_UPLOAD_TTL)
     return initiated.file_url
   })()
 
@@ -79,9 +95,7 @@ export async function uploadSunraAsset(context: AdapterContext, asset: ProviderA
 }
 
 export function cleanSunraPrompt(prompt: string, maxLength: number): string {
-  return prompt
-    .replace(/<<<image (\d+)>>>/gi, (_match, index: string) => `image ${index}`)
-    .slice(0, maxLength)
+  return prompt.replace(/<<<(@?image ?\d+)>>>/gi, (_match, token: string) => token).slice(0, maxLength)
 }
 
 export async function submitSunraQueue(
@@ -89,6 +103,7 @@ export async function submitSunraQueue(
   endpoint: string,
   body: Record<string, unknown>,
   webhookUrl?: string | null,
+  assets: ProviderAsset[] = [],
 ): Promise<ProviderSubmit> {
   const apiKey = requireSunraKey(context)
   const url = new URL(endpoint)
@@ -103,7 +118,9 @@ export async function submitSunraQueue(
   if (!response.ok) {
     const detail = await responseError(response, `Sunra error ${response.status}`)
     const message = response.status === 401 ? `Sunra rejected the request (401): ${detail}` : detail
-    throw new ProviderError('sunra', message, response.status)
+    const error = new ProviderError('sunra', message, response.status)
+    if (isUrlRejection(error)) await forgetUploads(context, 'sunra', assets)
+    throw error
   }
 
   const created = (await response.json()) as { request_id?: string }

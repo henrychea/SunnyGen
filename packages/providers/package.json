@@ -16,7 +16,8 @@
   },
   "dependencies": {
     "@sunnygen/core": "workspace:*",
-    "fflate": "^0.8.3"
+    "fflate": "^0.8.3",
+    "sharp": "^0.35.5"
   },
   "devDependencies": {
     "@types/node": "^22.20.0",
