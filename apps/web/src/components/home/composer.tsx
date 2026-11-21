@@ -42,6 +42,7 @@ import { submitGeneration } from '~/server/generation.functions'
 import { createFolderFn } from '~/server/library.functions'
 import { ModelCombobox } from '~/components/model-combobox'
 import { buildEditPrompt, orderEditAssets } from '~/lib/edit-prompt'
+import { editModeSwitch } from '~/lib/edit-mode'
 import {
   MAX_IMAGE_RESULTS,
   defaultAspectRatio,
@@ -86,7 +87,6 @@ function rememberSkipResize(): boolean {
 }
 
 const ALL_MODELS = [...IMAGE_MODELS, ...VIDEO_MODELS]
-const EDIT_MODELS = IMAGE_MODELS.filter((model) => model.supportsImages)
 
 type ComposerMode = 'generate' | 'edit'
 type PickerTarget = 'references' | 'editTargets' | 'editReferences'
@@ -234,9 +234,10 @@ export function HomeComposer({
   const selectedChoice = allChoices.find((entry) => entry.modelId === modelId)
   const model = selectedChoice?.definition ?? modelFor(modelId)
   const isVideo = model.kind === 'video'
-  const modelOptions = isEdit
-    ? allChoices.filter((entry) => entry.kind === 'image' && Boolean(entry.definition?.supportsImages))
-    : allChoices
+  const editChoices = allChoices.filter(
+    (entry) => entry.kind === 'image' && entry.definition?.supportsImages === true,
+  )
+  const modelOptions = isEdit ? editChoices : allChoices
   const canAddReferences = model.supportsImages || Boolean(model.supportsLora)
   const referenceMax = isEdit
     ? Math.max(0, model.maxImages - 1)
@@ -329,13 +330,11 @@ export function HomeComposer({
     setNotice(null)
     setMulti(false)
     setCount(1)
-    if (next === 'edit' && !(model.kind === 'image' && model.supportsImages)) {
-      const fallback = EDIT_MODELS[0]
-      if (fallback) {
-        setNotice(`${model.label} does not edit images. Switched to ${fallback.label}.`)
-        chooseModel(fallback.id)
-      }
-    }
+    if (next !== 'edit') return
+    const swap = editModeSwitch({ label: model.label, modelId: model.id, definition: model }, editChoices)
+    if (!swap) return
+    chooseModel(swap.modelId)
+    toast(swap.message, { tone: 'warning' })
   }
 
   const generate = async () => {

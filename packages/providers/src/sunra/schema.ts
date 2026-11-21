@@ -7,11 +7,17 @@ export interface SunraModelSchema {
   docs: string
   operations: Record<string, RequestSchema>
   components: Record<string, unknown>
+  endpoints: string[]
+}
+
+interface ModelIndexEntry {
+  docs: string
+  endpoints: string[]
 }
 
 const MODEL_INDEX_TTL = 10 * 60_000
 
-let indexCache: { at: number; entries: Map<string, string> } | null = null
+let indexCache: { at: number; entries: Map<string, ModelIndexEntry> } | null = null
 const schemaCache = new Map<string, Promise<SunraModelSchema | null>>()
 
 export function resetSunraSchemaCache(): void {
@@ -24,11 +30,12 @@ interface SunraModelEntry {
   name?: string
   alias?: string
   openapi?: string
+  endpoints?: Array<{ name?: string }>
 }
 
-async function loadModelIndex(context: AdapterContext): Promise<Map<string, string>> {
+async function loadModelIndex(context: AdapterContext): Promise<Map<string, ModelIndexEntry>> {
   if (indexCache && Date.now() - indexCache.at < MODEL_INDEX_TTL) return indexCache.entries
-  const entries = new Map<string, string>()
+  const entries = new Map<string, ModelIndexEntry>()
   let url = `${SUNRA_BASE}/models?limit=300`
   for (let page = 0; page < 6; page += 1) {
     const response = await context.fetch(url, {
@@ -43,8 +50,11 @@ async function loadModelIndex(context: AdapterContext): Promise<Map<string, stri
     const models = payload?.data ?? []
     for (const model of models) {
       if (!model.openapi) continue
+      const endpoints = (model.endpoints ?? [])
+        .map((endpoint) => endpoint.name)
+        .filter((name): name is string => Boolean(name))
       for (const key of [model.alias, model.name, model.id]) {
-        if (key && !entries.has(key)) entries.set(key, model.openapi)
+        if (key && !entries.has(key)) entries.set(key, { docs: model.openapi, endpoints })
       }
     }
     const last = models.at(-1)
@@ -59,6 +69,7 @@ async function fetchSchemaDocument(
   context: AdapterContext,
   alias: string,
   docs: string,
+  endpoints: string[],
 ): Promise<SunraModelSchema | null> {
   const response = await context.fetch(docs, {
     headers: { Accept: 'application/json' },
@@ -69,7 +80,7 @@ async function fetchSchemaDocument(
   if (!parsed) return null
   const operations = operationSchemas(parsed)
   if (Object.keys(operations).length === 0) return null
-  return { alias, docs, operations, components: parsed.components }
+  return { alias, docs, operations, components: parsed.components, endpoints }
 }
 
 export async function fetchSunraSchema(
@@ -82,15 +93,16 @@ export async function fetchSunraSchema(
 
   const pending = (async () => {
     try {
-      let docs = schemaUrl ?? (await loadModelIndex(context)).get(alias)
+      const index = await loadModelIndex(context).catch(() => new Map<string, ModelIndexEntry>())
+      const indexed = index.get(alias)
+      let docs = schemaUrl ?? indexed?.docs
+      let endpoints = indexed?.endpoints ?? []
       if (!docs) return null
-      let schema = await fetchSchemaDocument(context, alias, docs)
-      if (!schema && schemaUrl) {
-        const fallback = (await loadModelIndex(context)).get(alias)
-        if (fallback && fallback !== docs) {
-          docs = fallback
-          schema = await fetchSchemaDocument(context, alias, docs)
-        }
+      let schema = await fetchSchemaDocument(context, alias, docs, endpoints)
+      if (!schema && schemaUrl && indexed && indexed.docs !== docs) {
+        docs = indexed.docs
+        endpoints = indexed.endpoints
+        schema = await fetchSchemaDocument(context, alias, docs, endpoints)
       }
       return schema
     } catch {
@@ -109,7 +121,10 @@ export interface SunraOperation {
   schema: RequestSchema
 }
 
-export function pickOperation(schema: SunraModelSchema | null, order: string[]): SunraOperation | null {
+export function pickOperation(
+  schema: Pick<SunraModelSchema, 'operations'> | null,
+  order: string[],
+): SunraOperation | null {
   if (!schema) return null
   for (const name of order) {
     const operation = schema.operations[name]
@@ -120,7 +135,11 @@ export function pickOperation(schema: SunraModelSchema | null, order: string[]):
 
 const EDIT_OPERATIONS = ['image-editing', 'image-to-image', 'reference-images-to-image']
 
-export function sunraImageOperations(schema: SunraModelSchema | null): {
+export function sunraEditEndpoint(endpoints: string[]): string | null {
+  return EDIT_OPERATIONS.find((operation) => endpoints.includes(operation)) ?? null
+}
+
+export function sunraImageOperations(schema: Pick<SunraModelSchema, 'operations'> | null): {
   text: SunraOperation | null
   edit: SunraOperation | null
 } {
@@ -158,7 +177,9 @@ export interface SunraImageCapabilities {
   supportsText: boolean
 }
 
-export function sunraImageCapabilities(schema: SunraModelSchema | null): SunraImageCapabilities {
+export function sunraImageCapabilities(
+  schema: Pick<SunraModelSchema, 'operations' | 'components'> | null,
+): SunraImageCapabilities {
   const { text, edit } = sunraImageOperations(schema)
   const field = edit ? sunraImageField(edit.schema) : null
   const property = edit && field ? edit.schema.properties[field] : undefined
