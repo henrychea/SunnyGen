@@ -1,0 +1,176 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Wan 2.5 API",
+    "docs": "https://oapi.sunra.ai/main/wan/wan-2.5/ddf6cb742904d9f8bc15081a014eb7c7ba010943.json"
+  },
+  "paths": {
+    "/wan/wan-2.5/text-to-video": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "prompt": {
+                    "type": "string",
+                    "maxLength": 800
+                  },
+                  "duration": {
+                    "type": "string",
+                    "enum": ["5", "10"],
+                    "default": "5"
+                  },
+                  "aspect_ratio": {
+                    "type": "string",
+                    "enum": ["16:9", "9:16", "1:1", "4:3", "3:4"],
+                    "default": "16:9"
+                  },
+                  "resolution": {
+                    "type": "string",
+                    "enum": ["480p", "720p", "1080p"],
+                    "default": "720p"
+                  },
+                  "seed": {
+                    "type": "integer",
+                    "maximum": 2147483647.0,
+                    "minimum": 0.0
+                  }
+                },
+                "type": "object",
+                "required": ["prompt"]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/wan/wan-2.5/image-to-video": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "prompt": {
+                    "type": "string",
+                    "maxLength": 800
+                  },
+                  "duration": {
+                    "type": "string",
+                    "enum": ["5", "10"],
+                    "default": "5"
+                  },
+                  "resolution": {
+                    "type": "string",
+                    "enum": ["480p", "720p", "1080p"],
+                    "default": "720p"
+                  },
+                  "seed": {
+                    "type": "integer",
+                    "maximum": 2147483647.0,
+                    "minimum": 0.0
+                  }
+                },
+                "type": "object",
+                "required": ["prompt"]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/wan/wan-2.5/text-to-image": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "prompt": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "aspect_ratio": {
+                    "type": "string",
+                    "enum": ["1:1", "16:9", "9:16", "4:3", "3:4"],
+                    "default": "1:1"
+                  },
+                  "seed": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "maximum": 2147483647.0,
+                        "minimum": 0.0
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "type": "object",
+                "required": ["prompt"]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/wan/wan-2.5/image-to-image": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "prompt": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "reference_images": {
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "maxLength": 2083,
+                          "minLength": 1,
+                          "format": "uri"
+                        },
+                        {
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "type": "array",
+                    "maxItems": 3,
+                    "minItems": 1
+                  },
+                  "aspect_ratio": {
+                    "type": "string",
+                    "enum": ["1:1", "16:9", "9:16", "4:3", "3:4"],
+                    "default": "1:1"
+                  },
+                  "seed": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "maximum": 2147483647.0,
+                        "minimum": 0.0
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "type": "object",
+                "required": ["prompt", "reference_images"]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

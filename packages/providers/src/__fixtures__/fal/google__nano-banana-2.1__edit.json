@@ -1,0 +1,90 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Queue OpenAPI for google/nano-banana-2.1/edit",
+    "docs": "https://fal.ai/api/openapi/queue/openapi.json?endpoint_id=google/nano-banana-2.1/edit"
+  },
+  "paths": {
+    "/google/nano-banana-2.1/edit": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "aspect_ratio": {
+                    "default": "auto",
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "auto",
+                          "21:9",
+                          "16:9",
+                          "3:2",
+                          "4:3",
+                          "5:4",
+                          "1:1",
+                          "4:5",
+                          "3:4",
+                          "2:3",
+                          "9:16",
+                          "4:1",
+                          "1:4",
+                          "8:1",
+                          "1:8"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "seed": {
+                    "anyOf": [
+                      {
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "output_format": {
+                    "enum": ["jpeg", "png", "webp"],
+                    "type": "string",
+                    "default": "png"
+                  },
+                  "resolution": {
+                    "enum": ["1K", "2K", "4K"],
+                    "type": "string",
+                    "default": "1K"
+                  },
+                  "num_images": {
+                    "type": "integer",
+                    "maximum": 4,
+                    "default": 1,
+                    "minimum": 1
+                  },
+                  "image_urls": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "prompt": {
+                    "type": "string",
+                    "maxLength": 50000,
+                    "minLength": 3
+                  }
+                },
+                "type": "object",
+                "required": ["prompt"]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

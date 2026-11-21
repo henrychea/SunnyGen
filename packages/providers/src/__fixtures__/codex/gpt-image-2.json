@@ -1,0 +1,37 @@
+{
+  "provider": "codex",
+  "model": "gpt-image-2",
+  "docs": "https://github.com/jdmnk/codex-imagegen-cli",
+  "commands": {
+    "generate": {
+      "argv": ["generate"],
+      "flags": {
+        "--prompt": { "required": true },
+        "--size": { "required": true },
+        "--out": { "required": true },
+        "--force": {}
+      }
+    },
+    "edit": {
+      "argv": ["edit"],
+      "flags": {
+        "--image": { "required": true, "min": 1, "max": 5, "repeatable": true },
+        "--prompt": { "required": true },
+        "--size": { "required": true },
+        "--out": { "required": true },
+        "--force": {}
+      },
+      "maxImages": 5
+    }
+  },
+  "size": {
+    "allowAuto": true,
+    "pixelFormat": "WIDTHxHEIGHT",
+    "multipleOf": 16,
+    "maxEdge": 3840,
+    "minPixels": 655360,
+    "maxPixels": 8294400,
+    "maxAspect": 3
+  },
+  "quality": { "enum": ["auto", "low", "medium", "high"] }
+}

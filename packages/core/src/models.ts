@@ -8,6 +8,8 @@ export interface ModelBase {
   providers: ProviderId[]
   ratios: string[]
   supportsImages: boolean
+  /** False when the provider model can only run from a reference image. */
+  supportsText?: boolean
   maxImages: number
   supportsQuality: boolean
   qualityOptions: string[]
@@ -57,7 +59,7 @@ export const IMAGE_MODELS: ImageModelDefinition[] = [
     providers: ['sunra'],
     ratios: GEMINI_RATIOS,
     supportsImages: true,
-    maxImages: 14,
+    maxImages: 10,
     supportsQuality: true,
     qualityOptions: ['1k', '2k', '4k'],
     defaultQuality: '1k',
@@ -87,7 +89,7 @@ export const IMAGE_MODELS: ImageModelDefinition[] = [
     supportsImages: true,
     maxImages: 10,
     supportsQuality: true,
-    qualityOptions: ['2k', '4k'],
+    qualityOptions: ['1k', '2k'],
     defaultQuality: '2k',
     price: '$0.035 per image',
   },

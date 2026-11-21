@@ -1,0 +1,41 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Bria Creative Upscale API",
+    "docs": "https://oapi.sunra.ai/main/bria/creative-upscale/ddf6cb742904d9f8bc15081a014eb7c7ba010943.json"
+  },
+  "paths": {
+    "/bria/creative-upscale/image-to-image": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "image": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 2083,
+                        "minLength": 1,
+                        "format": "uri"
+                      },
+                      {
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "seed": {
+                    "type": "integer"
+                  }
+                },
+                "type": "object",
+                "required": ["image"]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

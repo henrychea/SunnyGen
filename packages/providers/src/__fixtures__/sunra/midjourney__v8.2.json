@@ -1,0 +1,96 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Midjourney v8.2 API",
+    "docs": "https://oapi.sunra.ai/main/midjourney/v8.2/ddf6cb742904d9f8bc15081a014eb7c7ba010943.json"
+  },
+  "paths": {
+    "/midjourney/v8.2/text-to-image": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "prompt": {
+                    "type": "string"
+                  },
+                  "aspect_ratio": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 7
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "seed": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "maximum": 4294967295.0,
+                        "minimum": 0.0
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "type": "object",
+                "required": ["prompt"]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/midjourney/v8.2/image-editing": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "prompt": {
+                    "type": "string"
+                  },
+                  "image": {
+                    "type": "string"
+                  },
+                  "aspect_ratio": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 7
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "seed": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "maximum": 4294967295.0,
+                        "minimum": 0.0
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "type": "object",
+                "required": ["prompt", "image"]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

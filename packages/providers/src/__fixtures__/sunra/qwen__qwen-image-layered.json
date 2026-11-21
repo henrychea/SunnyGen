@@ -1,0 +1,68 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Qwen Image Layered API",
+    "docs": "https://oapi.sunra.ai/main/qwen/qwen-image-layered/ddf6cb742904d9f8bc15081a014eb7c7ba010943.json"
+  },
+  "paths": {
+    "/qwen/qwen-image-layered/image-to-image": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "image": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 2083,
+                        "minLength": 1,
+                        "format": "uri"
+                      },
+                      {
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "prompt": {
+                    "type": "string"
+                  },
+                  "num_inference_steps": {
+                    "type": "integer",
+                    "maximum": 50.0,
+                    "minimum": 1.0,
+                    "default": 28
+                  },
+                  "guidance_scale": {
+                    "type": "number",
+                    "maximum": 20.0,
+                    "minimum": 1.0,
+                    "default": 5
+                  },
+                  "seed": {
+                    "anyOf": [
+                      {
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "output_format": {
+                    "type": "string",
+                    "enum": ["png", "webp"],
+                    "default": "png"
+                  }
+                },
+                "type": "object",
+                "required": ["image"]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

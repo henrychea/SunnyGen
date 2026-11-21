@@ -1,0 +1,115 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Qwen Image 2 Pro API",
+    "docs": "https://oapi.sunra.ai/main/qwen/qwen-image-2-pro/ddf6cb742904d9f8bc15081a014eb7c7ba010943.json"
+  },
+  "paths": {
+    "/qwen/qwen-image-2-pro/text-to-image": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "prompt": {
+                    "type": "string"
+                  },
+                  "aspect_ratio": {
+                    "type": "string",
+                    "enum": ["1:1", "16:9", "9:16", "4:3", "3:4"],
+                    "default": "1:1"
+                  },
+                  "seed": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "maximum": 2147483647.0,
+                        "minimum": 0.0
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "output_format": {
+                    "type": "string",
+                    "enum": ["jpeg", "png", "webp"],
+                    "default": "png"
+                  }
+                },
+                "type": "object",
+                "required": ["prompt"]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/qwen/qwen-image-2-pro/image-editing": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "prompt": {
+                    "type": "string"
+                  },
+                  "images": {
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "maxLength": 2083,
+                          "minLength": 1,
+                          "format": "uri"
+                        },
+                        {
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "type": "array",
+                    "maxItems": 3,
+                    "minItems": 1
+                  },
+                  "aspect_ratio": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": ["1:1", "16:9", "9:16", "4:3", "3:4"]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "seed": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "maximum": 2147483647.0,
+                        "minimum": 0.0
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "output_format": {
+                    "type": "string",
+                    "enum": ["jpeg", "png", "webp"],
+                    "default": "png"
+                  }
+                },
+                "type": "object",
+                "required": ["prompt", "images"]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,198 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Veo3.1 (GCP) API",
+    "docs": "https://oapi.sunra.ai/main/google/veo3-1/ddf6cb742904d9f8bc15081a014eb7c7ba010943.json"
+  },
+  "paths": {
+    "/google/veo3-1/text-to-video": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "prompt": {
+                    "type": "string",
+                    "maxLength": 20000
+                  },
+                  "aspect_ratio": {
+                    "type": "string",
+                    "enum": ["16:9", "9:16"],
+                    "default": "16:9"
+                  },
+                  "duration": {
+                    "type": "integer",
+                    "enum": [4, 6, 8],
+                    "default": 8
+                  },
+                  "resolution": {
+                    "type": "string",
+                    "enum": ["720p", "720P", "1080p", "1080P", "4k", "4K"],
+                    "default": "720p"
+                  },
+                  "generate_audio": {
+                    "type": "boolean",
+                    "default": true
+                  },
+                  "seed": {
+                    "anyOf": [
+                      {
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "type": "object",
+                "required": ["prompt"]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/google/veo3-1/image-to-video": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "prompt": {
+                    "type": "string",
+                    "maxLength": 20000
+                  },
+                  "image": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 2083,
+                        "minLength": 1,
+                        "format": "uri"
+                      },
+                      {
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "end_image": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 2083,
+                        "minLength": 1,
+                        "format": "uri"
+                      },
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "aspect_ratio": {
+                    "type": "string",
+                    "enum": ["auto", "16:9", "9:16"],
+                    "default": "auto"
+                  },
+                  "duration": {
+                    "type": "integer",
+                    "enum": [4, 6, 8],
+                    "default": 8
+                  },
+                  "resolution": {
+                    "type": "string",
+                    "enum": ["720p", "720P", "1080p", "1080P", "4k", "4K"],
+                    "default": "720p"
+                  },
+                  "generate_audio": {
+                    "type": "boolean",
+                    "default": true
+                  },
+                  "seed": {
+                    "anyOf": [
+                      {
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "type": "object",
+                "required": ["prompt", "image"]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/google/veo3-1/reference-to-video": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "prompt": {
+                    "type": "string",
+                    "maxLength": 20000
+                  },
+                  "image_urls": {
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "maxLength": 2083,
+                          "minLength": 1,
+                          "format": "uri"
+                        },
+                        {
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "type": "array",
+                    "maxItems": 3,
+                    "minItems": 1
+                  },
+                  "aspect_ratio": {
+                    "type": "string",
+                    "enum": ["16:9", "9:16"],
+                    "default": "16:9"
+                  },
+                  "resolution": {
+                    "type": "string",
+                    "enum": ["720p", "720P", "1080p", "1080P", "4k", "4K"],
+                    "default": "720p"
+                  },
+                  "generate_audio": {
+                    "type": "boolean",
+                    "default": true
+                  },
+                  "seed": {
+                    "anyOf": [
+                      {
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "type": "object",
+                "required": ["prompt", "image_urls"]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

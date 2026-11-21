@@ -40,14 +40,14 @@ export const SUNRA_IMAGE_SPECS: Record<string, SunraImageSpec> = {
     promptMaxLength: 10000,
   },
   'seedream-5-lite': {
-    apiId: 'bytedance/seedream-5.0-lite',
+    apiId: 'bytedance/seedream-5.0-flash',
     textOperation: 'text-to-image',
     imageOperation: 'image-editing',
     imageKey: 'images',
     imageMode: 'array',
     aspectRatioKey: 'aspect_ratio',
     qualityKey: 'resolution',
-    qualityMap: { '2k': '2K', '4k': '3K' },
+    qualityMap: { '1k': '1K', '2k': '2K' },
     promptMaxLength: 3000,
     extra: { enable_safety_checker: false },
   },
@@ -98,6 +98,7 @@ export interface SunraVideoSpec {
   apiId: string
   apiIdByMode?: Record<string, string>
   payload: SunraVideoPayload
+  operations: string[]
   promptMaxLength: number
   maxResources: number
 }
@@ -106,18 +107,21 @@ export const SUNRA_VIDEO_SPECS: Record<string, SunraVideoSpec> = {
   veo3_lite: {
     apiId: 'google/veo3-1-lite',
     payload: 'veo',
+    operations: ['text-to-video', 'image-to-video'],
     promptMaxLength: 10000,
     maxResources: 2,
   },
   veo3_fast: {
     apiId: 'google/veo3-1-fast',
     payload: 'veo',
+    operations: ['text-to-video', 'image-to-video'],
     promptMaxLength: 10000,
     maxResources: 2,
   },
   veo3: {
     apiId: 'google/veo3-1',
     payload: 'veo',
+    operations: ['text-to-video', 'image-to-video', 'reference-to-video'],
     promptMaxLength: 10000,
     maxResources: 3,
   },
@@ -129,18 +133,21 @@ export const SUNRA_VIDEO_SPECS: Record<string, SunraVideoSpec> = {
       '4K': 'kling/kling-v3-4k',
     },
     payload: 'kling',
+    operations: ['text-to-video', 'image-to-video'],
     promptMaxLength: 2500,
     maxResources: 3,
   },
   'kling-3.0-turbo': {
     apiId: 'kling/kling-v3-standard',
     payload: 'kling',
+    operations: ['text-to-video', 'image-to-video'],
     promptMaxLength: 2500,
     maxResources: 2,
   },
   'grok-imagine': {
     apiId: 'xai/grok-imagine-video',
     payload: 'grok',
+    operations: ['text-to-video', 'image-to-video', 'reference-to-video'],
     promptMaxLength: 5000,
     maxResources: 7,
   },
@@ -149,8 +156,8 @@ export const SUNRA_VIDEO_SPECS: Record<string, SunraVideoSpec> = {
 export interface FalImageSpec {
   endpoint: string
   editEndpoint?: string
-  imageKey: string
-  imageMode: 'array' | 'single'
+  imageKey?: string
+  imageMode?: 'array' | 'single'
   supportsSafetyChecker: boolean
   promptMaxLength: number
   sizeNameKey?: string
@@ -167,9 +174,7 @@ export const FAL_IMAGE_SPECS: Record<string, FalImageSpec> = {
   },
   'flux-lora': {
     endpoint: 'fal-ai/flux-lora',
-    imageKey: 'image_urls',
-    imageMode: 'array',
-    supportsSafetyChecker: false,
+    supportsSafetyChecker: true,
     promptMaxLength: 2000,
     sizeNameKey: 'image_size',
   },

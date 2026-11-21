@@ -7,7 +7,18 @@ import {
   type ProviderId,
 } from '@sunnygen/core'
 import { FAL_IMAGE_SPECS, SUNRA_IMAGE_SPECS, SUNRA_VIDEO_SPECS } from '@sunnygen/providers/models'
+import {
+  falImageCapabilities,
+  falOpenApiUrl,
+  parseFalOpenApi,
+  parseOpenApi,
+  operationSchemas,
+  sunraImageCapabilities,
+  type FalRequestSchema,
+  type SunraImageCapabilities,
+} from '@sunnygen/providers'
 import { readSetting, writeSetting } from '@sunnygen/db'
+import { falModelCapabilities, sunraEditOperation, sunraModelCapabilities } from './model-capabilities'
 import type {
   CatalogProvider,
   ModelCatalogEntry,
@@ -18,7 +29,6 @@ import type {
 const SUNRA_MODELS_URL = 'https://api.sunra.ai/v1/models?limit=300'
 const SUNRA_PRICING_URL = 'https://api.sunra.ai/v1/pricing?limit=1000'
 const FAL_DOCS_URL = 'https://fal.ai/docs/documentation/model-apis/models.md'
-const FAL_MODELS_API = 'https://api.fal.ai/v1/models'
 const FAL_PRICING_URL = 'https://api.fal.ai/v1/models/pricing'
 const CATALOG_SETTING = (provider: CatalogProvider) => `models.catalog.${provider}`
 
@@ -145,6 +155,9 @@ function supportedEntries(): ModelCatalogEntry[] {
       available: true,
       limitation: null,
       modelId: model.id,
+      supportsImages: model.supportsImages,
+      supportsText: true,
+      maxImages: model.maxImages,
     })),
   )
 }
@@ -166,6 +179,9 @@ export function buildModelCatalog(): ModelCatalogView {
           target.price = cleanPrice(storedEntry.price) ?? target.price
           target.label = storedEntry.label || target.label
           target.sourceId = storedEntry.sourceId || target.sourceId
+          if (target.kind === 'image' && storedEntry.maxImages > 0) {
+            target.maxImages = Math.min(target.maxImages, storedEntry.maxImages)
+          }
           continue
         }
         if (byKey.has(storedEntry.key)) continue
@@ -178,6 +194,9 @@ export function buildModelCatalog(): ModelCatalogView {
           schemaUrl: storedEntry.schemaUrl ?? null,
           available: storedEntry.available ?? true,
           limitation: storedEntry.limitation ?? null,
+          supportsImages: storedEntry.supportsImages ?? storedEntry.kind === 'image',
+          supportsText: storedEntry.supportsText ?? true,
+          maxImages: storedEntry.maxImages ?? (storedEntry.kind === 'image' ? 4 : 2),
           company:
             storedEntry.company ||
             (storedEntry.provider === 'fal' ? falCompany(sourceId) : companyName(undefined, sourceId)),
@@ -216,29 +235,6 @@ interface SunraModel {
   owner?: { name?: string }
   openapi?: string
   endpoints?: Array<{ name?: string }>
-}
-
-const COMPATIBLE_SUNRA_ENDPOINTS: Record<string, true> = {
-  'text-to-image': true,
-  'image-editing': true,
-  'text-to-video': true,
-  'image-to-video': true,
-  'reference-to-video': true,
-}
-
-function sunraAvailability(
-  endpoints: string[] | undefined,
-  supported: boolean,
-): { available: boolean; limitation: string | null } {
-  if (supported) return { available: true, limitation: null }
-  if (!endpoints || endpoints.length === 0) return { available: true, limitation: null }
-  if (endpoints.some((endpoint) => COMPATIBLE_SUNRA_ENDPOINTS[endpoint])) {
-    return { available: true, limitation: null }
-  }
-  return {
-    available: false,
-    limitation: `Requires ${endpoints[0]?.replaceAll('-', ' ') ?? 'a different input flow'}`,
-  }
 }
 
 interface SunraPrice {
@@ -323,6 +319,45 @@ function sunraPrice(rows: SunraPrice[] | undefined, kind: 'image' | 'video'): st
   return null
 }
 
+const SUNRA_MODEL_SCHEMA_TIMEOUT = 15_000
+
+async function fetchSunraImageSchemas(models: SunraModel[]): Promise<Map<string, SunraImageCapabilities>> {
+  const result = new Map<string, SunraImageCapabilities>()
+  const targets = models.filter((model) => {
+    const endpoints = (model.endpoints ?? []).map((endpoint) => endpoint.name).filter(Boolean)
+    return Boolean(model.openapi) && sunraEditOperation(endpoints as string[]) !== null
+  })
+  const queue = [...targets]
+  const worker = async () => {
+    for (let model = queue.shift(); model; model = queue.shift()) {
+      const alias = model.alias ?? model.name ?? model.id
+      try {
+        const response = await fetch(model.openapi as string, {
+          headers: { Accept: 'application/json' },
+          signal: AbortSignal.timeout(SUNRA_MODEL_SCHEMA_TIMEOUT),
+        })
+        if (!response.ok) continue
+        const parsed = parseOpenApi(await response.json())
+        if (!parsed) continue
+        const operations = operationSchemas(parsed)
+        result.set(
+          alias,
+          sunraImageCapabilities({
+            alias,
+            docs: model.openapi as string,
+            operations,
+            components: parsed.components,
+          }),
+        )
+      } catch {
+        continue
+      }
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(6, queue.length) }, worker))
+  return result
+}
+
 async function syncSunra(): Promise<{ entries: ModelCatalogEntry[]; priced: boolean }> {
   const models = await fetchSunraModels()
   const key = readSetting('provider.sunra.key')?.trim() || process.env.SUNRA_API_KEY?.trim() || null
@@ -346,6 +381,7 @@ async function syncSunra(): Promise<{ entries: ModelCatalogEntry[]; priced: bool
   }
 
   const support = sunraSupportMap()
+  const imageSchemas = await fetchSunraImageSchemas(models)
   const entries: ModelCatalogEntry[] = []
   for (const model of models) {
     const tags = new Set(model.tags ?? [])
@@ -358,22 +394,31 @@ async function syncSunra(): Promise<{ entries: ModelCatalogEntry[]; priced: bool
     const endpoints = (model.endpoints ?? [])
       .map((endpoint) => endpoint.name)
       .filter((name): name is string => Boolean(name))
-    const availability = sunraAvailability(endpoints, Boolean(modelId))
+    const resolvedKind =
+      kind ?? (modelId ? (ALL_MODELS.find((entry) => entry.id === modelId)?.kind ?? 'image') : 'image')
+    const capabilities = sunraModelCapabilities(endpoints, imageSchemas.get(alias) ?? null, alias)
     entries.push({
       key: `sunra:${alias}`,
       label: model.display_name ?? model.name ?? alias,
       company: companyName(model.owner?.name, alias),
       provider: 'sunra',
       providerLabel: providerLabel('sunra'),
-      kind: kind ?? (modelId ? (ALL_MODELS.find((entry) => entry.id === modelId)?.kind ?? 'image') : 'image'),
+      kind: resolvedKind,
       price,
       sourceId: alias,
-      editSourceId: null,
+      editSourceId: resolvedKind === 'image' ? capabilities.editSourceId : null,
       schemaUrl: model.openapi ?? null,
       supported: Boolean(modelId),
-      available: availability.available,
-      limitation: availability.limitation,
+      available: Boolean(modelId) || capabilities.available,
+      limitation: capabilities.limitation,
       modelId: modelId ?? null,
+      supportsImages:
+        resolvedKind === 'video'
+          ? endpoints.includes('image-to-video') || endpoints.includes('reference-to-video')
+          : capabilities.supportsImages,
+      supportsText:
+        resolvedKind === 'video' ? endpoints.includes('text-to-video') : capabilities.supportsText,
+      maxImages: resolvedKind === 'video' ? 2 : capabilities.maxImages,
     })
   }
   return { entries, priced }
@@ -387,8 +432,6 @@ interface FalDocModel {
   outputs: string[]
 }
 
-const FAL_COMPATIBLE_OUTPUTS: Record<string, true> = { Image: true, Video: true }
-
 function flowTypes(cell: string): { inputs: string[]; outputs: string[] } {
   const [inputPart = '', outputPart = ''] = cell.split('→')
   const split = (value: string) =>
@@ -399,83 +442,30 @@ function flowTypes(cell: string): { inputs: string[]; outputs: string[] } {
   return { inputs: split(inputPart), outputs: split(outputPart) }
 }
 
-function falAvailability(
-  inputs: string[],
-  outputs: string[],
-  required: string[] = [],
-): { available: boolean; limitation: string | null } {
-  if (outputs.length > 0 && !outputs.some((output) => FAL_COMPATIBLE_OUTPUTS[output])) {
-    return { available: false, limitation: 'No image or video output' }
-  }
-  if (required.length > 0) {
-    const unsupported = required.find((field) => /(video|audio|pdf|mask|mesh|3d|depth)/i.test(field))
-    if (unsupported) {
-      return { available: false, limitation: `Requires ${unsupported.replaceAll('_', ' ')} input` }
-    }
-    const unknown = required.find(
-      (field) =>
-        field !== 'prompt' &&
-        field !== 'num_images' &&
-        field !== 'output_format' &&
-        field !== 'aspect_ratio' &&
-        !/image|photo|frame|reference/i.test(field),
-    )
-    if (unknown) {
-      return { available: false, limitation: `Requires ${unknown.replaceAll('_', ' ')} input` }
-    }
-    return { available: true, limitation: null }
-  }
-  const unsupportedInput = inputs.find((input) => input === 'Audio' || input === 'Video' || input === '3D')
-  if (unsupportedInput) {
-    return { available: false, limitation: `Requires ${unsupportedInput.toLowerCase()} input` }
-  }
-  return { available: true, limitation: null }
-}
+const FAL_SCHEMA_TIMEOUT = 15_000
 
-interface FalExpandedModel {
-  endpoint_id: string
-  openapi?: {
-    paths?: Record<
-      string,
-      {
-        post?: {
-          requestBody?: {
-            content?: {
-              'application/json'?: {
-                schema?: { $ref?: string; required?: string[] }
-              }
-            }
-          }
-        }
-      }
-    >
-    components?: { schemas?: Record<string, { required?: string[] }> }
+async function fetchFalEndpointSchema(endpoint: string): Promise<FalRequestSchema | null> {
+  try {
+    const response = await fetch(falOpenApiUrl(endpoint), {
+      headers: { Accept: 'application/json' },
+      signal: AbortSignal.timeout(FAL_SCHEMA_TIMEOUT),
+    })
+    if (!response.ok) return null
+    return parseFalOpenApi(await response.json())
+  } catch {
+    return null
   }
 }
 
-async function fetchFalSchemas(endpointIds: string[]): Promise<Map<string, string[]>> {
-  const result = new Map<string, string[]>()
-  for (let index = 0; index < endpointIds.length; index += 10) {
-    const batch = endpointIds.slice(index, index + 10)
-    const params = new URLSearchParams({ expand: 'openapi-3.0' })
-    for (const endpoint of batch) params.append('endpoint_id', endpoint)
-    try {
-      const payload = await fetchJson<{ models?: FalExpandedModel[] }>(`${FAL_MODELS_API}?${params}`)
-      for (const model of payload.models ?? []) {
-        const paths = model.openapi?.paths ?? {}
-        const pathKey = Object.keys(paths).find((key) => !key.includes('{') && paths[key]?.post)
-        const schema = pathKey
-          ? paths[pathKey]?.post?.requestBody?.content?.['application/json']?.schema
-          : undefined
-        const resolved = schema?.$ref
-          ? model.openapi?.components?.schemas?.[schema.$ref.split('/').pop() ?? '']
-          : schema
-        result.set(model.endpoint_id, resolved?.required ?? [])
-      }
-    } catch {
-      // Fall back to docs input hints for this batch.
+async function fetchFalSchemas(endpointIds: string[]): Promise<Map<string, FalRequestSchema | null>> {
+  const result = new Map<string, FalRequestSchema | null>()
+  const queue = [...endpointIds]
+  const worker = async () => {
+    for (let endpoint = queue.shift(); endpoint; endpoint = queue.shift()) {
+      result.set(endpoint, await fetchFalEndpointSchema(endpoint))
     }
   }
+  await Promise.all(Array.from({ length: Math.min(8, queue.length) }, worker))
   return result
 }
 
@@ -587,8 +577,11 @@ async function syncFal(): Promise<{ entries: ModelCatalogEntry[]; priced: boolea
   }
 
   const endpoints = [...models.keys()]
-  const schemas = await fetchFalSchemas(endpoints)
-  const endpointSet = new Set(endpoints)
+  const candidates = endpoints.filter(
+    (endpoint) => models.get(endpoint)?.kind === 'image' && !endpoint.endsWith('/edit'),
+  )
+  const probes = [...endpoints, ...candidates.map((endpoint) => `${endpoint}/edit`)]
+  const schemas = await fetchFalSchemas(probes)
 
   let prices = new Map<string, FalPrice>()
   let priced = false
@@ -599,11 +592,16 @@ async function syncFal(): Promise<{ entries: ModelCatalogEntry[]; priced: boolea
 
   const entries: ModelCatalogEntry[] = [...models.values()].map((model) => {
     const modelId = support.get(model.endpoint_id)
-    const availability = falAvailability(model.inputs, model.outputs, schemas.get(model.endpoint_id) ?? [])
-    const editSourceId =
-      model.endpoint_id.endsWith('/edit') || !endpointSet.has(`${model.endpoint_id}/edit`)
-        ? null
-        : `${model.endpoint_id}/edit`
+    const base = schemas.get(model.endpoint_id) ?? null
+    const edit = schemas.get(`${model.endpoint_id}/edit`) ?? null
+    const capabilities = falModelCapabilities({
+      endpoint: model.endpoint_id,
+      base: base ? falImageCapabilities(base) : null,
+      edit: edit ? falImageCapabilities(edit) : null,
+      required: base?.required ?? [],
+      docsInputs: model.inputs,
+      docsOutputs: model.outputs,
+    })
     return {
       key: `fal:${model.endpoint_id}`,
       label: model.label,
@@ -613,12 +611,15 @@ async function syncFal(): Promise<{ entries: ModelCatalogEntry[]; priced: boolea
       kind: model.kind,
       price: falPrice(prices.get(model.endpoint_id)),
       sourceId: model.endpoint_id,
-      editSourceId,
+      editSourceId: capabilities.editSourceId,
       schemaUrl: null,
       supported: Boolean(modelId),
-      available: availability.available,
-      limitation: availability.limitation,
+      available: Boolean(modelId) || capabilities.available,
+      limitation: capabilities.limitation,
       modelId: modelId ?? null,
+      supportsImages: model.kind === 'image' ? capabilities.supportsImages : model.inputs.includes('Image'),
+      supportsText: capabilities.supportsText,
+      maxImages: model.kind === 'image' ? capabilities.maxImages : Math.max(1, capabilities.maxImages || 2),
     }
   })
   return { entries, priced }

@@ -1,8 +1,17 @@
 import { LORA_SCALE_DEFAULT, type ImageModelDefinition } from '@sunnygen/core'
 import { FAL_IMAGE_SPECS } from '../models'
+import {
+  acceptsObject,
+  conformBody,
+  enumValues,
+  isArrayProperty,
+  maxItemsOf,
+  parseOpenApi,
+  type RequestSchema,
+} from '../schema'
 import { gptImageSize } from '../sizes'
 import { ProviderError, type AdapterContext, type ProviderFlow, type ProviderRequest } from '../types'
-import { FAL_PLATFORM, requireFalKey, submitFalQueue, uploadFalAsset } from './client'
+import { requireFalKey, submitFalQueue, uploadFalAsset } from './client'
 
 const FAL_IMAGE_FIELDS = [
   'image_urls',
@@ -38,79 +47,18 @@ const SIZE_NAMES: Record<string, string[]> = {
   '21:9': ['landscape_16_9'],
 }
 
-interface FalRequestSchema {
+export interface FalRequestSchema {
+  path: string
   properties: Record<string, unknown>
+  required: string[]
+  closed: boolean
   components: Record<string, unknown>
-}
-
-interface FalModelsPayload {
-  models?: Array<{
-    endpoint_id?: string
-    openapi?: {
-      paths?: Record<
-        string,
-        {
-          post?: {
-            requestBody?: {
-              content?: {
-                'application/json'?: { schema?: unknown }
-              }
-            }
-          }
-        }
-      >
-      components?: { schemas?: Record<string, unknown> }
-    }
-  }>
 }
 
 const schemaCache = new Map<string, Promise<FalRequestSchema | null>>()
 
-function asRecord(value: unknown): Record<string, unknown> | null {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : null
-}
-
-function variants(
-  value: unknown,
-  components: Record<string, unknown>,
-  depth = 0,
-): Array<Record<string, unknown>> {
-  const record = asRecord(value)
-  if (!record || depth > 4) return []
-  if (typeof record.$ref === 'string') {
-    const name = record.$ref.split('/').pop()
-    return name && components[name] ? variants(components[name], components, depth + 1) : []
-  }
-  const nested: Array<Record<string, unknown>> = []
-  for (const key of ['anyOf', 'oneOf', 'allOf']) {
-    const list = record[key]
-    if (!Array.isArray(list)) continue
-    for (const entry of list) nested.push(...variants(entry, components, depth + 1))
-  }
-  return nested.length > 0 ? nested : [record]
-}
-
-function enumValues(property: unknown, components: Record<string, unknown>): string[] {
-  const values = new Set<string>()
-  for (const variant of variants(property, components)) {
-    if (!Array.isArray(variant.enum)) continue
-    for (const value of variant.enum) {
-      if (typeof value === 'string') values.add(value)
-    }
-  }
-  return [...values]
-}
-
-function acceptsObject(property: unknown, components: Record<string, unknown>): boolean {
-  return variants(property, components).some(
-    (variant) => variant.type === 'object' || asRecord(variant.properties) !== null,
-  )
-}
-
-function isArrayProperty(property: unknown, components: Record<string, unknown>): boolean {
-  return variants(property, components).some((variant) => variant.type === 'array')
+export function resetFalSchemaCache(): void {
+  schemaCache.clear()
 }
 
 function falSize(aspectRatio: string, quality: string): { width: number; height: number } | null {
@@ -136,47 +84,52 @@ function falSizeName(aspectRatio: string, allowed: string[]): string | undefined
   return allowed.includes(fallback) ? fallback : undefined
 }
 
+export function falOpenApiUrl(endpoint: string): string {
+  return `https://fal.ai/api/openapi/queue/openapi.json?endpoint_id=${encodeURIComponent(endpoint)}`
+}
+
+export function parseFalOpenApi(document: unknown): FalRequestSchema | null {
+  const parsed = parseOpenApi(document)
+  if (!parsed) return null
+  const path = Object.keys(parsed.paths).find((key) => !key.includes('{'))
+  const schema: RequestSchema | undefined = path ? parsed.paths[path] : undefined
+  if (!path || !schema) return null
+  return {
+    path,
+    properties: schema.properties,
+    required: schema.required,
+    closed: schema.closed,
+    components: parsed.components,
+  }
+}
+
 async function fetchFalSchema(context: AdapterContext, endpoint: string): Promise<FalRequestSchema | null> {
   const cached = schemaCache.get(endpoint)
   if (cached) return cached
 
   const pending = (async () => {
-    const key = requireFalKey(context)
     try {
-      const params = new URLSearchParams({ expand: 'openapi-3.0' })
-      params.append('endpoint_id', endpoint)
-      const response = await context.fetch(`${FAL_PLATFORM}/v1/models?${params}`, {
-        headers: { Authorization: `Key ${key}` },
+      const response = await context.fetch(falOpenApiUrl(endpoint), {
+        headers: { Accept: 'application/json' },
         signal: AbortSignal.timeout(15_000),
       })
       if (!response.ok) return null
-      const payload = (await response.json().catch(() => null)) as FalModelsPayload | null
-      const model = payload?.models?.find((entry) => entry.endpoint_id === endpoint) ?? payload?.models?.[0]
-      const paths = model?.openapi?.paths ?? {}
-      const pathKey = Object.keys(paths).find((key) => !key.includes('{') && paths[key]?.post)
-      const requestSchema = pathKey
-        ? paths[pathKey]?.post?.requestBody?.content?.['application/json']?.schema
-        : undefined
-      const record = asRecord(requestSchema)
-      const ref = typeof record?.$ref === 'string' ? record.$ref.split('/').pop() : undefined
-      const components = model?.openapi?.components?.schemas ?? {}
-      const resolved = ref && components[ref] ? asRecord(components[ref]) : record
-      const properties = asRecord(resolved?.properties)
-      return properties ? { properties, components } : null
+      return parseFalOpenApi(await response.json().catch(() => null))
     } catch {
       return null
     }
   })()
 
   schemaCache.set(endpoint, pending)
-  try {
-    const schema = await pending
-    if (!schema) schemaCache.delete(endpoint)
-    return schema
-  } catch (error) {
-    schemaCache.delete(endpoint)
-    throw error
-  }
+  const schema = await pending
+  if (!schema) schemaCache.delete(endpoint)
+  return schema
+}
+
+function fallbackPrompt(request: ProviderRequest, limit: number): string {
+  return request.prompt
+    .replace(/<<<image (\d+)>>>/gi, (_match, index: string) => `image ${index}`)
+    .slice(0, limit)
 }
 
 function buildFallbackBody(
@@ -186,14 +139,12 @@ function buildFallbackBody(
   spec?: (typeof FAL_IMAGE_SPECS)[string],
 ): Record<string, unknown> {
   const body: Record<string, unknown> = {
-    prompt: request.prompt
-      .replace(/<<<image (\d+)>>>/gi, (_match, index: string) => `image ${index}`)
-      .slice(0, spec?.promptMaxLength ?? 20_000),
+    prompt: fallbackPrompt(request, spec?.promptMaxLength ?? 20_000),
     num_images: 1,
     output_format: 'png',
   }
   if (urls.length > 0) {
-    if (spec) {
+    if (spec?.imageKey) {
       body[spec.imageKey] = spec.imageMode === 'single' ? urls[0] : urls.slice(0, model.maxImages)
     } else {
       body.image_urls = urls.slice(0, model.maxImages)
@@ -213,6 +164,15 @@ function buildFallbackBody(
   return body
 }
 
+function schemaImageField(
+  properties: Record<string, unknown>,
+  components: Record<string, unknown>,
+): { field: string; max: number | null } | null {
+  const field = FAL_IMAGE_FIELDS.find((name) => name in properties)
+  if (!field) return null
+  return { field, max: maxItemsOf(properties[field], components) }
+}
+
 function buildSchemaBody(
   model: ImageModelDefinition,
   request: ProviderRequest,
@@ -220,11 +180,8 @@ function buildSchemaBody(
   schema: FalRequestSchema,
 ): Record<string, unknown> {
   const { properties, components } = schema
-  const body: Record<string, unknown> = {
-    prompt: request.prompt
-      .replace(/<<<image (\d+)>>>/gi, (_match, index: string) => `image ${index}`)
-      .slice(0, 20_000),
-  }
+  const body: Record<string, unknown> = {}
+  if ('prompt' in properties) body.prompt = fallbackPrompt(request, 20_000)
   if ('num_images' in properties) body.num_images = 1
   if ('output_format' in properties) {
     const formats = enumValues(properties.output_format, components)
@@ -260,15 +217,20 @@ function buildSchemaBody(
   }
 
   if (urls.length > 0) {
-    const field = FAL_IMAGE_FIELDS.find((name) => name in properties)
-    if (!field) {
+    const image = schemaImageField(properties, components)
+    if (!image) {
       throw new ProviderError('fal', `${model.label} does not accept image inputs on this endpoint`)
     }
-    const array = isArrayProperty(properties[field], components) || /(urls|images)$/.test(field)
-    body[field] = array ? urls.slice(0, model.maxImages) : urls[0]
+    const array = isArrayProperty(properties[image.field], components) || /(urls|images)$/.test(image.field)
+    const max = Math.min(
+      image.max ?? model.maxImages,
+      model.maxImages > 0 ? model.maxImages : Number.POSITIVE_INFINITY,
+    )
+    const limit = Number.isFinite(max) ? max : urls.length
+    body[image.field] = array ? urls.slice(0, limit) : urls[0]
   }
   applyLoraWeights(body, request)
-  return body
+  return conformBody(body, schema, components)
 }
 
 function applyLoraWeights(body: Record<string, unknown>, request: ProviderRequest): void {
@@ -291,6 +253,7 @@ export const falImageFlow: ProviderFlow = {
       throw new ProviderError('fal', `${model.label} is not available on fal.ai`)
     }
 
+    requireFalKey(context)
     const urls = await Promise.all(request.assets.map((asset) => uploadFalAsset(context, asset)))
     const endpoint = dynamic
       ? urls.length > 0 && model.editSourceId
@@ -305,4 +268,27 @@ export const falImageFlow: ProviderFlow = {
       : buildFallbackBody(model, request, urls, spec)
     return submitFalQueue(context, endpoint, body, request.webhookUrl)
   },
+}
+
+export interface FalImageCapabilities {
+  supportsImages: boolean
+  supportsText: boolean
+  imageField: string | null
+  maxImages: number
+}
+
+export const DEFAULT_FAL_IMAGE_LIMIT = 10
+
+export function falImageCapabilities(schema: FalRequestSchema | null): FalImageCapabilities {
+  if (!schema) {
+    return { supportsImages: false, supportsText: false, imageField: null, maxImages: 0 }
+  }
+  const image = schemaImageField(schema.properties, schema.components)
+  const array = image ? isArrayProperty(schema.properties[image.field], schema.components) : false
+  return {
+    supportsImages: Boolean(image),
+    supportsText: 'prompt' in schema.properties,
+    imageField: image?.field ?? null,
+    maxImages: image ? (image.max ?? (array ? DEFAULT_FAL_IMAGE_LIMIT : 1)) : 0,
+  }
 }

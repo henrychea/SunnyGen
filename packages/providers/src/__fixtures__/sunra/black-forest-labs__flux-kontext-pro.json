@@ -1,0 +1,153 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Black Forest Labs API",
+    "docs": "https://oapi.sunra.ai/main/black-forest-labs/flux-kontext-pro/ddf6cb742904d9f8bc15081a014eb7c7ba010943.json"
+  },
+  "paths": {
+    "/black-forest-labs/flux-kontext-pro/text-to-image": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "prompt": {
+                    "type": "string"
+                  },
+                  "seed": {
+                    "type": "integer",
+                    "maximum": 2147483647.0,
+                    "minimum": 0.0
+                  },
+                  "guidance_scale": {
+                    "type": "number",
+                    "maximum": 20.0,
+                    "minimum": 1.0,
+                    "default": 3.5
+                  },
+                  "output_format": {
+                    "type": "string",
+                    "enum": ["jpeg", "jpg", "png"],
+                    "default": "jpeg"
+                  },
+                  "aspect_ratio": {
+                    "type": "string",
+                    "enum": ["21:9", "16:9", "4:3", "3:2", "1:1", "2:3", "3:4", "9:16", "9:21"],
+                    "default": "16:9"
+                  }
+                },
+                "type": "object",
+                "required": ["prompt"]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/black-forest-labs/flux-kontext-pro/image-to-image": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "prompt": {
+                    "type": "string"
+                  },
+                  "seed": {
+                    "type": "integer",
+                    "maximum": 2147483647.0,
+                    "minimum": 0.0
+                  },
+                  "guidance_scale": {
+                    "type": "number",
+                    "maximum": 20.0,
+                    "minimum": 1.0,
+                    "default": 3.5
+                  },
+                  "output_format": {
+                    "type": "string",
+                    "enum": ["jpeg", "jpg", "png"],
+                    "default": "jpeg"
+                  },
+                  "image": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 2083,
+                        "minLength": 1,
+                        "format": "uri"
+                      },
+                      {
+                        "type": "string"
+                      }
+                    ]
+                  }
+                },
+                "type": "object",
+                "required": ["prompt", "image"]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/black-forest-labs/flux-kontext-pro/reference-images-to-image": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "prompt": {
+                    "type": "string"
+                  },
+                  "seed": {
+                    "type": "integer",
+                    "maximum": 2147483647.0,
+                    "minimum": 0.0
+                  },
+                  "guidance_scale": {
+                    "type": "number",
+                    "maximum": 20.0,
+                    "minimum": 1.0,
+                    "default": 3.5
+                  },
+                  "output_format": {
+                    "type": "string",
+                    "enum": ["jpeg", "jpg", "png"],
+                    "default": "jpeg"
+                  },
+                  "reference_images": {
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "maxLength": 2083,
+                          "minLength": 1,
+                          "format": "uri"
+                        },
+                        {
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "type": "array"
+                  },
+                  "aspect_ratio": {
+                    "type": "string",
+                    "enum": ["21:9", "16:9", "4:3", "3:2", "1:1", "2:3", "3:4", "9:16", "9:21"],
+                    "default": "16:9"
+                  }
+                },
+                "type": "object",
+                "required": ["prompt", "reference_images"]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

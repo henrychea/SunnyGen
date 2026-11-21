@@ -1,0 +1,75 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "FIBO 2 API",
+    "docs": "https://oapi.sunra.ai/main/bria/fibo-2/ddf6cb742904d9f8bc15081a014eb7c7ba010943.json"
+  },
+  "paths": {
+    "/bria/fibo-2/text-to-image": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "prompt": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 4000
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "aspect_ratio": {
+                    "type": "string",
+                    "enum": [
+                      "1:1",
+                      "1:2",
+                      "1:3",
+                      "1:4",
+                      "1:5",
+                      "2:1",
+                      "2:3",
+                      "3:1",
+                      "3:2",
+                      "3:4",
+                      "4:1",
+                      "4:3",
+                      "4:5",
+                      "5:1",
+                      "5:4",
+                      "9:16",
+                      "9:21",
+                      "10:16",
+                      "16:9",
+                      "16:10",
+                      "21:9"
+                    ],
+                    "default": "1:1"
+                  },
+                  "seed": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "maximum": 2147483647.0,
+                        "minimum": 0.0
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "type": "object",
+                "required": []
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
