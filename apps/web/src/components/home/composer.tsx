@@ -41,6 +41,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { submitGeneration } from '~/server/generation.functions'
 import { createFolderFn } from '~/server/library.functions'
 import { ModelCombobox } from '~/components/model-combobox'
+import { AspectRatioSelector, QualitySelector } from '~/components/generation-selectors'
+import { sortModelChoices } from '~/lib/model-choices'
 import { buildEditPrompt, orderEditAssets } from '~/lib/edit-prompt'
 import { editModeSwitch } from '~/lib/edit-mode'
 import {
@@ -95,25 +97,6 @@ function modelFor(id: string): ModelDefinition {
   return ALL_MODELS.find((entry) => entry.id === id) ?? (IMAGE_MODELS[0] as ModelDefinition)
 }
 
-function ratioName(value: string): string {
-  if (value === 'auto') return 'Automatic'
-  const names: Record<string, string> = {
-    '21:9': 'Cinematic',
-    '16:9': 'Widescreen',
-    '3:2': 'Landscape',
-    '4:3': 'Classic',
-    '5:4': 'Large format',
-    '1:1': 'Square',
-    '4:5': 'Portrait',
-    '3:4': 'Portrait',
-    '2:3': 'Portrait',
-    '9:16': 'Vertical',
-    '2:1': 'Banner',
-    '1:2': 'Tall',
-  }
-  return names[value] ?? `${value} ratio`
-}
-
 function resolutionName(value: string): string {
   const names: Record<string, string> = {
     '480p': 'SD',
@@ -122,30 +105,6 @@ function resolutionName(value: string): string {
     '4k': '4K UHD',
   }
   return names[value] ?? 'Resolution'
-}
-
-function RatioGlyph({ ratio }: { ratio: string }) {
-  if (ratio === 'auto') {
-    return (
-      <span className="text-ink/40 grid size-5 place-items-center text-[6px] font-semibold tracking-wide">
-        AUTO
-      </span>
-    )
-  }
-  const [width, height] = ratio.split(':').map(Number)
-  if (!width || !height) return <span className="size-5" />
-  const scale = 16 / Math.max(width, height)
-  return (
-    <span className="grid size-5 place-items-center" aria-hidden="true">
-      <span
-        className="border-ink/40 bg-ink/[0.03] rounded-[2px] border"
-        style={{
-          width: Math.max(6, Math.round(width * scale)),
-          height: Math.max(5, Math.round(height * scale)),
-        }}
-      />
-    </span>
-  )
 }
 
 export function HomeComposer({
@@ -221,16 +180,7 @@ export function HomeComposer({
 
   const isEdit = mode === 'edit'
   const { choices, catalogOnly } = useModelChoices()
-  const supportedCompanies = new Set(choices.map((entry) => entry.company))
-  const allChoices = [...choices, ...catalogOnly].sort(
-    (left, right) =>
-      Number(supportedCompanies.has(right.company)) - Number(supportedCompanies.has(left.company)) ||
-      Number(Boolean(right.definition?.supportsLora)) - Number(Boolean(left.definition?.supportsLora)) ||
-      left.company.localeCompare(right.company) ||
-      Number(right.supported) - Number(left.supported) ||
-      Number(left.disabled) - Number(right.disabled) ||
-      left.label.localeCompare(right.label),
-  )
+  const allChoices = sortModelChoices(choices, catalogOnly)
   const selectedChoice = allChoices.find((entry) => entry.modelId === modelId)
   const model = selectedChoice?.definition ?? modelFor(modelId)
   const isVideo = model.kind === 'video'
@@ -857,38 +807,21 @@ export function HomeComposer({
             />
 
             {!isVideo && model.supportsQuality ? (
-              <Selector
+              <QualitySelector
                 className="w-[78px] shrink-0"
-                size="sm"
                 value={quality}
+                options={model.qualityOptions}
                 disabled={busy}
-                ariaLabel="Quality"
-                options={model.qualityOptions.map((option) => ({
-                  key: option,
-                  label: option.toUpperCase(),
-                  description: 'Quality',
-                }))}
-                showTriggerDescription={false}
-                menuMinWidth={160}
-                onChange={(option) => setQuality(option.key)}
+                onChange={setQuality}
               />
             ) : null}
 
-            <Selector
+            <AspectRatioSelector
               className="w-[104px] shrink-0"
-              size="sm"
               value={ratio}
+              ratios={model.ratios}
               disabled={busy}
-              ariaLabel="Aspect ratio"
-              options={model.ratios.map((option) => ({
-                key: option,
-                label: option === 'auto' ? 'Auto' : option,
-                description: ratioName(option),
-                leading: <RatioGlyph ratio={option} />,
-              }))}
-              showTriggerDescription={false}
-              menuMinWidth={190}
-              onChange={(option) => setRatio(option.key)}
+              onChange={setRatio}
             />
 
             <AnimatePresence initial={false}>

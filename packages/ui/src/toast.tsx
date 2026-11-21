@@ -122,7 +122,7 @@ export function Toaster({ className }: { className?: string }) {
       aria-live="polite"
       aria-atomic="false"
       className={cn(
-        'pointer-events-none fixed inset-x-3 bottom-[184px] flex flex-col items-center gap-2 md:inset-x-auto md:right-6 md:bottom-[196px] md:items-end',
+        'pointer-events-none fixed inset-x-3 top-24 flex flex-col items-center gap-2 md:inset-x-auto md:top-6 md:right-6 md:items-end',
         LAYER.toast,
         className,
       )}

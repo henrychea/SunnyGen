@@ -8,18 +8,20 @@ import {
   validateStudioLook,
   type StudioAngle,
   type StudioGarmentInput,
+  type ModelDefinition,
 } from '@sunnygen/core'
 import {
   Badge,
   Button,
   Card,
   FadeImage,
-  Select,
+  Selector,
   Textarea,
   cn,
   motionFade,
   motionFast,
   motionSpring,
+  toast,
 } from '@sunnygen/ui'
 import { Camera, Check, ChevronDown, Loader2, Play, RotateCcw } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
@@ -29,7 +31,11 @@ import type { StudioItemDto, StudioLibrary } from '~/server/studio.functions'
 import { getGenerationView, submitGeneration } from '~/server/generation.functions'
 import { createFolderFn } from '~/server/library.functions'
 import { thumbSrcSet, thumbUrl } from '~/lib/media-thumbs'
-import { ModelCombobox } from '~/components/model-combobox'
+import { ModelCombobox, type ModelOption } from '~/components/model-combobox'
+import { AspectRatioSelector, QualitySelector } from '~/components/generation-selectors'
+import { sortModelChoices } from '~/lib/model-choices'
+import { describeReferenceTrim, reconcileParams } from '~/lib/model-params'
+import { trimStudioReferences } from '~/lib/studio-references'
 import { useModelChoices } from '~/lib/use-model-choices'
 
 interface AngleResult {
@@ -37,6 +43,12 @@ interface AngleResult {
   status: 'pending' | 'running' | 'done' | 'failed'
   url?: string
   error?: string
+}
+
+interface StudioSelection {
+  garmentIds: string[]
+  poseId: string
+  sceneId: string
 }
 
 function studioFolderName(): string {
@@ -86,11 +98,8 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
 
   const referenceCount = (avatar ? 1 : 0) + orderedGarments.length + (pose ? 1 : 0) + (hasSceneImage ? 1 : 0)
   const { choices, catalogOnly } = useModelChoices()
-  const modelOptions = [...choices, ...catalogOnly].filter(
-    (entry) =>
-      entry.kind === 'image' &&
-      Boolean(entry.definition?.supportsImages) &&
-      (entry.definition?.maxImages ?? 0) >= Math.max(1, referenceCount),
+  const modelOptions = sortModelChoices(choices, catalogOnly).filter(
+    (entry) => entry.kind === 'image' && Boolean(entry.definition?.supportsImages),
   )
   const model = modelOptions.find((entry) => entry.modelId === modelId)?.definition ?? null
 
@@ -98,7 +107,7 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
     ? 'Pick an avatar.'
     : orderedGarments.length === 0
       ? 'Add at least one garment.'
-      : (validation.blocking[0] ?? (!model ? 'No image model fits this many references.' : null))
+      : (validation.blocking[0] ?? (!model ? 'Pick an image model.' : null))
 
   const promptInput = {
     garments: orderedGarments.map((item, index) => ({
@@ -123,9 +132,13 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
 
   const toggleGarment = (item: StudioItemDto) => {
     if (!canToggleGarment(item)) return
-    setGarmentIds((current) =>
-      current.includes(item.id) ? current.filter((id) => id !== item.id) : [...current, item.id],
-    )
+    applySelection({
+      garmentIds: garmentIds.includes(item.id)
+        ? garmentIds.filter((id) => id !== item.id)
+        : [...garmentIds, item.id],
+      poseId,
+      sceneId,
+    })
   }
 
   const toggleAngle = (angle: StudioAngle) => {
@@ -135,6 +148,49 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
       }
       return normalizeAngles([...current, angle])
     })
+  }
+
+  const fitReferences = (definition: ModelDefinition, selection: StudioSelection): StudioSelection => {
+    const sceneItem = library.scenes.find((item) => item.id === selection.sceneId)
+    const hasScene = Boolean(sceneItem?.assetUrl)
+    const fitted = trimStudioReferences(
+      {
+        garmentCount: selection.garmentIds.length,
+        hasPose: selection.poseId !== 'none',
+        hasScene,
+      },
+      definition.maxImages,
+    )
+    if (fitted.removed === 0) return selection
+    toast(describeReferenceTrim(definition.label, definition.maxImages, fitted.removed), {
+      tone: 'warning',
+    })
+    return {
+      garmentIds: selection.garmentIds.slice(selection.garmentIds.length - fitted.garmentCount),
+      poseId: fitted.hasPose ? selection.poseId : 'none',
+      sceneId: hasScene && !fitted.hasScene ? 'none' : selection.sceneId,
+    }
+  }
+
+  const applySelection = (selection: StudioSelection, definition: ModelDefinition | null = model) => {
+    const fitted = definition ? fitReferences(definition, selection) : selection
+    setGarmentIds(fitted.garmentIds)
+    setPoseId(fitted.poseId)
+    setSceneId(fitted.sceneId)
+  }
+
+  const chooseModel = (entry: ModelOption) => {
+    const next = entry.definition
+    if (!next || next.kind !== 'image') return
+    setModelId(next.id)
+    const { params, changes } = reconcileParams(
+      { aspectRatio: ratio, quality, duration: 0, resolution: '', count: 1 },
+      next,
+    )
+    setRatio(params.aspectRatio)
+    setQuality(params.quality)
+    for (const change of changes) toast(change.message, { tone: 'warning' })
+    applySelection({ garmentIds, poseId, sceneId }, next)
   }
 
   const referenceIds: string[] = []
@@ -229,7 +285,7 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
   }
 
   return (
-    <div className="grid gap-5 xl:grid-cols-[1.25fr_0.75fr]">
+    <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.25fr_0.75fr]">
       <div className="flex flex-col gap-5">
         <Card className="p-4">
           <div className="mb-2 flex items-center justify-between">
@@ -380,24 +436,31 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
         <div className="grid gap-3 sm:grid-cols-2">
           <Card className="flex flex-col gap-2 p-4">
             <p className="text-ink/45 text-[11px] font-semibold tracking-[0.08em] uppercase">Pose</p>
-            <Select value={poseId} onChange={(event) => setPoseId(event.target.value)}>
-              <option value="none">Standing (no pose)</option>
-              {library.poses.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </Select>
+            <Selector
+              value={poseId}
+              size="sm"
+              disabled={running}
+              ariaLabel="Pose"
+              options={[
+                { key: 'none', label: 'Standing (no pose)' },
+                ...library.poses.map((item) => ({ key: item.id, label: item.name })),
+              ]}
+              onChange={(option) => applySelection({ garmentIds, poseId: option.key, sceneId })}
+            />
           </Card>
           <Card className="flex flex-col gap-2 p-4">
             <p className="text-ink/45 text-[11px] font-semibold tracking-[0.08em] uppercase">Scene</p>
-            <Select value={sceneId} onChange={(event) => setSceneId(event.target.value)}>
-              {library.scenes.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </Select>
+            <Selector
+              value={sceneId}
+              size="sm"
+              disabled={running}
+              ariaLabel="Scene"
+              options={[
+                { key: 'none', label: 'No scene' },
+                ...library.scenes.map((item) => ({ key: item.id, label: item.name })),
+              ]}
+              onChange={(option) => applySelection({ garmentIds, poseId, sceneId: option.key })}
+            />
           </Card>
         </div>
       </div>
@@ -446,41 +509,37 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
               <ModelCombobox
                 value={model?.id ?? ''}
                 options={modelOptions}
-                disabled={modelOptions.length === 0}
-                onChange={(entry) => {
-                  const next = entry.definition
-                  if (!next || next.kind !== 'image') return
-                  setModelId(next.id)
-                  setRatio(next.ratios.includes('3:4') ? '3:4' : (next.ratios[0] ?? '1:1'))
-                  setQuality(next.defaultQuality)
-                }}
+                size="sm"
+                className="w-full"
+                disabled={running || modelOptions.length === 0}
+                onChange={chooseModel}
               />
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <label className="flex flex-col gap-1.5">
+              <div className="flex flex-col gap-1.5">
                 <span className="text-ink/40 text-[9.5px] font-semibold tracking-[0.08em] uppercase">
                   Ratio
                 </span>
-                <Select value={ratio} onChange={(event) => setRatio(event.target.value)}>
-                  {(model?.ratios ?? ['3:4']).map((value) => (
-                    <option key={value} value={value}>
-                      {value}
-                    </option>
-                  ))}
-                </Select>
-              </label>
-              <label className="flex flex-col gap-1.5">
+                <AspectRatioSelector
+                  className="w-full"
+                  value={ratio}
+                  ratios={model?.ratios ?? ['3:4']}
+                  disabled={running}
+                  onChange={setRatio}
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
                 <span className="text-ink/40 text-[9.5px] font-semibold tracking-[0.08em] uppercase">
                   Quality
                 </span>
-                <Select value={quality} onChange={(event) => setQuality(event.target.value)}>
-                  {(model?.qualityOptions.length ? model.qualityOptions : ['1k']).map((value) => (
-                    <option key={value} value={value}>
-                      {value}
-                    </option>
-                  ))}
-                </Select>
-              </label>
+                <QualitySelector
+                  className="w-full"
+                  value={quality}
+                  options={model?.qualityOptions.length ? model.qualityOptions : ['1k']}
+                  disabled={running}
+                  onChange={setQuality}
+                />
+              </div>
             </div>
             <label className="flex flex-col gap-1.5">
               <span className="text-ink/40 text-[9.5px] font-semibold tracking-[0.08em] uppercase">

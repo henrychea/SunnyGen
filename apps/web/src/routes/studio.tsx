@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import type { StudioKind } from '@sunnygen/core'
-import { Button, cn, motionFast, motionSpring, motionTransition, Skeleton } from '@sunnygen/ui'
+import { Button, cn, motionFast, motionSpring, motionTransition, Selector, Skeleton } from '@sunnygen/ui'
 import { PackagePlus, Plus } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { PageBody, PageHeader, PageScroll } from '~/components/app-shell'
@@ -167,6 +167,15 @@ function StudioPage() {
     scenes: data.scenes.length,
     models: runList.length,
   }
+  const tabOptions = TABS.map((entry) => {
+    if (entry.id === 'look') return { key: entry.id, label: entry.label }
+    const count = counts[entry.id]
+    return {
+      key: entry.id,
+      label: entry.label,
+      description: `${count} ${count === 1 ? 'item' : 'items'}`,
+    }
+  })
 
   const activeKind = tab === 'look' || tab === 'models' ? null : TAB_KIND[tab]
   const loading = library.isPending && !data
@@ -208,7 +217,16 @@ function StudioPage() {
         }
       />
       <PageBody>
-        <div className="border-line bg-surface mb-5 inline-flex rounded-xl border p-0.5">
+        <div className="mb-5 sm:hidden">
+          <Selector
+            value={tab}
+            size="sm"
+            ariaLabel="Studio section"
+            options={tabOptions}
+            onChange={(option) => selectTab(option.key as Tab)}
+          />
+        </div>
+        <div className="border-line bg-surface mb-5 hidden rounded-xl border p-0.5 sm:inline-flex">
           {TABS.map((entry) => (
             <button
               key={entry.id}

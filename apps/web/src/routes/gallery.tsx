@@ -17,6 +17,7 @@ import { Columns3, LayoutGrid, Loader2, RefreshCw, Sparkles, X } from 'lucide-re
 import { AnimatePresence, motion } from 'motion/react'
 import { PageBody, PageHeader, PageScroll } from '~/components/app-shell'
 import { GalleryCard, GalleryWallTile } from '~/components/gallery-card'
+import { FolderChips } from '~/components/folder-chips'
 import { CleanupFailedButton } from '~/components/cleanup-failed'
 import { FailureActions } from '~/components/failure-actions'
 import { GenerateDialog } from '~/components/generate-dialog'
@@ -87,7 +88,7 @@ function GalleryPage() {
 
   const items = gallery.data ?? []
   const folderOptions = [
-    { id: 'all', label: 'Everything' },
+    { id: 'all', label: 'All' },
     { id: 'unfiled', label: 'Unfiled' },
     ...(folders.data ?? []).map((folder) => ({ id: folder.id, label: folder.name })),
   ]
@@ -230,27 +231,13 @@ function GalleryPage() {
               </motion.div>
             ) : null}
           </AnimatePresence>
-          <div className="mb-4 flex flex-wrap gap-1.5">
-            {folderOptions.map((folder) => (
-              <button
-                key={folder.id}
-                type="button"
-                onClick={() => selectFolder(folder.id)}
-                className={cn(
-                  'relative rounded-lg px-2.5 py-1.5 text-[11px] font-medium transition-colors duration-150 ease-out active:scale-[0.96] motion-reduce:active:scale-100',
-                  folderId === folder.id ? 'text-canvas' : 'bg-surface text-ink/50 hover:text-ink',
-                )}
-              >
-                {folderId === folder.id ? (
-                  <motion.span
-                    layoutId="gallery-folder-pill"
-                    transition={motionSpring}
-                    className="bg-ink absolute inset-0 rounded-lg"
-                  />
-                ) : null}
-                <span className="relative">{folder.label}</span>
-              </button>
-            ))}
+          <div className="mb-4">
+            <FolderChips
+              items={folderOptions}
+              activeId={folderId}
+              onSelect={selectFolder}
+              layoutId="gallery-folder-pill"
+            />
           </div>
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
             <div className="border-line bg-surface inline-flex rounded-xl border p-0.5">
