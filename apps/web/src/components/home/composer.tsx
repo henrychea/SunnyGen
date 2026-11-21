@@ -5,6 +5,7 @@ import {
   LORA_SCALE_MAX,
   LORA_SCALE_MIN,
   VIDEO_MODELS,
+  editProfile,
   type ModelDefinition,
 } from '@sunnygen/core'
 import { useQueryClient } from '@tanstack/react-query'
@@ -333,12 +334,13 @@ export function HomeComposer({
       assetIds: reference.assetIds ?? [reference.id],
       avatar: reference.avatar === true,
     }))
+    const profile = editProfile(model.id)
 
     const jobs =
       mode === 'edit'
         ? editTargets.map((target) => ({
-            prompt: buildEditPrompt(prompt, editReferencePlan),
-            assetIds: orderEditAssets(editReferencePlan, target.id),
+            prompt: buildEditPrompt(prompt, editReferencePlan, profile),
+            assetIds: orderEditAssets(editReferencePlan, target.id, profile),
           }))
         : (() => {
             const blocks = multi

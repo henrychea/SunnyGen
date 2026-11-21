@@ -1,5 +1,6 @@
 export * from './assistant'
 export * from './domain'
+export * from './edit-references'
 export * from './generation'
 export * from './models'
 export * from './net'

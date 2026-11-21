@@ -61,6 +61,19 @@ export function isArrayProperty(property: unknown, components: Record<string, un
   return propertyType(property, components) === 'array'
 }
 
+const BASE_IMAGE_FIELDS = ['image_url', 'input_image_url', 'input_image', 'image'] as const
+
+export function baseImageField(
+  properties: Record<string, unknown>,
+  components: Record<string, unknown>,
+  excluded: string,
+): string | null {
+  const field = BASE_IMAGE_FIELDS.find(
+    (name) => name !== excluded && name in properties && !isArrayProperty(properties[name], components),
+  )
+  return field ?? null
+}
+
 export function acceptsObject(property: unknown, components: Record<string, unknown>): boolean {
   return propertyType(property, components) === 'object'
 }
