@@ -10,10 +10,11 @@ import {
   schemaValue,
 } from '../schema'
 import { boundedImageSize } from '../sizes'
-import { ProviderError, type AdapterContext, type ProviderFlow, type ProviderRequest } from '../types'
+import { ProviderError, type ProviderFlow, type ProviderRequest } from '../types'
 import { SUNRA_BASE, cleanSunraPrompt, submitSunraQueue, uploadSunraAsset } from './client'
 import {
   fetchSunraSchema,
+  sunraEditEndpoint,
   sunraImageField,
   sunraImageOperations,
   type SunraModelSchema,
@@ -131,23 +132,20 @@ function fallbackBody(
 }
 
 async function buildImageRequest(
-  context: AdapterContext,
   request: ProviderRequest,
   urls: string[],
+  alias: string,
+  spec: SunraImageSpec | undefined,
+  schema: SunraModelSchema | null,
 ): Promise<{ endpoint: string; body: Record<string, unknown> }> {
   const model = request.model as ImageModelDefinition
-  const spec = SUNRA_IMAGE_SPECS[model.id]
-  const alias = specAlias(model, spec)
-  if (!alias) throw new ProviderError('sunra', `${model.label} is not available on Sunra`)
-
   const hasImages = urls.length > 0
-  const schema = await fetchSunraSchema(context, alias, model.schemaUrl)
   if (schema) {
     const operations = sunraImageOperations(schema)
     const operation = hasImages ? operations.edit : operations.text
     if (!operation) {
       const reason = hasImages
-        ? `${model.label} has no image edit endpoint on Sunra.ai`
+        ? `${model.label} can't edit images. Pick a model that supports Edit.`
         : `${model.label} only works from a reference image on Sunra.ai`
       throw new ProviderError('sunra', reason)
     }
@@ -166,9 +164,18 @@ async function buildImageRequest(
 
   const operation = hasImages ? spec.imageOperation : spec.textOperation
   return {
-    endpoint: `${SUNRA_BASE}/queue/${spec.apiId}/${operation}`,
+    endpoint: `${SUNRA_BASE}/queue/${alias}/${operation}`,
     body: fallbackBody(request, urls, model, spec),
   }
+}
+
+export function sunraEditSupported(
+  schema: SunraModelSchema | null,
+  spec: SunraImageSpec | undefined,
+): boolean {
+  if (!schema) return Boolean(spec?.imageOperation)
+  if (!sunraImageOperations(schema).edit) return false
+  return schema.endpoints.length === 0 || sunraEditEndpoint(schema.endpoints) !== null
 }
 
 export const sunraImageFlow: ProviderFlow = {
@@ -176,8 +183,24 @@ export const sunraImageFlow: ProviderFlow = {
   kind: 'image',
   matches: (model) => model.kind === 'image',
   async submit(context, request) {
+    const model = request.model as ImageModelDefinition
+    const spec = SUNRA_IMAGE_SPECS[model.id]
+    const alias = specAlias(model, spec)
+    if (!alias) throw new ProviderError('sunra', `${model.label} is not available on Sunra`)
+
+    const schema = await fetchSunraSchema(context, alias, model.schemaUrl)
+    if (!schema && !spec) {
+      throw new ProviderError(
+        'sunra',
+        `${model.label} has no documented request schema on Sunra.ai right now. Try again or pick another model.`,
+      )
+    }
+    if (request.assets.length > 0 && !sunraEditSupported(schema, spec)) {
+      throw new ProviderError('sunra', `${model.label} can't edit images. Pick a model that supports Edit.`)
+    }
+
     const urls = await Promise.all(request.assets.map((asset) => uploadSunraAsset(context, asset)))
-    const { endpoint, body } = await buildImageRequest(context, request, urls)
+    const { endpoint, body } = await buildImageRequest(request, urls, alias, spec, schema)
     return submitSunraQueue(context, endpoint, body, request.webhookUrl)
   },
 }

@@ -181,7 +181,7 @@ test('Sunra image requests follow each model OpenAPI document', async (t) => {
             params: {},
             assets: [imageAsset(1)],
           }),
-          /edit endpoint|does not accept reference images/i,
+          /edit endpoint|does not accept reference images|can't edit images/i,
         )
         assert.equal(mock.queueCalls().length, 0)
         return
