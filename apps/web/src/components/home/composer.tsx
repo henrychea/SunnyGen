@@ -4,11 +4,14 @@ import {
   LORA_SCALE_DEFAULT,
   LORA_SCALE_MAX,
   LORA_SCALE_MIN,
+  DEFAULT_IMAGE_LIMITS,
   VIDEO_MODELS,
+  editProfile,
   type ModelDefinition,
 } from '@sunnygen/core'
 import { useQueryClient } from '@tanstack/react-query'
 import {
+  Badge,
   FadeImage,
   Selector,
   cn,
@@ -58,10 +61,31 @@ import {
 } from '~/lib/reference-images'
 import type { ReferenceAvatar } from '~/lib/reference-avatar'
 import { useModelChoices } from '~/lib/use-model-choices'
+import { oversizedReferences, referenceIsOversized, shouldConfirmResize } from '~/lib/oversized-images'
+import { ResizeImagesDialog } from '~/components/resize-images-dialog'
 import { ReferencePicker } from './reference-picker'
 
 const PROMPT_LIMIT = 20_000
 const MAX_BATCH = 8
+const SKIP_RESIZE_KEY = 'sunnygen.resize-large-images.skip'
+
+function readSkipResize(): boolean {
+  try {
+    return localStorage.getItem(SKIP_RESIZE_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+function rememberSkipResize(): boolean {
+  try {
+    localStorage.setItem(SKIP_RESIZE_KEY, '1')
+    return true
+  } catch {
+    return false
+  }
+}
+
 const ALL_MODELS = [...IMAGE_MODELS, ...VIDEO_MODELS]
 
 type ComposerMode = 'generate' | 'edit'
@@ -155,6 +179,9 @@ export function HomeComposer({
             avatar: true,
             avatarId: initialAvatar.avatarId,
             lora: initialAvatar.lora,
+            byteSize: initialAvatar.byteSize,
+            width: initialAvatar.width,
+            height: initialAvatar.height,
           },
         ]
       : [],
@@ -165,6 +192,9 @@ export function HomeComposer({
   const [expanded, setExpanded] = useState(false)
   const [minimized, setMinimized] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [resizePrompt, setResizePrompt] = useState<ReferenceItem[] | null>(null)
+  const [skipResizePrompt, setSkipResizePrompt] = useState(readSkipResize)
+  const resizeBypass = useRef(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [typing, setTyping] = useState(false)
@@ -327,17 +357,28 @@ export function HomeComposer({
       return
     }
 
+    const bypassResize = resizeBypass.current
+    resizeBypass.current = false
+    if (!bypassResize) {
+      const attached = mode === 'edit' ? [...editTargets, ...editReferences] : references
+      if (shouldConfirmResize(attached, { suppressed: skipResizePrompt })) {
+        setResizePrompt(oversizedReferences(attached))
+        return
+      }
+    }
+
     const editReferencePlan = editReferences.map((reference) => ({
       id: reference.id,
       assetIds: reference.assetIds ?? [reference.id],
       avatar: reference.avatar === true,
     }))
+    const profile = editProfile(model.id)
 
     const jobs =
       mode === 'edit'
         ? editTargets.map((target) => ({
-            prompt: buildEditPrompt(prompt, editReferencePlan),
-            assetIds: orderEditAssets(editReferencePlan, target.id),
+            prompt: buildEditPrompt(prompt, editReferencePlan, profile),
+            assetIds: orderEditAssets(editReferencePlan, target.id, profile),
           }))
         : (() => {
             const blocks = multi
@@ -1036,6 +1077,21 @@ export function HomeComposer({
           />
         ) : null}
       </AnimatePresence>
+
+      <ResizeImagesDialog
+        open={resizePrompt !== null}
+        items={resizePrompt ?? []}
+        limits={DEFAULT_IMAGE_LIMITS}
+        onOpenChange={(open) => {
+          if (!open) setResizePrompt(null)
+        }}
+        onConfirm={(dontAskAgain) => {
+          if (dontAskAgain) setSkipResizePrompt(rememberSkipResize())
+          setResizePrompt(null)
+          resizeBypass.current = true
+          void generate()
+        }}
+      />
     </>
   )
 }
@@ -1095,6 +1151,16 @@ function SelectionBox({
                 <span className="bg-accent text-canvas absolute bottom-0 left-0 rounded-tr px-1 py-px text-[7px] font-semibold tracking-[0.04em] uppercase">
                   LoRA
                 </span>
+              ) : null}
+              {referenceIsOversized(item) ? (
+                <Badge
+                  tone="warning"
+                  title="Larger than providers accept; will be resized"
+                  aria-label="Larger than providers accept; will be resized"
+                  className="absolute top-0.5 left-0.5 px-1 py-px text-[7px]"
+                >
+                  Large
+                </Badge>
               ) : null}
               <button
                 type="button"

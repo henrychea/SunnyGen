@@ -40,7 +40,14 @@ function assetLabel(asset: PublicAsset): string {
 }
 
 function assetItem(asset: PublicAsset): ReferenceItem {
-  return { id: asset.id, name: assetLabel(asset), url: asset.url }
+  return {
+    id: asset.id,
+    name: assetLabel(asset),
+    url: asset.url,
+    byteSize: asset.byteSize,
+    width: asset.width,
+    height: asset.height,
+  }
 }
 
 const SKELETON_TILES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
@@ -169,6 +176,9 @@ export function ReferencePicker({
         avatar: true,
         avatarId: avatar.avatarId,
         lora: avatar.lora,
+        byteSize: avatar.byteSize,
+        width: avatar.width,
+        height: avatar.height,
       })),
       uploads: allAssets.filter((asset) => asset.source === 'upload').map(assetItem),
       assets: allAssets
@@ -246,7 +256,7 @@ export function ReferencePicker({
         form.set('file', file)
         const response = await fetch('/api/upload', { method: 'POST', body: form })
         const payload = (await response.json().catch(() => null)) as {
-          asset?: { id: string; url: string; kind: string }
+          asset?: PublicAsset
           error?: string
         } | null
         if (!response.ok || !payload?.asset) {
@@ -257,6 +267,9 @@ export function ReferencePicker({
             id: payload.asset.id,
             name: `Upload · ${new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`,
             url: payload.asset.url,
+            byteSize: payload.asset.byteSize,
+            width: payload.asset.width,
+            height: payload.asset.height,
           })
         }
       }

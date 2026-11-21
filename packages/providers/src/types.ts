@@ -48,11 +48,23 @@ export interface ProviderJob {
   kind: GenerationKind
 }
 
+export interface ProviderUpload {
+  url: string
+  expiresAt: number | null
+}
+
+export interface ProviderUploadCache {
+  get(provider: ProviderId, sha256: string): ProviderUpload | null
+  save(provider: ProviderId, sha256: string, url: string, expiresAt: number | null): void
+  remove(provider: ProviderId, sha256: string): void
+}
+
 export interface AdapterContext {
   apiKey: string | null
   baseUrl: string | null
   deployment: string | null
   fetch: typeof fetch
+  uploads?: ProviderUploadCache | null
 }
 
 export interface ProviderAdapter {

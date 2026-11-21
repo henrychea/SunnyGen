@@ -1,6 +1,6 @@
-import { createHash } from 'node:crypto'
 import type { GenerationKind } from '@sunnygen/core'
 import { downloadOutput, errorMessage, responseError } from '../http'
+import { normalizeAsset } from '../normalize'
 import {
   ProviderError,
   type AdapterContext,
@@ -10,6 +10,14 @@ import {
   type ProviderPoll,
   type ProviderSubmit,
 } from '../types'
+import {
+  FAL_UPLOAD_TTL,
+  assetSha256,
+  cachedUpload,
+  forgetUploads,
+  isUrlRejection,
+  rememberUpload,
+} from '../uploads'
 import { falWebhook } from './webhook'
 
 export const FAL_QUEUE = process.env.FAL_QUEUE_BASE?.replace(/\/$/, '') ?? 'https://queue.fal.run'
@@ -17,6 +25,10 @@ export const FAL_REST = process.env.FAL_REST_BASE?.replace(/\/$/, '') ?? 'https:
 export const FAL_PLATFORM = process.env.FAL_PLATFORM_BASE?.replace(/\/$/, '') ?? 'https://api.fal.ai'
 
 const uploadCache = new Map<string, Promise<string>>()
+
+export function resetFalUploadCache(): void {
+  uploadCache.clear()
+}
 
 export function requireFalKey(context: AdapterContext): string {
   if (!context.apiKey) {
@@ -27,15 +39,18 @@ export function requireFalKey(context: AdapterContext): string {
 
 export async function uploadFalAsset(context: AdapterContext, asset: ProviderAsset): Promise<string> {
   const key = requireFalKey(context)
-  const hash = createHash('sha256').update(asset.buffer).digest('hex')
+  const normalized = await normalizeAsset(asset)
+  const hash = assetSha256(normalized)
   const cached = uploadCache.get(hash)
   if (cached) return cached
+  const stored = cachedUpload(context, 'fal', hash)
+  if (stored) return stored
 
   const pending = (async () => {
     const initiate = await context.fetch(`${FAL_REST}/storage/upload/initiate?storage_type=fal-cdn-v3`, {
       method: 'POST',
       headers: { Authorization: `Key ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content_type: asset.mime, file_name: asset.fileName }),
+      body: JSON.stringify({ content_type: normalized.mime, file_name: normalized.fileName }),
       signal: AbortSignal.timeout(30_000),
     })
     if (!initiate.ok) {
@@ -51,11 +66,12 @@ export async function uploadFalAsset(context: AdapterContext, asset: ProviderAss
     }
     const put = await context.fetch(initiated.upload_url, {
       method: 'PUT',
-      headers: { 'Content-Type': asset.mime },
-      body: new Uint8Array(asset.buffer),
+      headers: { 'Content-Type': normalized.mime },
+      body: new Uint8Array(normalized.buffer),
       signal: AbortSignal.timeout(120_000),
     })
     if (!put.ok) throw new ProviderError('fal', `fal upload failed (${put.status})`, put.status)
+    rememberUpload(context, 'fal', hash, initiated.file_url, FAL_UPLOAD_TTL)
     return initiated.file_url
   })()
 
@@ -119,6 +135,7 @@ export async function submitFalQueue(
   endpoint: string,
   body: Record<string, unknown>,
   webhookUrl?: string | null,
+  assets: ProviderAsset[] = [],
 ): Promise<ProviderSubmit> {
   const key = requireFalKey(context)
   const url = new URL(`${FAL_QUEUE}/${endpoint}`)
@@ -133,7 +150,9 @@ export async function submitFalQueue(
   if (!response.ok) {
     const detail = await responseError(response, `fal error ${response.status}`)
     const message = response.status === 401 ? `fal rejected the request (401): ${detail}` : detail
-    throw new ProviderError('fal', message, response.status)
+    const error = new ProviderError('fal', message, response.status)
+    if (isUrlRejection(error)) await forgetUploads(context, 'fal', assets)
+    throw error
   }
 
   const created = (await response.json()) as {

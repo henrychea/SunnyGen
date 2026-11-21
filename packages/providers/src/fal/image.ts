@@ -1,7 +1,8 @@
-import { LORA_SCALE_DEFAULT, type ImageModelDefinition } from '@sunnygen/core'
+import { LORA_SCALE_DEFAULT, editProfile, type ImageModelDefinition } from '@sunnygen/core'
 import { FAL_IMAGE_SPECS } from '../models'
 import {
   acceptsObject,
+  baseImageField,
   conformBody,
   enumValues,
   isArrayProperty,
@@ -127,9 +128,7 @@ async function fetchFalSchema(context: AdapterContext, endpoint: string): Promis
 }
 
 function fallbackPrompt(request: ProviderRequest, limit: number): string {
-  return request.prompt
-    .replace(/<<<image (\d+)>>>/gi, (_match, index: string) => `image ${index}`)
-    .slice(0, limit)
+  return request.prompt.replace(/<<<(@?image ?\d+)>>>/gi, (_match, token: string) => token).slice(0, limit)
 }
 
 function buildFallbackBody(
@@ -227,7 +226,13 @@ function buildSchemaBody(
       model.maxImages > 0 ? model.maxImages : Number.POSITIVE_INFINITY,
     )
     const limit = Number.isFinite(max) ? max : urls.length
-    body[image.field] = array ? urls.slice(0, limit) : urls[0]
+    const base = array ? baseImageField(properties, components, image.field) : null
+    if (base && urls.length > 1 && editProfile(model.id).target === 'first') {
+      body[base] = urls[0]
+      body[image.field] = urls.slice(1, limit)
+    } else {
+      body[image.field] = array ? urls.slice(0, limit) : urls[0]
+    }
   }
   applyLoraWeights(body, request)
   return conformBody(body, schema, components)
@@ -270,7 +275,7 @@ export const falImageFlow: ProviderFlow = {
     const body = schema
       ? buildSchemaBody(model, request, urls, schema)
       : buildFallbackBody(model, request, urls, spec)
-    return submitFalQueue(context, endpoint, body, request.webhookUrl)
+    return submitFalQueue(context, endpoint, body, request.webhookUrl, request.assets)
   },
 }
 

@@ -246,11 +246,36 @@ export interface ReferenceLibrary {
   assets: PublicAsset[]
 }
 
+function largestImage(assets: Array<{ byteSize: number; width: number | null; height: number | null }>): {
+  byteSize: number
+  width: number | null
+  height: number | null
+} {
+  return {
+    byteSize: assets.reduce((total, asset) => Math.max(total, asset.byteSize), 0),
+    width: assets.reduce<number | null>(
+      (best, asset) => (asset.width === null ? best : Math.max(best ?? 0, asset.width)),
+      null,
+    ),
+    height: assets.reduce<number | null>(
+      (best, asset) => (asset.height === null ? best : Math.max(best ?? 0, asset.height)),
+      null,
+    ),
+  }
+}
+
 export const loadReferenceLibrary = createServerFn({ method: 'GET', strict: false }).handler(
   (): ReferenceLibrary => ({
     avatars: listStudioItems('avatar').flatMap((item) => {
       const reference = referenceAvatar(item)
-      return reference ? [{ ...reference, url: assetUrl(reference.id) }] : []
+      if (!reference) return []
+      return [
+        {
+          ...reference,
+          url: assetUrl(reference.id),
+          ...largestImage(getAssetsByIds(reference.assetIds)),
+        },
+      ]
     }),
     assets: listAssets({
       kind: 'image',

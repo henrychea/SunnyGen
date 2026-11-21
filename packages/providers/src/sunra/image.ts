@@ -1,6 +1,7 @@
-import type { ImageModelDefinition } from '@sunnygen/core'
+import { type ImageModelDefinition, editProfile } from '@sunnygen/core'
 import { SUNRA_IMAGE_SPECS, type SunraImageSpec } from '../models'
 import {
+  baseImageField,
   conformBody,
   enumValues,
   isArrayProperty,
@@ -57,7 +58,14 @@ function schemaBody(
       model.maxImages > 0 ? model.maxImages : Number.POSITIVE_INFINITY,
     )
     const limit = Number.isFinite(max) ? max : urls.length
-    body[field] = isArrayProperty(properties[field], components) ? urls.slice(0, limit) : urls[0]
+    const array = isArrayProperty(properties[field], components)
+    const base = array ? baseImageField(properties, components, field) : null
+    if (base && urls.length > 1 && editProfile(model.id).target === 'first') {
+      body[base] = urls[0]
+      body[field] = urls.slice(1, limit)
+    } else {
+      body[field] = array ? urls.slice(0, limit) : urls[0]
+    }
   }
 
   if ('aspect_ratio' in properties) {
@@ -201,6 +209,6 @@ export const sunraImageFlow: ProviderFlow = {
 
     const urls = await Promise.all(request.assets.map((asset) => uploadSunraAsset(context, asset)))
     const { endpoint, body } = await buildImageRequest(request, urls, alias, spec, schema)
-    return submitSunraQueue(context, endpoint, body, request.webhookUrl)
+    return submitSunraQueue(context, endpoint, body, request.webhookUrl, request.assets)
   },
 }

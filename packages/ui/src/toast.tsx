@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { cn } from './cn'
+import { LAYER } from './layers'
 import { motionFadeRise } from './motion'
 
 export type ToastTone = 'info' | 'warning' | 'error'
@@ -121,7 +122,8 @@ export function Toaster({ className }: { className?: string }) {
       aria-live="polite"
       aria-atomic="false"
       className={cn(
-        'pointer-events-none fixed inset-x-3 bottom-[184px] z-[60] flex flex-col items-center gap-2 md:inset-x-auto md:right-6 md:bottom-[196px] md:items-end',
+        'pointer-events-none fixed inset-x-3 bottom-[184px] flex flex-col items-center gap-2 md:inset-x-auto md:right-6 md:bottom-[196px] md:items-end',
+        LAYER.toast,
         className,
       )}
     >
