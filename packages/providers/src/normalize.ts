@@ -1,17 +1,6 @@
+import { DEFAULT_IMAGE_LIMITS, isOversizedImage, type ImageLimits } from '@sunnygen/core'
 import sharp from 'sharp'
 import type { ProviderAsset } from './types'
-
-export interface ImageLimits {
-  bytes: number
-  side: number
-  pixels: number
-}
-
-export const DEFAULT_IMAGE_LIMITS: ImageLimits = {
-  bytes: 10 * 1024 * 1024,
-  side: 4096,
-  pixels: 16_800_000,
-}
 
 const ATTEMPTS = 6
 const SHRINK = 0.8
@@ -50,14 +39,8 @@ export async function normalizeAsset(
 
   const width = metadata.autoOrient.width
   const height = metadata.autoOrient.height
-  const withinLimits =
-    width > 0 &&
-    height > 0 &&
-    width <= limits.side &&
-    height <= limits.side &&
-    width * height <= limits.pixels &&
-    asset.buffer.byteLength <= limits.bytes
-  if (withinLimits) return asset
+  const oversized = isOversizedImage({ bytes: asset.buffer.byteLength, width, height }, limits)
+  if (width > 0 && height > 0 && !oversized) return asset
 
   let side = Math.min(limits.side, Math.max(width, height))
   let smallest: ProviderAsset | null = null

@@ -2,7 +2,8 @@ import assert from 'node:assert/strict'
 import { randomBytes } from 'node:crypto'
 import { test } from 'node:test'
 import sharp from 'sharp'
-import { DEFAULT_IMAGE_LIMITS, normalizeAsset } from './normalize'
+import { DEFAULT_IMAGE_LIMITS } from '@sunnygen/core'
+import { normalizeAsset } from './normalize'
 import type { ProviderAsset } from './types'
 
 function noise(width: number, height: number, channels: 3 | 4): Promise<Buffer> {

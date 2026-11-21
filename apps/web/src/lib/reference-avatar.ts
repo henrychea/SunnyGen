@@ -10,6 +10,9 @@ export interface AvatarReference {
 
 export interface ReferenceAvatar extends AvatarReference {
   url: string
+  byteSize?: number
+  width?: number | null
+  height?: number | null
 }
 
 export interface AvatarSource {

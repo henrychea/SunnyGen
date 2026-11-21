@@ -8,6 +8,9 @@ export interface ReferenceItem {
   avatar?: boolean
   avatarId?: string
   lora?: AvatarLora | null
+  byteSize?: number
+  width?: number | null
+  height?: number | null
 }
 
 export function referenceImageCount(items: ReferenceItem[]): number {
