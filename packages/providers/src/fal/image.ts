@@ -271,7 +271,7 @@ export const falImageFlow: ProviderFlow = {
     const body = schema
       ? buildSchemaBody(model, request, urls, schema)
       : buildFallbackBody(model, request, urls, spec)
-    return submitFalQueue(context, endpoint, body, request.webhookUrl)
+    return submitFalQueue(context, endpoint, body, request.webhookUrl, request.assets)
   },
 }
 

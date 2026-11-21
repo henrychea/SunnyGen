@@ -186,6 +186,6 @@ export const sunraImageFlow: ProviderFlow = {
   async submit(context, request) {
     const urls = await Promise.all(request.assets.map((asset) => uploadSunraAsset(context, asset)))
     const { endpoint, body } = await buildImageRequest(context, request, urls)
-    return submitSunraQueue(context, endpoint, body, request.webhookUrl)
+    return submitSunraQueue(context, endpoint, body, request.webhookUrl, request.assets)
   },
 }

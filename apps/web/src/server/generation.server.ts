@@ -6,7 +6,13 @@ import {
   type ModelDefinition,
   type ProviderId,
 } from '@sunnygen/core'
-import { getAssetsByIds, readSetting } from '@sunnygen/db'
+import {
+  deleteProviderUpload,
+  getAssetsByIds,
+  readProviderUpload,
+  readSetting,
+  saveProviderUpload,
+} from '@sunnygen/db'
 import {
   getAdapter,
   isCodexAvailable,
@@ -42,6 +48,11 @@ export function providerContext(provider: ProviderId): AdapterContext {
     baseUrl: provider === 'azure' ? readSetting('provider.azure.baseUrl') : null,
     deployment: provider === 'azure' ? readSetting('provider.azure.deployment') : null,
     fetch,
+    uploads: {
+      get: (target, sha256) => readProviderUpload(target, sha256),
+      save: (target, sha256, url, expiresAt) => saveProviderUpload(target, sha256, url, expiresAt),
+      remove: (target, sha256) => deleteProviderUpload(target, sha256),
+    },
   }
 }
 

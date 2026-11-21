@@ -20,6 +20,6 @@ export const falVideoFlow: ProviderFlow = {
     }
     if (urls[0]) body.image_url = urls[0]
     if (urls.length > 1) body.reference_image_urls = urls.slice(1, 1 + model.maxImages)
-    return submitFalQueue(context, model.sourceId, body, request.webhookUrl)
+    return submitFalQueue(context, model.sourceId, body, request.webhookUrl, request.assets)
   },
 }
