@@ -1,0 +1,115 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Nano Banana 2.1 API",
+    "docs": "https://oapi.sunra.ai/main/google/gemini-nano-banana-2.1/ddf6cb742904d9f8bc15081a014eb7c7ba010943.json"
+  },
+  "paths": {
+    "/google/gemini-nano-banana-2.1/text-to-image": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "prompt": {
+                    "type": "string"
+                  },
+                  "aspect_ratio": {
+                    "type": "string",
+                    "enum": [
+                      "1:1",
+                      "1:4",
+                      "1:8",
+                      "2:3",
+                      "3:2",
+                      "3:4",
+                      "4:1",
+                      "4:3",
+                      "4:5",
+                      "5:4",
+                      "8:1",
+                      "9:16",
+                      "16:9",
+                      "21:9"
+                    ],
+                    "default": "1:1"
+                  },
+                  "resolution": {
+                    "type": "string",
+                    "enum": ["1K", "2K", "4K"],
+                    "default": "1K"
+                  }
+                },
+                "type": "object",
+                "required": ["prompt"]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/google/gemini-nano-banana-2.1/image-editing": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "prompt": {
+                    "type": "string"
+                  },
+                  "images": {
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "maxLength": 2083,
+                          "minLength": 1,
+                          "format": "uri"
+                        },
+                        {
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "type": "array",
+                    "maxItems": 14,
+                    "minItems": 1
+                  },
+                  "aspect_ratio": {
+                    "type": "string",
+                    "enum": [
+                      "1:1",
+                      "1:4",
+                      "1:8",
+                      "2:3",
+                      "3:2",
+                      "3:4",
+                      "4:1",
+                      "4:3",
+                      "4:5",
+                      "5:4",
+                      "8:1",
+                      "9:16",
+                      "16:9",
+                      "21:9"
+                    ],
+                    "default": "1:1"
+                  },
+                  "resolution": {
+                    "type": "string",
+                    "enum": ["1K", "2K", "4K"],
+                    "default": "1K"
+                  }
+                },
+                "type": "object",
+                "required": ["prompt", "images"]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

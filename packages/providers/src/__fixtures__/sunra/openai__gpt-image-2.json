@@ -1,0 +1,197 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "GPT Image 2 API",
+    "docs": "https://oapi.sunra.ai/main/openai/gpt-image-2/ddf6cb742904d9f8bc15081a014eb7c7ba010943.json"
+  },
+  "paths": {
+    "/openai/gpt-image-2/text-to-image": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "prompt": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "n": {
+                    "type": "integer",
+                    "maximum": 10.0,
+                    "minimum": 1.0,
+                    "default": 1
+                  },
+                  "width": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "maximum": 3840.0,
+                        "minimum": 16.0
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "height": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "maximum": 3840.0,
+                        "minimum": 16.0
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "quality": {
+                    "type": "string",
+                    "enum": ["auto", "high", "medium", "low"],
+                    "default": "auto"
+                  },
+                  "background": {
+                    "type": "string",
+                    "enum": ["auto", "transparent", "opaque"],
+                    "default": "auto"
+                  },
+                  "output_format": {
+                    "type": "string",
+                    "enum": ["png", "jpeg"],
+                    "default": "png"
+                  },
+                  "output_compression": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "maximum": 100.0,
+                        "minimum": 0.0
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "type": "object",
+                "required": ["prompt"]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/openai/gpt-image-2/image-editing": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "prompt": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "n": {
+                    "type": "integer",
+                    "maximum": 10.0,
+                    "minimum": 1.0,
+                    "default": 1
+                  },
+                  "images": {
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "maxLength": 2083,
+                          "minLength": 1,
+                          "format": "uri"
+                        },
+                        {
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "type": "array",
+                    "maxItems": 16,
+                    "minItems": 1
+                  },
+                  "mask": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 2083,
+                        "minLength": 1,
+                        "format": "uri"
+                      },
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "width": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "maximum": 3840.0,
+                        "minimum": 16.0
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "height": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "maximum": 3840.0,
+                        "minimum": 16.0
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "quality": {
+                    "type": "string",
+                    "enum": ["auto", "high", "medium", "low"],
+                    "default": "auto"
+                  },
+                  "background": {
+                    "type": "string",
+                    "enum": ["auto", "transparent", "opaque"],
+                    "default": "auto"
+                  },
+                  "output_format": {
+                    "type": "string",
+                    "enum": ["png", "jpeg"],
+                    "default": "png"
+                  },
+                  "output_compression": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "maximum": 100.0,
+                        "minimum": 0.0
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "type": "object",
+                "required": ["prompt", "images"]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

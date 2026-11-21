@@ -1,0 +1,67 @@
+{
+  "provider": "azure",
+  "model": "gpt-image-2",
+  "docs": "https://learn.microsoft.com/en-us/azure/ai-foundry/openai/how-to/dall-e",
+  "apiVersion": "2025-04-01-preview",
+  "endpoints": {
+    "generate": {
+      "method": "POST",
+      "path": "/openai/deployments/{deployment}/images/generations",
+      "contentType": "application/json",
+      "fields": {
+        "prompt": { "type": "string", "required": true },
+        "n": { "type": "integer", "minimum": 1, "maximum": 10, "default": 1 },
+        "quality": { "type": "string", "enum": ["low", "medium", "high", "auto"], "default": "high" },
+        "output_format": { "type": "string", "enum": ["png", "jpeg"], "default": "png" },
+        "background": { "type": "string", "enum": ["transparent", "opaque", "auto"] },
+        "output_compression": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "size": {
+          "type": "string",
+          "allowAuto": true,
+          "pixelFormat": "WIDTHxHEIGHT",
+          "multipleOf": 16,
+          "maxEdge": 3840,
+          "minPixels": 655360,
+          "maxPixels": 8294400,
+          "maxAspect": 3
+        }
+      }
+    },
+    "edit": {
+      "method": "POST",
+      "path": "/openai/deployments/{deployment}/images/edits",
+      "contentType": "multipart/form-data",
+      "fields": {
+        "prompt": { "type": "string", "required": true },
+        "n": { "type": "integer", "minimum": 1, "maximum": 10, "default": 1 },
+        "quality": { "type": "string", "enum": ["low", "medium", "high", "auto"], "default": "high" },
+        "output_format": { "type": "string", "enum": ["png", "jpeg"], "default": "png" },
+        "background": { "type": "string", "enum": ["transparent", "opaque", "auto"] },
+        "input_fidelity": { "type": "string", "enum": ["low", "high"] },
+        "size": {
+          "type": "string",
+          "allowAuto": true,
+          "pixelFormat": "WIDTHxHEIGHT",
+          "multipleOf": 16,
+          "maxEdge": 3840,
+          "minPixels": 655360,
+          "maxPixels": 8294400,
+          "maxAspect": 3
+        }
+      },
+      "files": {
+        "image[]": {
+          "required": true,
+          "minFiles": 1,
+          "maxFiles": 16,
+          "types": ["image/png", "image/jpeg"]
+        },
+        "mask": {
+          "required": false,
+          "maxFiles": 1,
+          "types": ["image/png"]
+        }
+      }
+    }
+  }
+}

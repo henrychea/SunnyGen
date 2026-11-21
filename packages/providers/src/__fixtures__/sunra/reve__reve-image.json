@@ -1,0 +1,33 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Reve Image API",
+    "docs": "https://oapi.sunra.ai/main/reve/reve-image/ddf6cb742904d9f8bc15081a014eb7c7ba010943.json"
+  },
+  "paths": {
+    "/reve/reve-image/text-to-image": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "prompt": {
+                    "type": "string"
+                  },
+                  "aspect_ratio": {
+                    "type": "string",
+                    "enum": ["16:9", "9:16", "1:1", "4:3", "3:4", "3:2", "2:3"],
+                    "default": "3:2"
+                  }
+                },
+                "type": "object",
+                "required": ["prompt"]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

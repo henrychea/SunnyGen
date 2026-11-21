@@ -1,0 +1,158 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Kling v3 Standard API",
+    "docs": "https://oapi.sunra.ai/main/kling/kling-v3-standard/ddf6cb742904d9f8bc15081a014eb7c7ba010943.json"
+  },
+  "paths": {
+    "/kling/kling-v3-standard/text-to-video": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "prompt": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 2500
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "aspect_ratio": {
+                    "type": "string",
+                    "enum": ["16:9", "9:16", "1:1"],
+                    "default": "16:9"
+                  },
+                  "duration": {
+                    "type": "string",
+                    "enum": ["3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15"],
+                    "default": "5"
+                  },
+                  "generate_audio": {
+                    "type": "boolean",
+                    "default": true
+                  }
+                },
+                "type": "object",
+                "required": []
+              }
+            }
+          }
+        }
+      }
+    },
+    "/kling/kling-v3-standard/image-to-video": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "start_image_url": {
+                    "type": "string"
+                  },
+                  "prompt": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 2500
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "end_image_url": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "duration": {
+                    "type": "string",
+                    "enum": ["3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15"],
+                    "default": "5"
+                  },
+                  "generate_audio": {
+                    "type": "boolean",
+                    "default": true
+                  },
+                  "elements": {
+                    "anyOf": [
+                      {
+                        "items": {
+                          "properties": {
+                            "frontal_image_url": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "reference_image_urls": {
+                              "anyOf": [
+                                {
+                                  "items": {
+                                    "type": "string"
+                                  },
+                                  "type": "array"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "video_url": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "voice_id": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          },
+                          "type": "object",
+                          "title": "ComboElementInput"
+                        },
+                        "type": "array"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "type": "object",
+                "required": ["start_image_url"]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

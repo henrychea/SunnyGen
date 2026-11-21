@@ -69,46 +69,48 @@ export function gptImageSize(aspectRatio: string, quality: string): { width: num
   return { width, height }
 }
 
-const AZURE_SIZES: Record<string, Record<string, string>> = {
-  '1k': {
-    '1:1': '1024x1024',
-    '16:9': '1536x1024',
-    '9:16': '1024x1536',
-    '4:3': '1280x960',
-    '3:4': '960x1280',
-    '3:2': '1536x1024',
-    '2:3': '1024x1536',
-  },
-  '2k': {
-    '1:1': '2048x2048',
-    '16:9': '2048x1152',
-    '9:16': '1440x2560',
-    '4:3': '2048x1536',
-    '3:4': '1536x2048',
-    '3:2': '2048x1360',
-    '2:3': '1360x2048',
-  },
-  '4k': {
-    '1:1': '2880x2880',
-    '16:9': '3840x2160',
-    '9:16': '2160x3840',
-    '4:3': '3072x2304',
-    '3:4': '2304x3072',
-    '3:2': '3456x2304',
-    '2:3': '2304x3456',
-  },
+export const IMAGE_SIZE_MAX_SIDE = 3840
+export const IMAGE_SIZE_MAX_PIXELS = 8_294_400
+export const IMAGE_SIZE_MIN_PIXELS = 655_360
+
+export function boundedImageSize(
+  aspectRatio: string,
+  quality: string,
+): { width: number; height: number } | null {
+  const size = gptImageSize(aspectRatio, quality)
+  if (!size) return null
+  let width = Math.min(size.width, IMAGE_SIZE_MAX_SIDE)
+  let height = Math.min(size.height, IMAGE_SIZE_MAX_SIDE)
+  if (width * height > IMAGE_SIZE_MAX_PIXELS) {
+    const scale = Math.sqrt(IMAGE_SIZE_MAX_PIXELS / (width * height))
+    width = Math.floor((width * scale) / 16) * 16
+    height = Math.floor((height * scale) / 16) * 16
+  }
+  if (width * height < IMAGE_SIZE_MIN_PIXELS) {
+    const scale = Math.sqrt(IMAGE_SIZE_MIN_PIXELS / (width * height))
+    width = Math.ceil((width * scale) / 16) * 16
+    height = Math.ceil((height * scale) / 16) * 16
+  }
+  const longest = Math.max(width, height)
+  const shortest = Math.min(width, height)
+  if (longest / shortest > 3) {
+    height = Math.floor(height / 16) * 16
+    width = Math.floor(width / 16) * 16
+  }
+  if (width <= 0 || height <= 0) return null
+  return { width, height }
 }
 
-export function azureSize(aspectRatio: string, resolution: string): string {
-  const tier = AZURE_SIZES[resolution] ?? AZURE_SIZES['2k']
-  return tier?.[aspectRatio] ?? '1024x1024'
+export function sizeString(size: { width: number; height: number } | null): string | null {
+  return size ? `${size.width}x${size.height}` : null
 }
 
-export const CODEX_SIZE_MAP: Record<string, string> = {
-  auto: 'auto',
-  '1:1': '1024x1024',
-  '16:9': '1536x1024',
-  '9:16': '1024x1536',
-  '4:3': '1536x1024',
-  '3:4': '1024x1536',
+export function azureSize(aspectRatio: string, quality: string): string {
+  if (!aspectRatio || aspectRatio === 'auto') return 'auto'
+  return sizeString(boundedImageSize(aspectRatio, quality)) ?? '1024x1024'
+}
+
+export function codexSize(aspectRatio: string, quality: string): string {
+  if (!aspectRatio || aspectRatio === 'auto') return 'auto'
+  return sizeString(boundedImageSize(aspectRatio, quality)) ?? 'auto'
 }

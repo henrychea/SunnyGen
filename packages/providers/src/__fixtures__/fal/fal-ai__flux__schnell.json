@@ -1,0 +1,99 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/flux/schnell",
+    "docs": "https://fal.ai/api/openapi/queue/openapi.json?endpoint_id=fal-ai/flux/schnell"
+  },
+  "paths": {
+    "/fal-ai/flux/schnell": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "output_format": {
+                    "type": "string",
+                    "default": "jpeg",
+                    "enum": ["jpeg", "png"]
+                  },
+                  "image_size": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "height": {
+                            "type": "integer",
+                            "maximum": 14142,
+                            "exclusiveMinimum": 0,
+                            "default": 512
+                          },
+                          "width": {
+                            "type": "integer",
+                            "maximum": 14142,
+                            "exclusiveMinimum": 0,
+                            "default": 512
+                          }
+                        },
+                        "title": "ImageSize"
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "square_hd",
+                          "square",
+                          "portrait_4_3",
+                          "portrait_16_9",
+                          "landscape_4_3",
+                          "landscape_16_9"
+                        ]
+                      }
+                    ],
+                    "default": "landscape_4_3"
+                  },
+                  "enable_safety_checker": {
+                    "type": "boolean",
+                    "default": true
+                  },
+                  "num_images": {
+                    "type": "integer",
+                    "maximum": 4,
+                    "minimum": 1,
+                    "default": 1
+                  },
+                  "guidance_scale": {
+                    "type": "number",
+                    "maximum": 20,
+                    "minimum": 1,
+                    "default": 3.5
+                  },
+                  "num_inference_steps": {
+                    "type": "integer",
+                    "maximum": 12,
+                    "minimum": 1,
+                    "default": 4
+                  },
+                  "prompt": {
+                    "type": "string"
+                  },
+                  "seed": {
+                    "anyOf": [
+                      {
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "type": "object",
+                "required": ["prompt"]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

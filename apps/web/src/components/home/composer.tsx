@@ -19,6 +19,7 @@ import {
   motionPress,
   motionSpring,
   motionSwap,
+  toast,
 } from '@sunnygen/ui'
 import {
   ArrowUp,
@@ -38,6 +39,15 @@ import { submitGeneration } from '~/server/generation.functions'
 import { createFolderFn } from '~/server/library.functions'
 import { ModelCombobox } from '~/components/model-combobox'
 import { buildEditPrompt, orderEditAssets } from '~/lib/edit-prompt'
+import {
+  MAX_IMAGE_RESULTS,
+  defaultAspectRatio,
+  defaultQuality,
+  describeEditReferenceTrim,
+  describeReferenceTrim,
+  reconcileParams,
+  type ComposerParams,
+} from '~/lib/model-params'
 import { thumbSrcSet, thumbUrl } from '~/lib/media-thumbs'
 import {
   appendReferences,
@@ -59,11 +69,6 @@ type PickerTarget = 'references' | 'editTargets' | 'editReferences'
 
 function modelFor(id: string): ModelDefinition {
   return ALL_MODELS.find((entry) => entry.id === id) ?? (IMAGE_MODELS[0] as ModelDefinition)
-}
-
-function defaultRatio(model: ModelDefinition): string {
-  if (model.kind === 'video') return model.defaultRatio
-  return model.ratios.includes('1:1') ? '1:1' : (model.ratios[0] ?? '1:1')
 }
 
 function ratioName(value: string): string {
@@ -133,8 +138,8 @@ export function HomeComposer({
   const [mode, setMode] = useState<ComposerMode>('generate')
   const [prompt, setPrompt] = useState('')
   const [modelId, setModelId] = useState(startModelId)
-  const [ratio, setRatio] = useState(() => defaultRatio(modelFor(startModelId)))
-  const [quality, setQuality] = useState('1k')
+  const [ratio, setRatio] = useState(() => defaultAspectRatio(modelFor(startModelId)))
+  const [quality, setQuality] = useState(() => defaultQuality(modelFor(startModelId)))
   const [duration, setDuration] = useState(8)
   const [resolution, setResolution] = useState('')
   const [count, setCount] = useState(1)
@@ -200,11 +205,7 @@ export function HomeComposer({
   const model = selectedChoice?.definition ?? modelFor(modelId)
   const isVideo = model.kind === 'video'
   const modelOptions = isEdit
-    ? allChoices.filter(
-        (entry) =>
-          entry.kind === 'image' &&
-          (!entry.supported || EDIT_MODELS.some((candidate) => candidate.id === entry.modelId)),
-      )
+    ? allChoices.filter((entry) => entry.kind === 'image' && Boolean(entry.definition?.supportsImages))
     : allChoices
   const canAddReferences = model.supportsImages || Boolean(model.supportsLora)
   const referenceMax = isEdit
@@ -248,22 +249,46 @@ export function HomeComposer({
   const chooseModel = (id: string) => {
     const option = allChoices.find((entry) => entry.modelId === id)
     const next = option?.definition ?? modelFor(id)
+    const canEdit = next.kind === 'image' && next.supportsImages
+    if (mode === 'edit' && !canEdit) {
+      setMode('generate')
+      setNotice(`${next.label} does not edit images. Switched to generate mode.`)
+    } else if (mode === 'generate' && next.supportsText === false && canEdit) {
+      setMode('edit')
+      setNotice(`${next.label} needs a reference image. Switched to edit mode.`)
+    }
     setModelId(next.id)
-    setRatio(defaultRatio(next))
-    setCount(1)
-    setReferences((current) =>
-      next.supportsImages
-        ? current.slice(0, next.maxImages)
-        : next.supportsLora
-          ? current.filter((item) => item.lora)
-          : [],
-    )
-    setEditReferences((current) => current.slice(0, Math.max(0, next.maxImages - 1)))
-    if (next.kind === 'image') {
-      setQuality(next.qualityOptions.includes('1k') ? '1k' : (next.qualityOptions[0] ?? ''))
-    } else {
-      setDuration(next.defaultDuration)
-      setResolution(next.defaultResolution)
+
+    const current: ComposerParams = { aspectRatio: ratio, quality, duration, resolution, count }
+    const { params, changes } = reconcileParams(current, next)
+    setRatio(params.aspectRatio)
+    setQuality(params.quality)
+    setDuration(params.duration)
+    setResolution(params.resolution)
+    setCount(params.count)
+    for (const change of changes) toast(change.message, { tone: 'warning' })
+
+    const referenceLimit = next.supportsImages ? next.maxImages : next.supportsLora ? 1 : 0
+    const keptReferences = next.supportsImages
+      ? references.slice(0, next.maxImages)
+      : next.supportsLora
+        ? references.filter((item) => item.lora)
+        : []
+    const removedReferences = referenceImageCount(references) - referenceImageCount(keptReferences)
+    setReferences(keptReferences)
+    if (removedReferences > 0) {
+      toast(describeReferenceTrim(next.label, referenceLimit, removedReferences), { tone: 'warning' })
+    }
+
+    const editReferenceLimit = Math.max(0, next.maxImages - 1)
+    const keptEditReferences = editReferences.slice(0, editReferenceLimit)
+    const removedEditReferences =
+      referenceImageCount(editReferences) - referenceImageCount(keptEditReferences)
+    setEditReferences(keptEditReferences)
+    if (removedEditReferences > 0) {
+      toast(describeEditReferenceTrim(next.label, editReferenceLimit, removedEditReferences), {
+        tone: 'warning',
+      })
     }
   }
 
@@ -276,7 +301,10 @@ export function HomeComposer({
     setCount(1)
     if (next === 'edit' && !(model.kind === 'image' && model.supportsImages)) {
       const fallback = EDIT_MODELS[0]
-      if (fallback) chooseModel(fallback.id)
+      if (fallback) {
+        setNotice(`${model.label} does not edit images. Switched to ${fallback.label}.`)
+        chooseModel(fallback.id)
+      }
     }
   }
 
@@ -319,7 +347,7 @@ export function HomeComposer({
                   .map((entry) => entry.trim())
                   .filter(Boolean)
               : [prompt.trim()]
-            const repeats = multi || isVideo ? 1 : Math.min(count, 4)
+            const repeats = multi || isVideo ? 1 : Math.min(count, MAX_IMAGE_RESULTS)
             return blocks.flatMap((block) =>
               Array.from({ length: repeats }, () => ({
                 prompt: block,
@@ -532,6 +560,12 @@ export function HomeComposer({
                     setEditReferences([])
                     setError(null)
                     setNotice(null)
+                    setRatio(defaultAspectRatio(model))
+                    setQuality(defaultQuality(model))
+                    setDuration(model.kind === 'video' ? model.defaultDuration : 8)
+                    setResolution(model.kind === 'video' ? model.defaultResolution : '')
+                    setCount(1)
+                    setMulti(false)
                   }}
                   aria-label="Clear prompt"
                   className="text-ink/35 hover:bg-ink/[0.06] hover:text-ink grid size-7 place-items-center rounded-lg transition-[color,background-color,transform] active:scale-90"
@@ -906,14 +940,14 @@ export function HomeComposer({
                     transition={motionFast}
                     className="text-ink/75 min-w-7 text-center text-[11.5px] tabular-nums"
                   >
-                    {count}/4
+                    {count}/{MAX_IMAGE_RESULTS}
                   </motion.span>
                 </AnimatePresence>
                 <button
                   type="button"
                   aria-label="More results"
-                  onClick={() => setCount((value) => Math.min(4, value + 1))}
-                  disabled={busy || count >= 4}
+                  onClick={() => setCount((value) => Math.min(MAX_IMAGE_RESULTS, value + 1))}
+                  disabled={busy || count >= MAX_IMAGE_RESULTS}
                   className="text-ink/55 hover:text-ink h-full w-7 text-[14px] transition-[color,transform,opacity] duration-150 active:scale-90 disabled:opacity-25"
                 >
                   +

@@ -1,0 +1,102 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Queue OpenAPI for openai/gpt-image-2",
+    "docs": "https://fal.ai/api/openapi/queue/openapi.json?endpoint_id=openai/gpt-image-2"
+  },
+  "paths": {
+    "/openai/gpt-image-2": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "enable_safety_checker": {
+                    "type": "boolean",
+                    "default": true
+                  },
+                  "background": {
+                    "type": "string",
+                    "enum": ["auto", "transparent", "opaque"],
+                    "default": "auto"
+                  },
+                  "quality": {
+                    "type": "string",
+                    "enum": ["auto", "low", "medium", "high"],
+                    "default": "high"
+                  },
+                  "prompt": {
+                    "maxLength": 32000,
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "output_format": {
+                    "type": "string",
+                    "enum": ["jpeg", "png", "webp"],
+                    "default": "png"
+                  },
+                  "num_images": {
+                    "type": "integer",
+                    "default": 1,
+                    "minimum": 1,
+                    "maximum": 10
+                  },
+                  "image_size": {
+                    "default": "landscape_4_3",
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "width": {
+                            "type": "integer",
+                            "default": 512,
+                            "exclusiveMinimum": 0,
+                            "maximum": 14142
+                          },
+                          "height": {
+                            "type": "integer",
+                            "default": 512,
+                            "exclusiveMinimum": 0,
+                            "maximum": 14142
+                          }
+                        },
+                        "title": "ImageSize"
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "square_hd",
+                          "square",
+                          "portrait_4_3",
+                          "portrait_16_9",
+                          "landscape_4_3",
+                          "landscape_16_9",
+                          "auto"
+                        ]
+                      }
+                    ]
+                  },
+                  "output_compression": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "type": "object",
+                "required": ["prompt"]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

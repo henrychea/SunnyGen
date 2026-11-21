@@ -9,6 +9,51 @@ import {
 import { getAdapter, getWebhook, providerFlows } from './registry'
 import type { AdapterContext } from './types'
 
+const SUNRA_TEST_DOCS = 'https://oapi.sunra.ai/main/test/image/ddf6cb742904d9f8bc15081a014eb7c7ba010943.json'
+
+function sunraTestSchema(): Record<string, unknown> {
+  const schema = (properties: Record<string, unknown>, required: string[]) => ({
+    post: {
+      requestBody: { content: { 'application/json': { schema: { type: 'object', properties, required } } } },
+    },
+  })
+  return {
+    openapi: '3.0.0',
+    info: { title: 'Test Image API' },
+    paths: {
+      '/test/image/text-to-image': schema(
+        {
+          prompt: { type: 'string' },
+          aspect_ratio: { type: 'string', enum: ['1:1', '16:9'] },
+          resolution: { type: 'string', enum: ['1K', '2K'] },
+        },
+        ['prompt'],
+      ),
+      '/test/image/image-editing': schema(
+        {
+          prompt: { type: 'string' },
+          aspect_ratio: { type: 'string', enum: ['1:1', '16:9'] },
+          resolution: { type: 'string', enum: ['1K', '2K'] },
+          image_urls: { type: 'array', maxItems: 4, items: { type: 'string' } },
+        },
+        ['prompt', 'image_urls'],
+      ),
+    },
+  }
+}
+
+function sunraSchemaResponse(url: string): Response | null {
+  if (url.startsWith('https://api.sunra.ai/v1/models')) {
+    return Response.json({
+      object: 'list',
+      data: [{ id: 'model_test', name: 'test/image', alias: 'test/image', openapi: SUNRA_TEST_DOCS }],
+      has_more: false,
+    })
+  }
+  if (url === SUNRA_TEST_DOCS) return Response.json(sunraTestSchema())
+  return null
+}
+
 function dynamicImage(provider: 'sunra' | 'fal'): ImageModelDefinition {
   return {
     id: `${provider}:test/image`,
@@ -62,10 +107,13 @@ function mockContext(): { context: AdapterContext; calls: Array<{ url: string; b
       baseUrl: null,
       deployment: null,
       fetch: async (input, init) => {
+        const url = String(input)
         calls.push({
-          url: String(input),
+          url,
           body: init?.body ? JSON.parse(String(init.body)) : null,
         })
+        const schemaResponse = sunraSchemaResponse(url)
+        if (schemaResponse) return schemaResponse
         return new Response(JSON.stringify({ request_id: 'mock-1' }), {
           status: 200,
           headers: { 'content-type': 'application/json' },
@@ -106,8 +154,9 @@ test('dispatches dynamic Sunra image requests through the image flow', async () 
 
   assert.equal(result.status, 'running')
   assert.equal(result.providerJobId, 'mock-1')
-  assert.equal(calls[0]?.url, 'https://api.sunra.ai/v1/queue/test/image/text-to-image')
-  assert.deepEqual(calls[0]?.body, {
+  const queue = calls.find((call) => call.url.includes('/queue/'))
+  assert.equal(queue?.url, 'https://api.sunra.ai/v1/queue/test/image/text-to-image')
+  assert.deepEqual(queue?.body, {
     prompt: 'hello',
     aspect_ratio: '1:1',
     resolution: '1K',
@@ -158,6 +207,8 @@ function referenceContext(): { context: AdapterContext; calls: Array<{ url: stri
           }
         }
         calls.push({ url, body })
+        const schemaResponse = sunraSchemaResponse(url)
+        if (schemaResponse) return schemaResponse
         if (url.includes('/storage/upload/initiate')) {
           return new Response(
             JSON.stringify({
@@ -191,8 +242,8 @@ test('sends Sunra references to the image-editing operation', async () => {
 
   const queue = calls.find((call) => call.url.includes('/queue/'))
   assert.equal(queue?.url, 'https://api.sunra.ai/v1/queue/test/image/image-editing')
-  assert.ok(queue?.body && typeof queue.body === 'object' && 'images' in queue.body)
-  assert.deepEqual(queue.body.images, ['https://cdn.test/reference.png'])
+  assert.ok(queue?.body && typeof queue.body === 'object' && 'image_urls' in queue.body)
+  assert.deepEqual(queue.body.image_urls, ['https://cdn.test/reference.png'])
 })
 
 test('sends fal references to the edit endpoint', async () => {

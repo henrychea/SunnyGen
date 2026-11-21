@@ -1,0 +1,113 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Seedream 4.0 API",
+    "docs": "https://oapi.sunra.ai/main/bytedance/seedream-4.0/ddf6cb742904d9f8bc15081a014eb7c7ba010943.json"
+  },
+  "paths": {
+    "/bytedance/seedream-4.0/text-to-image": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "prompt": {
+                    "type": "string",
+                    "maxLength": 4000,
+                    "minLength": 1
+                  },
+                  "aspect_ratio": {
+                    "type": "string",
+                    "enum": ["1:1", "4:3", "3:4", "16:9", "9:16", "3:2", "2:3", "21:9"],
+                    "default": "1:1"
+                  },
+                  "resolution": {
+                    "type": "string",
+                    "enum": ["1K", "2K", "4K"],
+                    "default": "2K"
+                  },
+                  "seed": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "maximum": 2147483647.0,
+                        "minimum": -1.0
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "type": "object",
+                "required": ["prompt"]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bytedance/seedream-4.0/image-editing": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "prompt": {
+                    "type": "string",
+                    "maxLength": 4000,
+                    "minLength": 1
+                  },
+                  "aspect_ratio": {
+                    "type": "string",
+                    "enum": ["1:1", "4:3", "3:4", "16:9", "9:16", "3:2", "2:3", "21:9"],
+                    "default": "1:1"
+                  },
+                  "resolution": {
+                    "type": "string",
+                    "enum": ["1K", "2K", "4K"],
+                    "default": "2K"
+                  },
+                  "seed": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "maximum": 2147483647.0,
+                        "minimum": -1.0
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "images": {
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "maxLength": 2083,
+                          "minLength": 1,
+                          "format": "uri"
+                        },
+                        {
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "type": "array",
+                    "maxItems": 10,
+                    "minItems": 1
+                  }
+                },
+                "type": "object",
+                "required": ["prompt", "images"]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

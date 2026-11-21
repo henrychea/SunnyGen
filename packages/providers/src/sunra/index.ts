@@ -18,5 +18,16 @@ export const sunraModule: ProviderModule = {
 
 export { SUNRA_BASE, pollSunra, submitSunraQueue, uploadSunraAsset } from './client'
 export { sunraImageFlow } from './image'
+export {
+  DEFAULT_IMAGE_LIMIT,
+  fetchSunraSchema,
+  pickOperation,
+  resetSunraSchemaCache,
+  sunraImageCapabilities,
+  sunraImageField,
+  sunraImageOperations,
+  type SunraImageCapabilities,
+  type SunraModelSchema,
+} from './schema'
 export { sunraVideoFlow } from './video'
 export { sunraWebhook } from './webhook'

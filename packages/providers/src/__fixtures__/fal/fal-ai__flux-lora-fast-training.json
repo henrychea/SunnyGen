@@ -1,0 +1,62 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/flux-lora-fast-training",
+    "docs": "https://fal.ai/api/openapi/queue/openapi.json?endpoint_id=fal-ai/flux-lora-fast-training"
+  },
+  "paths": {
+    "/fal-ai/flux-lora-fast-training": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "steps": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "maximum": 10000,
+                        "minimum": 1
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "trigger_word": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "images_data_url": {
+                    "type": "string"
+                  },
+                  "enable_safety_checker": {
+                    "type": "boolean",
+                    "default": true
+                  },
+                  "create_masks": {
+                    "type": "boolean",
+                    "default": true
+                  },
+                  "is_style": {
+                    "type": "boolean",
+                    "default": false
+                  }
+                },
+                "type": "object",
+                "required": ["images_data_url"]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

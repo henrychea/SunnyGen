@@ -1,0 +1,35 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Recraft V4.1 Pro API",
+    "docs": "https://oapi.sunra.ai/main/recraft/recraft-v4.1-pro/ddf6cb742904d9f8bc15081a014eb7c7ba010943.json"
+  },
+  "paths": {
+    "/recraft/recraft-v4.1-pro/text-to-image": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "prompt": {
+                    "type": "string",
+                    "maxLength": 10000,
+                    "minLength": 1
+                  },
+                  "aspect_ratio": {
+                    "type": "string",
+                    "enum": ["1:1", "4:3", "3:4", "16:9", "9:16"],
+                    "default": "1:1"
+                  }
+                },
+                "type": "object",
+                "required": ["prompt"]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

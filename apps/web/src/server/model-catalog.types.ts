@@ -17,6 +17,9 @@ export interface ModelCatalogEntry {
   available: boolean
   limitation: string | null
   modelId: string | null
+  supportsImages: boolean
+  supportsText: boolean
+  maxImages: number
 }
 
 export interface ModelCatalogSource {

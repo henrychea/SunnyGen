@@ -18,7 +18,16 @@ export const falModule: ProviderModule = {
 }
 
 export { FAL_QUEUE, FAL_REST, pollFal, submitFalQueue, uploadFalAsset } from './client'
-export { falImageFlow } from './image'
+export {
+  DEFAULT_FAL_IMAGE_LIMIT,
+  falImageCapabilities,
+  falImageFlow,
+  falOpenApiUrl,
+  parseFalOpenApi,
+  resetFalSchemaCache,
+  type FalImageCapabilities,
+  type FalRequestSchema,
+} from './image'
 export { falTrainingFlow } from './training'
 export { falVideoFlow } from './video'
 export { falWebhook } from './webhook'

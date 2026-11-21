@@ -1,0 +1,119 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/flux-lora",
+    "docs": "https://fal.ai/api/openapi/queue/openapi.json?endpoint_id=fal-ai/flux-lora"
+  },
+  "paths": {
+    "/fal-ai/flux-lora": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "output_format": {
+                    "default": "jpeg",
+                    "enum": ["jpeg", "png"],
+                    "type": "string"
+                  },
+                  "seed": {
+                    "anyOf": [
+                      {
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "image_size": {
+                    "anyOf": [
+                      {
+                        "properties": {
+                          "height": {
+                            "default": 512,
+                            "maximum": 14142,
+                            "exclusiveMinimum": 0,
+                            "type": "integer"
+                          },
+                          "width": {
+                            "default": 512,
+                            "maximum": 14142,
+                            "exclusiveMinimum": 0,
+                            "type": "integer"
+                          }
+                        },
+                        "type": "object",
+                        "title": "ImageSize"
+                      },
+                      {
+                        "enum": [
+                          "square_hd",
+                          "square",
+                          "portrait_4_3",
+                          "portrait_16_9",
+                          "landscape_4_3",
+                          "landscape_16_9"
+                        ],
+                        "type": "string"
+                      }
+                    ],
+                    "default": "landscape_4_3"
+                  },
+                  "guidance_scale": {
+                    "default": 3.5,
+                    "maximum": 35,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "enable_safety_checker": {
+                    "default": true,
+                    "type": "boolean"
+                  },
+                  "loras": {
+                    "default": [],
+                    "items": {
+                      "properties": {
+                        "scale": {
+                          "default": 1,
+                          "maximum": 4,
+                          "minimum": 0,
+                          "type": "number"
+                        },
+                        "path": {
+                          "type": "string"
+                        }
+                      },
+                      "type": "object",
+                      "required": ["path"],
+                      "title": "LoraWeight"
+                    },
+                    "type": "array"
+                  },
+                  "prompt": {
+                    "type": "string"
+                  },
+                  "num_images": {
+                    "default": 1,
+                    "maximum": 4,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "num_inference_steps": {
+                    "default": 28,
+                    "maximum": 50,
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                "type": "object",
+                "required": ["prompt"]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

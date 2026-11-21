@@ -1,0 +1,101 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Wan 2.7 API",
+    "docs": "https://oapi.sunra.ai/main/wan/wan-2.7/ddf6cb742904d9f8bc15081a014eb7c7ba010943.json"
+  },
+  "paths": {
+    "/wan/wan-2.7/text-to-image": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "prompt": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "aspect_ratio": {
+                    "type": "string",
+                    "enum": ["1:1", "16:9", "9:16", "4:3", "3:4"],
+                    "default": "1:1"
+                  },
+                  "seed": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "maximum": 2147483647.0,
+                        "minimum": 0.0
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "type": "object",
+                "required": ["prompt"]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/wan/wan-2.7/image-to-image": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "prompt": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "image_urls": {
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "maxLength": 2083,
+                          "minLength": 1,
+                          "format": "uri"
+                        },
+                        {
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "type": "array",
+                    "maxItems": 4,
+                    "minItems": 1
+                  },
+                  "aspect_ratio": {
+                    "type": "string",
+                    "enum": ["1:1", "16:9", "9:16", "4:3", "3:4"],
+                    "default": "1:1"
+                  },
+                  "seed": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "maximum": 2147483647.0,
+                        "minimum": 0.0
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "type": "object",
+                "required": ["prompt", "image_urls"]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

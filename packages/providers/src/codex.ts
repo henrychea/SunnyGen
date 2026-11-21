@@ -2,7 +2,8 @@ import { spawn } from 'node:child_process'
 import { readFile, unlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { CODEX_SIZE_MAP } from './sizes'
+import type { ImageModelDefinition } from '@sunnygen/core'
+import { codexSize } from './sizes'
 import {
   ProviderError,
   createAdapterFromFlows,
@@ -37,6 +38,63 @@ export async function isCodexAvailable(): Promise<boolean> {
   return promise
 }
 
+export const CODEX_MAX_EDIT_IMAGES = 5
+
+export interface CodexCommand {
+  mode: 'generate' | 'edit'
+  args: string[]
+  prompt: string
+  size: string
+  out: string
+  images: number
+}
+
+export function codexCommand(options: {
+  prompt: string
+  size: string
+  inputPaths: string[]
+  outputPath: string
+}): CodexCommand {
+  const images = options.inputPaths.slice(0, CODEX_MAX_EDIT_IMAGES)
+  if (images.length > 0) {
+    return {
+      mode: 'edit',
+      args: [
+        'edit',
+        ...images.flatMap((path) => ['--image', path]),
+        '--prompt',
+        options.prompt,
+        '--size',
+        options.size,
+        '--out',
+        options.outputPath,
+        '--force',
+      ],
+      prompt: options.prompt,
+      size: options.size,
+      out: options.outputPath,
+      images: images.length,
+    }
+  }
+  return {
+    mode: 'generate',
+    args: [
+      'generate',
+      '--prompt',
+      options.prompt,
+      '--size',
+      options.size,
+      '--out',
+      options.outputPath,
+      '--force',
+    ],
+    prompt: options.prompt,
+    size: options.size,
+    out: options.outputPath,
+    images: 0,
+  }
+}
+
 async function runCodex(
   prompt: string,
   size: string,
@@ -52,20 +110,7 @@ async function runCodex(
       inputPaths.push(path)
     }
 
-    const args =
-      inputPaths.length > 0
-        ? [
-            'edit',
-            ...inputPaths.flatMap((path) => ['--image', path]),
-            '--prompt',
-            prompt,
-            '--size',
-            size,
-            '--out',
-            outputPath,
-            '--force',
-          ]
-        : ['generate', '--prompt', prompt, '--size', size, '--out', outputPath, '--force']
+    const { args } = codexCommand({ prompt, size, inputPaths, outputPath })
 
     const { promise, resolve, reject } = Promise.withResolvers<number>()
     let stderr = ''
@@ -89,10 +134,12 @@ async function runCodex(
 }
 
 async function submit(_context: AdapterContext, request: ProviderRequest): Promise<ProviderSubmit> {
+  const model = request.model as ImageModelDefinition
   const aspectRatio = String(request.params.aspectRatio ?? '1:1')
   const prompt =
     `${request.prompt.slice(0, 8000)}${aspectRatio !== 'auto' ? ` Aspect ratio: ${aspectRatio}.` : ''}`.trim()
-  const buffer = await runCodex(prompt, CODEX_SIZE_MAP[aspectRatio] ?? 'auto', request.assets)
+  const size = codexSize(aspectRatio, String(request.params.quality ?? model.defaultQuality))
+  const buffer = await runCodex(prompt, size, request.assets.slice(0, CODEX_MAX_EDIT_IMAGES))
   return {
     providerJobId: null,
     status: 'succeeded',

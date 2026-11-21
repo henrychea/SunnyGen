@@ -43,62 +43,66 @@ function friendlyAzureError(status: number, payload: unknown): string {
   return code || `Azure error ${status}`
 }
 
-async function submit(context: AdapterContext, request: ProviderRequest): Promise<ProviderSubmit> {
-  const { key, baseUrl, deployment } = requireConfig(context)
+export type AzureImageMode = 'generate' | 'edit'
+
+export function azureImageEndpoint(baseUrl: string, deployment: string, mode: AzureImageMode): string {
+  const path = mode === 'edit' ? 'images/edits' : 'images/generations'
+  return `${baseUrl.replace(/\/$/, '')}/openai/deployments/${encodeURIComponent(deployment)}/${path}?api-version=${API_VERSION}`
+}
+
+export function azureImagePayload(request: ProviderRequest): {
+  mode: AzureImageMode
+  form: FormData | null
+  json: Record<string, unknown> | null
+  fields: Record<string, string>
+  images: number
+} {
   const model = request.model as ImageModelDefinition
   const quality = azureQuality(String(request.params.quality ?? model.defaultQuality))
-  const size = azureSize(
-    String(request.params.aspectRatio ?? '1:1'),
-    String(request.params.quality ?? model.defaultQuality),
-  )
+  const aspectRatio = String(request.params.aspectRatio ?? '1:1')
+  const size = azureSize(aspectRatio, String(request.params.quality ?? model.defaultQuality))
   const prompt = request.prompt.slice(0, 20000)
+  const fields: Record<string, string> = {
+    prompt,
+    quality,
+    output_format: 'png',
+    n: '1',
+    size,
+  }
+  const assets = request.assets.slice(0, model.maxImages)
 
-  let response: Response
-  if (request.assets.length > 0) {
+  if (assets.length > 0) {
     const form = new FormData()
-    form.set('prompt', prompt)
-    form.set('quality', quality)
-    form.set('output_format', 'png')
-    form.set('n', '1')
-    if (size !== 'auto') form.set('size', size)
-    for (const asset of request.assets.slice(0, model.maxImages)) {
+    for (const [key, value] of Object.entries(fields)) form.set(key, value)
+    for (const asset of assets) {
       form.append('image[]', new Blob([new Uint8Array(asset.buffer)], { type: asset.mime }), asset.fileName)
     }
-    response = await context.fetch(
-      `${baseUrl}/openai/deployments/${encodeURIComponent(deployment)}/images/edits?api-version=${API_VERSION}`,
-      {
-        method: 'POST',
-        headers: { 'api-key': key, Authorization: `Bearer ${key}` },
-        body: form,
-        signal: AbortSignal.timeout(900_000),
-      },
-    )
-  } else {
-    response = await context.fetch(
-      `${baseUrl}/openai/deployments/${encodeURIComponent(deployment)}/images/generations?api-version=${API_VERSION}`,
-      {
-        method: 'POST',
-        headers: { 'api-key': key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt,
-          n: 1,
-          output_format: 'png',
-          quality,
-          ...(size !== 'auto' ? { size } : {}),
-        }),
-        signal: AbortSignal.timeout(900_000),
-      },
-    )
+    return { mode: 'edit', form, json: null, fields, images: assets.length }
   }
 
+  return { mode: 'generate', form: null, json: fields, fields, images: 0 }
+}
+
+async function submit(context: AdapterContext, request: ProviderRequest): Promise<ProviderSubmit> {
+  const { key, baseUrl, deployment } = requireConfig(context)
+  const payload = azureImagePayload(request)
+  const response = await context.fetch(azureImageEndpoint(baseUrl, deployment, payload.mode), {
+    method: 'POST',
+    headers: payload.form
+      ? { 'api-key': key, Authorization: `Bearer ${key}` }
+      : { 'api-key': key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+    body: payload.form ?? JSON.stringify(payload.json),
+    signal: AbortSignal.timeout(900_000),
+  })
+
   if (!response.ok) {
-    let payload: unknown = null
+    let body: unknown = null
     try {
-      payload = await response.json()
+      body = await response.json()
     } catch {
-      payload = null
+      body = null
     }
-    throw new ProviderError('azure', friendlyAzureError(response.status, payload), response.status)
+    throw new ProviderError('azure', friendlyAzureError(response.status, body), response.status)
   }
 
   const json = (await response.json()) as {
