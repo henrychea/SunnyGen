@@ -1,17 +1,9 @@
 import { useEffect, useRef, type KeyboardEvent } from 'react'
-import {
-  ASSISTANT_MODELS,
-  ASSISTANT_MODES,
-  assistantMode,
-  type AssistantModeGroup,
-  type AssistantModeId,
-} from '@sunnygen/core'
-import { Button, motionFade, motionPop } from '@sunnygen/ui'
+import { ASSISTANT_MODELS, ASSISTANT_MODES, assistantMode, type AssistantModeId } from '@sunnygen/core'
+import { Button, Selector, cn, motionFade, motionPop, type SelectorOption } from '@sunnygen/ui'
 import { Send, Square } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { ModelCombobox, type ModelOption } from '../model-combobox'
-
-const MODE_GROUPS: readonly AssistantModeGroup[] = ['Basic', 'Refusal reduction']
 
 const MODEL_OPTIONS: ModelOption[] = ASSISTANT_MODELS.map((entry) => ({
   key: `assistant:${entry.id}`,
@@ -31,8 +23,12 @@ const MODEL_OPTIONS: ModelOption[] = ASSISTANT_MODELS.map((entry) => ({
   modelId: entry.id,
 }))
 
-const selectClass =
-  'h-8 max-w-[11rem] truncate rounded-lg border border-line bg-surface px-2 text-[11.5px] text-ink/65 outline-none transition-colors hover:text-ink focus-visible:border-accent/45 focus-visible:ring-2 focus-visible:ring-accent/15 disabled:cursor-not-allowed disabled:opacity-50'
+const MODE_OPTIONS: SelectorOption[] = ASSISTANT_MODES.map((entry) => ({
+  key: entry.id,
+  label: entry.label,
+  description: entry.description,
+  group: entry.group,
+}))
 
 export function Composer({
   value,
@@ -45,6 +41,9 @@ export function Composer({
   onModeChange,
   model,
   onModelChange,
+  compact = false,
+  autoFocus = false,
+  menuClassName,
 }: {
   value: string
   onChange: (value: string) => void
@@ -56,6 +55,9 @@ export function Composer({
   onModeChange: (mode: AssistantModeId) => void
   model: string
   onModelChange: (model: string) => void
+  compact?: boolean
+  autoFocus?: boolean
+  menuClassName?: string
 }) {
   const textarea = useRef<HTMLTextAreaElement>(null)
 
@@ -67,8 +69,8 @@ export function Composer({
   }, [value])
 
   useEffect(() => {
-    textarea.current?.focus()
-  }, [])
+    if (autoFocus) textarea.current?.focus()
+  }, [autoFocus])
 
   const canSend = !streaming && !sendBlocked && value.trim().length > 0
   const definition = assistantMode(mode)
@@ -80,8 +82,13 @@ export function Composer({
   }
 
   return (
-    <div className="border-line/70 bg-surface/55 shrink-0 border-t px-3 py-3 md:px-6">
-      <div className="mx-auto w-full max-w-3xl">
+    <div
+      className={cn(
+        'border-line/70 bg-surface/55 shrink-0 border-t',
+        compact ? 'px-3 py-2.5' : 'px-3 py-3 md:px-6',
+      )}
+    >
+      <div className={cn('mx-auto w-full', compact ? 'max-w-none' : 'max-w-3xl')}>
         <div className="border-line bg-surface focus-within:border-ink/20 rounded-2xl border p-2 shadow-[0_10px_30px_-24px_rgba(42,30,23,0.4)] transition-colors duration-150 ease-out">
           <textarea
             ref={textarea}
@@ -91,44 +98,35 @@ export function Composer({
             rows={1}
             disabled={streaming}
             placeholder="Ask anything, or paste a prompt to improve…"
-            className="text-ink placeholder:text-ink/35 max-h-[200px] min-h-11 w-full resize-none bg-transparent px-2 py-2 text-[13.5px] leading-relaxed transition-[height,opacity] duration-150 ease-out outline-none disabled:opacity-60 motion-reduce:transition-none"
+            className={cn(
+              'text-ink placeholder:text-ink/35 max-h-[200px] w-full resize-none bg-transparent px-2 py-2 text-[13.5px] leading-relaxed transition-[height,opacity] duration-150 ease-out outline-none disabled:opacity-60 motion-reduce:transition-none',
+              compact ? 'min-h-10' : 'min-h-11',
+            )}
             aria-label="Message"
           />
 
           <div className="flex flex-wrap items-center gap-1.5 px-1 pb-1">
-            <label className="sr-only" htmlFor="chat-mode">
-              Response mode
-            </label>
-            <select
-              id="chat-mode"
+            <Selector
               value={mode}
-              onChange={(event) => onModeChange(event.target.value as AssistantModeId)}
+              options={MODE_OPTIONS}
+              onChange={(option) => onModeChange(option.key as AssistantModeId)}
               disabled={streaming}
-              className={selectClass}
-              title={definition.description}
-            >
-              {MODE_GROUPS.map((group) => {
-                const modes = ASSISTANT_MODES.filter((entry) => entry.group === group)
-                if (modes.length === 0) return null
-                return (
-                  <optgroup key={group} label={group}>
-                    {modes.map((entry) => (
-                      <option key={entry.id} value={entry.id}>
-                        {entry.label}
-                      </option>
-                    ))}
-                  </optgroup>
-                )
-              })}
-            </select>
+              size="sm"
+              className={compact ? 'w-[116px]' : 'w-[130px]'}
+              ariaLabel="Response mode"
+              menuMinWidth={250}
+              showTriggerDescription={false}
+              menuClassName={menuClassName}
+            />
 
             <ModelCombobox
               value={model}
               options={MODEL_OPTIONS}
               size="sm"
               disabled={streaming}
-              className="max-w-[11rem]"
+              className={compact ? 'w-[150px]' : 'w-[168px]'}
               ariaLabel="Model"
+              menuClassName={menuClassName}
               onChange={(entry) => {
                 if (entry.modelId) onModelChange(entry.modelId)
               }}
@@ -166,7 +164,12 @@ export function Composer({
           </div>
         </div>
 
-        <p className="text-ink/35 mt-1.5 hidden px-1 text-[10.5px] leading-relaxed sm:block">
+        <p
+          className={cn(
+            'text-ink/35 mt-1.5 px-1 text-[10.5px] leading-relaxed',
+            compact ? 'hidden' : 'hidden sm:block',
+          )}
+        >
           Enter sends · Shift+Enter adds a line ·{' '}
           <AnimatePresence initial={false} mode="wait">
             <motion.span
