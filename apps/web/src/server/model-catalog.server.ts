@@ -3,19 +3,24 @@ import {
   IMAGE_MODELS,
   PROVIDERS,
   VIDEO_MODELS,
+  classifyVideoModes,
+  videoModeKeys,
   type ModelDefinition,
   type ProviderId,
+  type VideoModes,
 } from '@sunnygen/core'
 import { FAL_IMAGE_SPECS, SUNRA_IMAGE_SPECS, SUNRA_VIDEO_SPECS } from '@sunnygen/providers/models'
 import {
   falImageCapabilities,
   falOpenApiUrl,
+  falVideoOperations,
   parseFalOpenApi,
   parseOpenApi,
   operationSchemas,
   sunraImageCapabilities,
+  videoOperationsFromOpenApi,
   type FalRequestSchema,
-  type SunraImageCapabilities,
+  type ParsedOpenApi,
 } from '@sunnygen/providers'
 import { readSetting, writeSetting } from '@sunnygen/db'
 import { falModelCapabilities, sunraEditOperation, sunraModelCapabilities } from './model-capabilities'
@@ -175,6 +180,7 @@ function supportedEntries(): ModelCatalogEntry[] {
       supportsImages: model.supportsImages,
       supportsText: true,
       maxImages: model.maxImages,
+      videoModes: model.kind === 'video' ? model.videoModes : undefined,
     })),
   )
 }
@@ -215,6 +221,7 @@ export function buildModelCatalog(): ModelCatalogView {
           supportsImages: capabilities.supportsImages,
           supportsText: capabilities.supportsText,
           maxImages: capabilities.maxImages,
+          videoModes: storedEntry.videoModes,
           company:
             storedEntry.company ||
             (storedEntry.provider === 'fal' ? falCompany(sourceId) : companyName(undefined, sourceId)),
@@ -340,11 +347,12 @@ function sunraPrice(rows: SunraPrice[] | undefined, kind: 'image' | 'video'): st
 
 const SUNRA_MODEL_SCHEMA_TIMEOUT = 15_000
 
-async function fetchSunraImageSchemas(models: SunraModel[]): Promise<Map<string, SunraImageCapabilities>> {
-  const result = new Map<string, SunraImageCapabilities>()
+async function fetchSunraSchemas(models: SunraModel[]): Promise<Map<string, ParsedOpenApi>> {
+  const result = new Map<string, ParsedOpenApi>()
   const targets = models.filter((model) => {
     const endpoints = (model.endpoints ?? []).map((endpoint) => endpoint.name).filter(Boolean)
-    return Boolean(model.openapi) && sunraEditOperation(endpoints as string[]) !== null
+    const video = (model.tags ?? []).includes('video')
+    return Boolean(model.openapi) && (video || sunraEditOperation(endpoints as string[]) !== null)
   })
   const queue = [...targets]
   const worker = async () => {
@@ -358,14 +366,7 @@ async function fetchSunraImageSchemas(models: SunraModel[]): Promise<Map<string,
         if (!response.ok) continue
         const parsed = parseOpenApi(await response.json())
         if (!parsed) continue
-        const operations = operationSchemas(parsed)
-        result.set(
-          alias,
-          sunraImageCapabilities({
-            operations,
-            components: parsed.components,
-          }),
-        )
+        result.set(alias, parsed)
       } catch {
         continue
       }
@@ -373,6 +374,36 @@ async function fetchSunraImageSchemas(models: SunraModel[]): Promise<Map<string,
   }
   await Promise.all(Array.from({ length: Math.min(6, queue.length) }, worker))
   return result
+}
+
+function videoCatalogCapabilities(
+  modes: VideoModes | undefined,
+  supported: boolean,
+  fallbackMaxImages: number,
+): {
+  available: boolean
+  limitation: string | null
+  supportsImages: boolean
+  supportsText: boolean
+  maxImages: number
+} {
+  const keys = videoModeKeys(modes)
+  if (keys.length === 0) {
+    return {
+      available: supported,
+      limitation: supported ? null : 'No video endpoint SunnyGen can drive',
+      supportsImages: false,
+      supportsText: false,
+      maxImages: 0,
+    }
+  }
+  return {
+    available: true,
+    limitation: null,
+    supportsImages: keys.some((key) => key !== 'text'),
+    supportsText: modes?.text !== undefined,
+    maxImages: Math.max(fallbackMaxImages, ...keys.map((key) => modes?.[key]?.maxImages ?? 0)),
+  }
 }
 
 async function syncSunra(): Promise<{ entries: ModelCatalogEntry[]; priced: boolean }> {
@@ -398,7 +429,7 @@ async function syncSunra(): Promise<{ entries: ModelCatalogEntry[]; priced: bool
   }
 
   const support = sunraSupportMap()
-  const imageSchemas = await fetchSunraImageSchemas(models)
+  const schemas = await fetchSunraSchemas(models)
   const entries: ModelCatalogEntry[] = []
   for (const model of models) {
     const tags = new Set(model.tags ?? [])
@@ -413,7 +444,22 @@ async function syncSunra(): Promise<{ entries: ModelCatalogEntry[]; priced: bool
       .filter((name): name is string => Boolean(name))
     const resolvedKind =
       kind ?? (modelId ? (ALL_MODELS.find((entry) => entry.id === modelId)?.kind ?? 'image') : 'image')
-    const capabilities = sunraModelCapabilities(endpoints, imageSchemas.get(alias) ?? null, alias)
+    const parsed = schemas.get(alias) ?? null
+    const capabilities = sunraModelCapabilities(
+      endpoints,
+      parsed
+        ? sunraImageCapabilities({ operations: operationSchemas(parsed), components: parsed.components })
+        : null,
+      alias,
+    )
+    const spec = modelId ? SUNRA_VIDEO_SPECS[modelId] : undefined
+    const videoModes =
+      parsed && resolvedKind === 'video'
+        ? classifyVideoModes(videoOperationsFromOpenApi(parsed), { maxImages: spec?.maxResources })
+        : undefined
+    const video = videoModes
+      ? videoCatalogCapabilities(videoModes, Boolean(modelId), spec?.maxResources ?? 2)
+      : null
     entries.push({
       key: `sunra:${alias}`,
       label: model.display_name ?? model.name ?? alias,
@@ -426,16 +472,13 @@ async function syncSunra(): Promise<{ entries: ModelCatalogEntry[]; priced: bool
       editSourceId: resolvedKind === 'image' ? capabilities.editSourceId : null,
       schemaUrl: model.openapi ?? null,
       supported: Boolean(modelId),
-      available: Boolean(modelId) || capabilities.available,
-      limitation: capabilities.limitation,
+      available: video ? video.available : Boolean(modelId) || capabilities.available,
+      limitation: video ? video.limitation : capabilities.limitation,
       modelId: modelId ?? null,
-      supportsImages:
-        resolvedKind === 'video'
-          ? endpoints.includes('image-to-video') || endpoints.includes('reference-to-video')
-          : capabilities.supportsImages,
-      supportsText:
-        resolvedKind === 'video' ? endpoints.includes('text-to-video') : capabilities.supportsText,
-      maxImages: resolvedKind === 'video' ? 2 : capabilities.maxImages,
+      supportsImages: video ? video.supportsImages : capabilities.supportsImages,
+      supportsText: video ? video.supportsText : capabilities.supportsText,
+      maxImages: video ? video.maxImages : capabilities.maxImages,
+      videoModes,
     })
   }
   return { entries, priced }
@@ -619,6 +662,13 @@ async function syncFal(): Promise<{ entries: ModelCatalogEntry[]; priced: boolea
       docsInputs: model.inputs,
       docsOutputs: model.outputs,
     })
+    const videoModes =
+      model.kind === 'video' && base
+        ? classifyVideoModes(falVideoOperations(base), { maxImages: 2 })
+        : model.kind === 'video'
+          ? {}
+          : undefined
+    const video = videoModes ? videoCatalogCapabilities(videoModes, Boolean(modelId), 2) : null
     return {
       key: `fal:${model.endpoint_id}`,
       label: model.label,
@@ -631,12 +681,13 @@ async function syncFal(): Promise<{ entries: ModelCatalogEntry[]; priced: boolea
       editSourceId: capabilities.editSourceId,
       schemaUrl: null,
       supported: Boolean(modelId),
-      available: Boolean(modelId) || capabilities.available,
-      limitation: capabilities.limitation,
+      available: video ? video.available : Boolean(modelId) || capabilities.available,
+      limitation: video ? video.limitation : capabilities.limitation,
       modelId: modelId ?? null,
-      supportsImages: model.kind === 'image' ? capabilities.supportsImages : model.inputs.includes('Image'),
-      supportsText: capabilities.supportsText,
-      maxImages: model.kind === 'image' ? capabilities.maxImages : Math.max(1, capabilities.maxImages || 2),
+      supportsImages: video ? video.supportsImages : capabilities.supportsImages,
+      supportsText: video ? video.supportsText : capabilities.supportsText,
+      maxImages: video ? video.maxImages : capabilities.maxImages,
+      videoModes,
     }
   })
   return { entries, priced }

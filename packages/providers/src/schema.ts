@@ -136,13 +136,13 @@ const QUALITY_LADDERS: string[][] = [
 function numericOrder(value: string): number | null {
   const tier = QUALITY_RANK[value.toLowerCase()]
   if (tier !== undefined) return tier
-  if (!/^[\d.]+(?:k|mp|sq)?$/i.test(value)) return null
+  if (!/^[\d.]+(?:k|mp|sq)?s?$/i.test(value)) return null
   const parsed = Number.parseFloat(value)
   return Number.isFinite(parsed) ? parsed : null
 }
 
 function isNumericEnum(allowed: string[]): boolean {
-  return allowed.every((value) => /^[\d.]+(?:k|mp|sq)?$/i.test(value))
+  return allowed.every((value) => /^[\d.]+(?:k|mp|sq)?s?$/i.test(value))
 }
 
 function ladderOrder(allowed: string[]): string[] | null {
