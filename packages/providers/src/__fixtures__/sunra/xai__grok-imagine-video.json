@@ -11,6 +11,8 @@
           "content": {
             "application/json": {
               "schema": {
+                "type": "object",
+                "required": ["prompt"],
                 "properties": {
                   "prompt": {
                     "type": "string",
@@ -19,8 +21,6 @@
                   },
                   "duration": {
                     "type": "integer",
-                    "maximum": 15.0,
-                    "minimum": 1.0,
                     "default": 6
                   },
                   "aspect_ratio": {
@@ -33,9 +33,7 @@
                     "enum": ["480p", "720p"],
                     "default": "720p"
                   }
-                },
-                "type": "object",
-                "required": ["prompt"]
+                }
               }
             }
           }
@@ -48,6 +46,8 @@
           "content": {
             "application/json": {
               "schema": {
+                "type": "object",
+                "required": ["prompt", "image"],
                 "properties": {
                   "prompt": {
                     "type": "string",
@@ -59,8 +59,7 @@
                       {
                         "type": "string",
                         "maxLength": 2083,
-                        "minLength": 1,
-                        "format": "uri"
+                        "minLength": 1
                       },
                       {
                         "type": "string"
@@ -69,8 +68,6 @@
                   },
                   "duration": {
                     "type": "integer",
-                    "maximum": 15.0,
-                    "minimum": 1.0,
                     "default": 6
                   },
                   "aspect_ratio": {
@@ -83,9 +80,7 @@
                     "enum": ["480p", "720p"],
                     "default": "720p"
                   }
-                },
-                "type": "object",
-                "required": ["prompt", "image"]
+                }
               }
             }
           }
@@ -98,6 +93,8 @@
           "content": {
             "application/json": {
               "schema": {
+                "type": "object",
+                "required": ["prompt", "reference_images"],
                 "properties": {
                   "prompt": {
                     "type": "string",
@@ -105,26 +102,23 @@
                     "minLength": 1
                   },
                   "reference_images": {
+                    "type": "array",
+                    "minItems": 1,
                     "items": {
                       "anyOf": [
                         {
                           "type": "string",
                           "maxLength": 2083,
-                          "minLength": 1,
-                          "format": "uri"
+                          "minLength": 1
                         },
                         {
                           "type": "string"
                         }
                       ]
-                    },
-                    "type": "array",
-                    "minItems": 1
+                    }
                   },
                   "duration": {
                     "type": "integer",
-                    "maximum": 10.0,
-                    "minimum": 1.0,
                     "default": 8
                   },
                   "aspect_ratio": {
@@ -137,9 +131,86 @@
                     "enum": ["480p", "720p"],
                     "default": "480p"
                   }
-                },
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/xai/grok-imagine-video/extend-video": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
                 "type": "object",
-                "required": ["prompt", "reference_images"]
+                "required": ["prompt", "video"],
+                "properties": {
+                  "prompt": {
+                    "type": "string",
+                    "maxLength": 4096,
+                    "minLength": 1
+                  },
+                  "video": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 2083,
+                        "minLength": 1
+                      },
+                      {
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "duration": {
+                    "type": "integer",
+                    "default": 6
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/xai/grok-imagine-video/edit-video": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["prompt", "video"],
+                "properties": {
+                  "prompt": {
+                    "type": "string",
+                    "maxLength": 4096,
+                    "minLength": 1
+                  },
+                  "video": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 2083,
+                        "minLength": 1
+                      },
+                      {
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "duration": {
+                    "type": "integer",
+                    "default": 8
+                  },
+                  "resolution": {
+                    "type": "string",
+                    "enum": ["auto", "480p", "720p"],
+                    "default": "auto"
+                  }
+                }
               }
             }
           }

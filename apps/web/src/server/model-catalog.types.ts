@@ -1,4 +1,4 @@
-import type { ProviderId } from '@sunnygen/core'
+import type { ProviderId, VideoModes } from '@sunnygen/core'
 
 export type CatalogProvider = 'sunra' | 'fal'
 
@@ -20,6 +20,7 @@ export interface ModelCatalogEntry {
   supportsImages: boolean
   supportsText: boolean
   maxImages: number
+  videoModes?: VideoModes
 }
 
 export interface ModelCatalogSource {

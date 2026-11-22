@@ -24,11 +24,13 @@ function fixtureUrl(relative: string): URL {
   return new URL(`./__fixtures__/${relative}`, import.meta.url)
 }
 
-export function loadFixture(relative: string): unknown {
-  return JSON.parse(readFileSync(fixtureUrl(relative), 'utf8')) as unknown
+export type FixtureDocument = Record<string, unknown>
+
+export function loadFixture<T = FixtureDocument>(relative: string): T {
+  return JSON.parse(readFileSync(fixtureUrl(relative), 'utf8')) as T
 }
 
-export function fixtureNames(provider: 'sunra' | 'fal' | 'azure' | 'codex'): string[] {
+export function fixtureNames(provider: 'sunra' | 'fal' | 'fal-video' | 'azure' | 'codex'): string[] {
   return readdirSync(fixtureUrl(provider))
     .filter((name) => name.endsWith('.json'))
     .map((name) => name.slice(0, -'.json'.length))
@@ -37,11 +39,11 @@ export function fixtureNames(provider: 'sunra' | 'fal' | 'azure' | 'codex'): str
 
 const openapiCache = new Map<string, OpenApiFixture>()
 
-export function openApiFixture(provider: 'sunra' | 'fal', name: string): OpenApiFixture {
+export function openApiFixture(provider: 'sunra' | 'fal' | 'fal-video', name: string): OpenApiFixture {
   const key = `${provider}/${name}`
   const cached = openapiCache.get(key)
   if (cached) return cached
-  const fixture = loadFixture(`${key}.json`) as OpenApiFixture
+  const fixture = loadFixture<OpenApiFixture>(`${key}.json`)
   openapiCache.set(key, fixture)
   return fixture
 }
@@ -201,10 +203,12 @@ export function validateBody(body: unknown, schema: JsonSchema, label = 'body'):
   return problems
 }
 
+export type MockBody = Record<string, unknown> | string | null
+
 export interface MockCall {
   url: string
   method: string
-  body: unknown
+  body: MockBody
   contentType: string | null
 }
 
@@ -214,11 +218,11 @@ export interface MockContext {
   queueCalls(): MockCall[]
 }
 
-function parseBody(raw: unknown, contentType: string | null): unknown {
+function parseBody(raw: unknown, contentType: string | null): MockBody {
   if (typeof raw !== 'string' || raw.length === 0) return null
   if (contentType?.includes('application/json')) {
     try {
-      return JSON.parse(raw)
+      return JSON.parse(raw) as MockBody
     } catch {
       return raw
     }

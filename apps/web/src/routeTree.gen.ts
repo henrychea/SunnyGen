@@ -16,6 +16,7 @@ import { Route as ChatRouteImport } from './routes/chat'
 import { Route as GalleryRouteImport } from './routes/gallery'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as StudioRouteImport } from './routes/studio'
+import { Route as VideoRouteImport } from './routes/video'
 import { Route as ApiAssistantRouteImport } from './routes/api/assistant'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as ApiStudioImportRouteImport } from './routes/api/studio-import'
@@ -59,6 +60,11 @@ const SettingsRoute = SettingsRouteImport.update({
 const StudioRoute = StudioRouteImport.update({
   id: '/studio',
   path: '/studio',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VideoRoute = VideoRouteImport.update({
+  id: '/video',
+  path: '/video',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAssistantRoute = ApiAssistantRouteImport.update({
@@ -116,6 +122,7 @@ export interface FileRoutesByFullPath {
   '/gallery': typeof GalleryRoute
   '/settings': typeof SettingsRoute
   '/studio': typeof StudioRoute
+  '/video': typeof VideoRoute
   '/api/assistant': typeof ApiAssistantRoute
   '/api/health': typeof ApiHealthRoute
   '/api/studio-import': typeof ApiStudioImportRoute
@@ -134,6 +141,7 @@ export interface FileRoutesByTo {
   '/gallery': typeof GalleryRoute
   '/settings': typeof SettingsRoute
   '/studio': typeof StudioRoute
+  '/video': typeof VideoRoute
   '/api/assistant': typeof ApiAssistantRoute
   '/api/health': typeof ApiHealthRoute
   '/api/studio-import': typeof ApiStudioImportRoute
@@ -153,6 +161,7 @@ export interface FileRoutesById {
   '/gallery': typeof GalleryRoute
   '/settings': typeof SettingsRoute
   '/studio': typeof StudioRoute
+  '/video': typeof VideoRoute
   '/api/assistant': typeof ApiAssistantRoute
   '/api/health': typeof ApiHealthRoute
   '/api/studio-import': typeof ApiStudioImportRoute
@@ -173,6 +182,7 @@ export interface FileRouteTypes {
     | '/gallery'
     | '/settings'
     | '/studio'
+    | '/video'
     | '/api/assistant'
     | '/api/health'
     | '/api/studio-import'
@@ -191,6 +201,7 @@ export interface FileRouteTypes {
     | '/gallery'
     | '/settings'
     | '/studio'
+    | '/video'
     | '/api/assistant'
     | '/api/health'
     | '/api/studio-import'
@@ -209,6 +220,7 @@ export interface FileRouteTypes {
     | '/gallery'
     | '/settings'
     | '/studio'
+    | '/video'
     | '/api/assistant'
     | '/api/health'
     | '/api/studio-import'
@@ -228,6 +240,7 @@ export interface RootRouteChildren {
   GalleryRoute: typeof GalleryRoute
   SettingsRoute: typeof SettingsRoute
   StudioRoute: typeof StudioRoute
+  VideoRoute: typeof VideoRoute
   ApiAssistantRoute: typeof ApiAssistantRoute
   ApiHealthRoute: typeof ApiHealthRoute
   ApiStudioImportRoute: typeof ApiStudioImportRoute
@@ -288,6 +301,13 @@ declare module '@tanstack/react-router' {
       path: '/studio'
       fullPath: '/studio'
       preLoaderRoute: typeof StudioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/video': {
+      id: '/video'
+      path: '/video'
+      fullPath: '/video'
+      preLoaderRoute: typeof VideoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/assistant': {
@@ -364,6 +384,7 @@ const rootRouteChildren: RootRouteChildren = {
   GalleryRoute: GalleryRoute,
   SettingsRoute: SettingsRoute,
   StudioRoute: StudioRoute,
+  VideoRoute: VideoRoute,
   ApiAssistantRoute: ApiAssistantRoute,
   ApiHealthRoute: ApiHealthRoute,
   ApiStudioImportRoute: ApiStudioImportRoute,

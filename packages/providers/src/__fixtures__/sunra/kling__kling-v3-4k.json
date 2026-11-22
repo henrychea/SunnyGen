@@ -11,15 +11,59 @@
           "content": {
             "application/json": {
               "schema": {
+                "type": "object",
                 "properties": {
                   "prompt": {
                     "anyOf": [
                       {
                         "type": "string",
                         "maxLength": 2500
-                      },
+                      }
+                    ]
+                  },
+                  "multi_prompt": {
+                    "anyOf": [
                       {
-                        "type": "null"
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "prompt": {
+                              "type": "string"
+                            },
+                            "duration": {
+                              "type": "string",
+                              "enum": [
+                                "1",
+                                "2",
+                                "3",
+                                "4",
+                                "5",
+                                "6",
+                                "7",
+                                "8",
+                                "9",
+                                "10",
+                                "11",
+                                "12",
+                                "13",
+                                "14",
+                                "15"
+                              ],
+                              "default": "5"
+                            }
+                          },
+                          "required": ["prompt"]
+                        }
+                      }
+                    ]
+                  },
+                  "negative_prompt": {
+                    "default": "blur, distort, and low quality",
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 2500
                       }
                     ]
                   },
@@ -36,10 +80,17 @@
                   "generate_audio": {
                     "type": "boolean",
                     "default": true
+                  },
+                  "shot_type": {
+                    "type": "string",
+                    "enum": ["customize", "intelligent"],
+                    "default": "customize"
+                  },
+                  "cfg_scale": {
+                    "type": "number",
+                    "default": 0.5
                   }
-                },
-                "type": "object",
-                "required": []
+                }
               }
             }
           }
@@ -52,6 +103,8 @@
           "content": {
             "application/json": {
               "schema": {
+                "type": "object",
+                "required": ["start_image_url"],
                 "properties": {
                   "start_image_url": {
                     "type": "string"
@@ -61,9 +114,43 @@
                       {
                         "type": "string",
                         "maxLength": 2500
-                      },
+                      }
+                    ]
+                  },
+                  "multi_prompt": {
+                    "anyOf": [
                       {
-                        "type": "null"
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "prompt": {
+                              "type": "string"
+                            },
+                            "duration": {
+                              "type": "string",
+                              "enum": [
+                                "1",
+                                "2",
+                                "3",
+                                "4",
+                                "5",
+                                "6",
+                                "7",
+                                "8",
+                                "9",
+                                "10",
+                                "11",
+                                "12",
+                                "13",
+                                "14",
+                                "15"
+                              ],
+                              "default": "5"
+                            }
+                          },
+                          "required": ["prompt"]
+                        }
                       }
                     ]
                   },
@@ -71,9 +158,15 @@
                     "anyOf": [
                       {
                         "type": "string"
-                      },
+                      }
+                    ]
+                  },
+                  "negative_prompt": {
+                    "default": "blur, distort, and low quality",
+                    "anyOf": [
                       {
-                        "type": "null"
+                        "type": "string",
+                        "maxLength": 2500
                       }
                     ]
                   },
@@ -86,31 +179,28 @@
                     "type": "boolean",
                     "default": true
                   },
+                  "shot_type": {
+                    "type": "string",
+                    "default": "customize"
+                  },
                   "elements": {
                     "anyOf": [
                       {
+                        "type": "array",
                         "items": {
+                          "type": "object",
                           "properties": {
                             "frontal_image_url": {
                               "anyOf": [
                                 {
                                   "type": "string"
-                                },
-                                {
-                                  "type": "null"
                                 }
                               ]
                             },
                             "reference_image_urls": {
                               "anyOf": [
                                 {
-                                  "items": {
-                                    "type": "string"
-                                  },
                                   "type": "array"
-                                },
-                                {
-                                  "type": "null"
                                 }
                               ]
                             },
@@ -118,9 +208,6 @@
                               "anyOf": [
                                 {
                                   "type": "string"
-                                },
-                                {
-                                  "type": "null"
                                 }
                               ]
                             },
@@ -128,26 +215,19 @@
                               "anyOf": [
                                 {
                                   "type": "string"
-                                },
-                                {
-                                  "type": "null"
                                 }
                               ]
                             }
-                          },
-                          "type": "object",
-                          "title": "ComboElementInput"
-                        },
-                        "type": "array"
-                      },
-                      {
-                        "type": "null"
+                          }
+                        }
                       }
                     ]
+                  },
+                  "cfg_scale": {
+                    "type": "number",
+                    "default": 0.5
                   }
-                },
-                "type": "object",
-                "required": ["start_image_url"]
+                }
               }
             }
           }

@@ -1,0 +1,43 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/minimax/hailuo-2.3/standard/text-to-video",
+    "docs": "https://fal.ai/api/openapi/queue/openapi.json?endpoint_id=fal-ai/minimax/hailuo-2.3/standard/text-to-video"
+  },
+  "paths": {
+    "/fal-ai/minimax/hailuo-2.3/standard/text-to-video": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["prompt"],
+                "properties": {
+                  "prompt": {
+                    "type": "string",
+                    "maxLength": 2000,
+                    "minLength": 1
+                  },
+                  "enable_safety_checker": {
+                    "type": "boolean",
+                    "default": true
+                  },
+                  "duration": {
+                    "type": "string",
+                    "enum": ["6", "10"],
+                    "default": "6"
+                  },
+                  "prompt_optimizer": {
+                    "type": "boolean",
+                    "default": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

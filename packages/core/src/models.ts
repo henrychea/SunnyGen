@@ -1,5 +1,12 @@
 import type { ProviderId } from './domain'
 import { LORA_MODEL_ID, LORA_TRAINER_MODEL } from './lora'
+import {
+  bestVideoMode,
+  videoModeKeys,
+  type VideoModeCapability,
+  type VideoModeKey,
+  type VideoModes,
+} from './video-modes'
 
 export interface ModelBase {
   id: string
@@ -41,6 +48,8 @@ export interface VideoModelDefinition extends ModelBase {
   sound: boolean
   modes: VideoModelMode[]
   defaultMode: string
+  videoModes: VideoModes
+  defaultVideoMode: VideoModeKey
 }
 
 export type ModelDefinition = ImageModelDefinition | VideoModelDefinition
@@ -49,6 +58,23 @@ const GEMINI_RATIOS = ['21:9', '16:9', '3:2', '4:3', '5:4', '1:1', '4:5', '3:4',
 const SEEDREAM_RATIOS = ['1:1', '4:3', '3:4', '16:9', '9:16', '3:2', '2:3', '21:9']
 const GPT_IMAGE_RATIOS = ['auto', '1:1', '3:2', '2:3', '4:3', '3:4', '16:9', '9:16', '21:9']
 const GROK_RATIOS = ['1:1', '2:1', '16:9', '4:3', '3:2', '2:3', '3:4', '9:16', '1:2']
+const KLING_DURATIONS = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+const GROK_DURATIONS = [1, 2, 3, 4, 5, 6, 8, 10, 12, 15]
+const GROK_VIDEO_RATIOS = ['16:9', '4:3', '3:2', '1:1', '2:3', '3:4', '9:16']
+
+function videoMode(
+  endpoint: string,
+  limits: { durations: number[]; resolutions: string[]; ratios: string[]; audio: boolean },
+  images?: { fields: string[]; fieldsMode?: 'single' | 'array'; maxImages?: number },
+): VideoModeCapability {
+  return {
+    endpoint,
+    fields: images?.fields ?? [],
+    fieldsMode: images?.fieldsMode ?? 'single',
+    maxImages: images?.maxImages ?? 0,
+    ...limits,
+  }
+}
 
 export const IMAGE_MODELS: ImageModelDefinition[] = [
   {
@@ -174,6 +200,35 @@ export const VIDEO_MODELS: VideoModelDefinition[] = [
     sound: true,
     modes: [],
     defaultMode: '',
+    videoModes: {
+      text: videoMode('google/veo3-1-lite/text-to-video', {
+        durations: [4, 6, 8],
+        resolutions: ['720p', '1080p'],
+        ratios: ['16:9', '9:16'],
+        audio: true,
+      }),
+      image: videoMode(
+        'google/veo3-1-lite/image-to-video',
+        {
+          durations: [4, 6, 8],
+          resolutions: ['720p', '1080p'],
+          ratios: ['auto', '16:9', '9:16'],
+          audio: true,
+        },
+        { fields: ['image'], maxImages: 1 },
+      ),
+      frames: videoMode(
+        'google/veo3-1-lite/image-to-video',
+        {
+          durations: [4, 6, 8],
+          resolutions: ['720p', '1080p'],
+          ratios: ['auto', '16:9', '9:16'],
+          audio: true,
+        },
+        { fields: ['image', 'end_image'], maxImages: 2 },
+      ),
+    },
+    defaultVideoMode: 'text',
     price: '$0.03–$0.08 per second',
   },
   {
@@ -196,6 +251,35 @@ export const VIDEO_MODELS: VideoModelDefinition[] = [
     sound: true,
     modes: [],
     defaultMode: '',
+    videoModes: {
+      text: videoMode('google/veo3-1-fast/text-to-video', {
+        durations: [4, 6, 8],
+        resolutions: ['720p', '1080p', '4k'],
+        ratios: ['16:9', '9:16'],
+        audio: true,
+      }),
+      image: videoMode(
+        'google/veo3-1-fast/image-to-video',
+        {
+          durations: [4, 6, 8],
+          resolutions: ['720p', '1080p', '4k'],
+          ratios: ['auto', '16:9', '9:16'],
+          audio: true,
+        },
+        { fields: ['image'], maxImages: 1 },
+      ),
+      frames: videoMode(
+        'google/veo3-1-fast/image-to-video',
+        {
+          durations: [4, 6, 8],
+          resolutions: ['720p', '1080p', '4k'],
+          ratios: ['auto', '16:9', '9:16'],
+          audio: true,
+        },
+        { fields: ['image', 'end_image'], maxImages: 2 },
+      ),
+    },
+    defaultVideoMode: 'text',
     price: '$0.08–$0.30 per second',
   },
   {
@@ -218,6 +302,45 @@ export const VIDEO_MODELS: VideoModelDefinition[] = [
     sound: true,
     modes: [],
     defaultMode: '',
+    videoModes: {
+      text: videoMode('google/veo3-1/text-to-video', {
+        durations: [4, 6, 8],
+        resolutions: ['720p', '1080p', '4k'],
+        ratios: ['16:9', '9:16'],
+        audio: true,
+      }),
+      image: videoMode(
+        'google/veo3-1/image-to-video',
+        {
+          durations: [4, 6, 8],
+          resolutions: ['720p', '1080p', '4k'],
+          ratios: ['auto', '16:9', '9:16'],
+          audio: true,
+        },
+        { fields: ['image'], maxImages: 1 },
+      ),
+      frames: videoMode(
+        'google/veo3-1/image-to-video',
+        {
+          durations: [4, 6, 8],
+          resolutions: ['720p', '1080p', '4k'],
+          ratios: ['auto', '16:9', '9:16'],
+          audio: true,
+        },
+        { fields: ['image', 'end_image'], maxImages: 2 },
+      ),
+      references: videoMode(
+        'google/veo3-1/reference-to-video',
+        {
+          durations: [4, 6, 8],
+          resolutions: ['720p', '1080p', '4k'],
+          ratios: ['16:9', '9:16'],
+          audio: true,
+        },
+        { fields: ['image_urls'], fieldsMode: 'array', maxImages: 3 },
+      ),
+    },
+    defaultVideoMode: 'text',
     price: '$0.20–$0.60 per second',
   },
   {
@@ -244,6 +367,25 @@ export const VIDEO_MODELS: VideoModelDefinition[] = [
       { value: '4K', label: '4K' },
     ],
     defaultMode: 'pro',
+    videoModes: {
+      text: videoMode('kling/kling-v3-pro/text-to-video', {
+        durations: KLING_DURATIONS,
+        resolutions: [],
+        ratios: ['16:9', '9:16', '1:1'],
+        audio: true,
+      }),
+      image: videoMode(
+        'kling/kling-v3-pro/image-to-video',
+        { durations: KLING_DURATIONS, resolutions: [], ratios: [], audio: true },
+        { fields: ['start_image_url'], maxImages: 1 },
+      ),
+      frames: videoMode(
+        'kling/kling-v3-pro/image-to-video',
+        { durations: KLING_DURATIONS, resolutions: [], ratios: [], audio: true },
+        { fields: ['start_image_url', 'end_image_url'], maxImages: 2 },
+      ),
+    },
+    defaultVideoMode: 'text',
     price: '$0.11–$0.17 per second',
   },
   {
@@ -266,6 +408,25 @@ export const VIDEO_MODELS: VideoModelDefinition[] = [
     sound: true,
     modes: [],
     defaultMode: '',
+    videoModes: {
+      text: videoMode('kling/kling-v3-standard/text-to-video', {
+        durations: KLING_DURATIONS,
+        resolutions: [],
+        ratios: ['16:9', '9:16', '1:1'],
+        audio: true,
+      }),
+      image: videoMode(
+        'kling/kling-v3-standard/image-to-video',
+        { durations: KLING_DURATIONS, resolutions: [], ratios: [], audio: true },
+        { fields: ['start_image_url'], maxImages: 1 },
+      ),
+      frames: videoMode(
+        'kling/kling-v3-standard/image-to-video',
+        { durations: KLING_DURATIONS, resolutions: [], ratios: [], audio: true },
+        { fields: ['start_image_url', 'end_image_url'], maxImages: 2 },
+      ),
+    },
+    defaultVideoMode: 'text',
     price: '$0.084–$0.126 per second',
   },
   {
@@ -288,6 +449,30 @@ export const VIDEO_MODELS: VideoModelDefinition[] = [
     sound: false,
     modes: [],
     defaultMode: '',
+    videoModes: {
+      text: videoMode('xai/grok-imagine-video/text-to-video', {
+        durations: GROK_DURATIONS,
+        resolutions: ['480p', '720p'],
+        ratios: GROK_VIDEO_RATIOS,
+        audio: false,
+      }),
+      image: videoMode(
+        'xai/grok-imagine-video/image-to-video',
+        {
+          durations: GROK_DURATIONS,
+          resolutions: ['480p', '720p'],
+          ratios: ['auto', ...GROK_VIDEO_RATIOS],
+          audio: false,
+        },
+        { fields: ['image'], maxImages: 1 },
+      ),
+      references: videoMode(
+        'xai/grok-imagine-video/reference-to-video',
+        { durations: GROK_DURATIONS, resolutions: ['480p', '720p'], ratios: GROK_VIDEO_RATIOS, audio: false },
+        { fields: ['reference_images'], fieldsMode: 'array', maxImages: 7 },
+      ),
+    },
+    defaultVideoMode: 'text',
     price: '$0.05–$0.07 per second',
   },
 ]
@@ -301,4 +486,88 @@ export function getModel(id: string): ModelDefinition | undefined {
 
 export function modelsFor(provider: ProviderId, kind?: 'image' | 'video'): ModelDefinition[] {
   return ALL_MODELS.filter((model) => model.providers.includes(provider) && (!kind || model.kind === kind))
+}
+
+export function videoModeCapability(
+  model: VideoModelDefinition,
+  mode: VideoModeKey,
+): VideoModeCapability | null {
+  return model.videoModes?.[mode] ?? null
+}
+
+export function videoModeDefinition(model: VideoModelDefinition, mode: VideoModeKey): VideoModelDefinition {
+  const capability = videoModeCapability(model, mode)
+  if (!capability) return model
+  return {
+    ...model,
+    ratios: capability.ratios.length > 0 ? capability.ratios : model.ratios,
+    durations: capability.durations.length > 0 ? capability.durations : model.durations,
+    resolutions: capability.resolutions.length > 0 ? capability.resolutions : model.resolutions,
+    defaultRatio: pickDefault(capability.ratios, model.defaultRatio),
+    defaultDuration: pickDefault(capability.durations, model.defaultDuration),
+    defaultResolution: pickDefault(capability.resolutions, model.defaultResolution),
+    sound: capability.audio,
+    maxImages: capability.maxImages,
+  }
+}
+
+function pickDefault<T>(options: T[], fallback: T): T {
+  return options.includes(fallback) ? fallback : (options[0] ?? fallback)
+}
+
+export function videoModelFromModes(input: {
+  id: string
+  label: string
+  providerLabel: string
+  providers: ProviderId[]
+  videoModes: VideoModes
+  maxImages?: number
+  price?: string
+  sourceId?: string
+  schemaUrl?: string
+  dynamic?: boolean
+}): VideoModelDefinition {
+  const modes = input.videoModes
+  const keys = videoModeKeys(modes)
+  const capabilities = keys.map((key) => modes[key] as VideoModeCapability)
+  const unique = <T>(values: T[]): T[] => [...new Set(values)]
+  const durations = unique(capabilities.flatMap((entry) => entry.durations)).sort((a, b) => a - b)
+  const resolutions = unique(capabilities.flatMap((entry) => entry.resolutions))
+  const ratios = unique(capabilities.flatMap((entry) => entry.ratios))
+  const maxImages = Math.max(0, ...capabilities.map((entry) => entry.maxImages))
+  const mode = bestVideoMode(modes)
+  return {
+    id: input.id,
+    label: input.label,
+    providerLabel: input.providerLabel,
+    providers: input.providers,
+    kind: 'video',
+    ratios: ratios.length > 0 ? ratios : ['16:9', '9:16'],
+    supportsImages: keys.some((key) => key !== 'text'),
+    supportsText: modes.text !== undefined,
+    maxImages: Math.max(input.maxImages ?? 1, maxImages),
+    supportsQuality: false,
+    qualityOptions: [],
+    defaultQuality: '',
+    durations: durations.length > 0 ? durations : [4, 6, 8],
+    defaultDuration: durations[0] ?? 4,
+    defaultRatio: ratios[0] ?? '16:9',
+    resolutions: resolutions.length > 0 ? resolutions : ['720p', '1080p'],
+    defaultResolution: resolutions[0] ?? '720p',
+    sound: capabilities.some((entry) => entry.audio),
+    modes: [],
+    defaultMode: '',
+    videoModes: modes,
+    defaultVideoMode: mode ?? 'text',
+    price: input.price,
+    sourceId: input.sourceId,
+    schemaUrl: input.schemaUrl,
+    dynamic: input.dynamic,
+  }
+}
+
+export function defaultVideoMode(model: VideoModelDefinition): VideoModeKey {
+  return model.videoModes?.[model.defaultVideoMode]
+    ? model.defaultVideoMode
+    : (bestVideoMode(model.videoModes) ?? 'text')
 }

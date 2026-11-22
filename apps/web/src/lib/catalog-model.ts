@@ -1,4 +1,4 @@
-import type { ImageModelDefinition, VideoModelDefinition } from '@sunnygen/core'
+import { videoModelFromModes, type ImageModelDefinition, type VideoModelDefinition } from '@sunnygen/core'
 import type { ModelCatalogEntry } from '~/server/model-catalog.functions'
 
 const IMAGE_RATIOS = ['21:9', '16:9', '3:2', '4:3', '1:1', '3:4', '2:3', '9:16']
@@ -33,6 +33,20 @@ export function catalogModelDefinition(
       defaultQuality: '1k',
     }
   }
+  if (entry.videoModes && Object.keys(entry.videoModes).length > 0) {
+    return videoModelFromModes({
+      id: entry.key,
+      label: entry.label,
+      providerLabel: entry.company,
+      providers: [entry.provider],
+      videoModes: entry.videoModes,
+      maxImages: entry.maxImages,
+      price: entry.price ?? undefined,
+      sourceId: entry.sourceId,
+      schemaUrl: entry.schemaUrl ?? undefined,
+      dynamic: true,
+    })
+  }
   return {
     ...base,
     kind: 'video',
@@ -49,5 +63,7 @@ export function catalogModelDefinition(
     sound: false,
     modes: [],
     defaultMode: '',
+    videoModes: {},
+    defaultVideoMode: 'text',
   }
 }

@@ -523,7 +523,7 @@ test('fal LoRA training body matches the trainer schema', async () => {
 })
 
 test('Azure image requests match the documented generate and edit schemas', () => {
-  const fixture = loadFixture('azure/gpt-image-2.json') as AzureFixture
+  const fixture = loadFixture<AzureFixture>('azure/gpt-image-2.json')
   const model = getModel('gpt-image-2') as ImageModelDefinition
 
   for (const aspectRatio of ['1:1', '16:9', '9:16', '3:2', '21:9']) {
@@ -564,7 +564,7 @@ test('Azure image requests match the documented generate and edit schemas', () =
 })
 
 test('Codex commands match the documented CLI', () => {
-  const fixture = loadFixture('codex/gpt-image-2.json') as CodexFixture
+  const fixture = loadFixture<CodexFixture>('codex/gpt-image-2.json')
   const generate = codexCommand({
     prompt: 'a paper boat',
     size: '1536x864',
