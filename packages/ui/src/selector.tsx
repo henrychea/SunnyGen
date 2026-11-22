@@ -110,6 +110,7 @@ export function Selector({
 }: SelectorProps) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
+  const [searchOpen, setSearchOpen] = useState(false)
   const [filter, setFilter] = useState('all')
   const [activeIndex, setActiveIndex] = useState(0)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -141,6 +142,7 @@ export function Selector({
   const close = () => {
     setOpen(false)
     setQuery('')
+    setSearchOpen(false)
     setActiveIndex(0)
   }
 
@@ -152,6 +154,7 @@ export function Selector({
 
   const handleOpenChange = (next: boolean) => {
     setQuery('')
+    setSearchOpen(false)
     setOpen(next)
     const selectedIndex = next ? options.findIndex((option) => option.key === value) : 0
     setActiveIndex(selectedIndex >= 0 ? selectedIndex : 0)
@@ -171,6 +174,8 @@ export function Selector({
       event.preventDefault()
       setActiveIndex(Math.max(0, visible.length - 1))
     } else if (event.key === 'Enter') {
+      // Chips (search, provider filters) handle their own Enter.
+      if (event.target !== menuRef.current && event.target !== searchRef.current) return
       event.preventDefault()
       const option = visible[active]
       if (option) select(option)
@@ -247,11 +252,12 @@ export function Selector({
             <Popover.Popup
               ref={menuRef}
               tabIndex={-1}
-              initialFocus={() => (searchable ? searchRef.current : menuRef.current)}
+              initialFocus={() => menuRef.current}
               onKeyDown={handleMenuKeyDown}
               style={{
-                minWidth: menuMinWidth,
-                maxWidth: menuMaxWidth,
+                // 100vw keeps the menu inside small screens, where a fixed min width would overflow.
+                minWidth: `min(${menuMinWidth}px, calc(100vw - 16px))`,
+                maxWidth: `min(${menuMaxWidth}px, calc(100vw - 16px))`,
                 width: 'var(--anchor-width)',
                 maxHeight: 'var(--available-height)',
               }}
@@ -263,13 +269,14 @@ export function Selector({
                 menuClassName,
               )}
             >
-              {searchable ? (
+              {searchable && searchOpen ? (
                 <div className="border-line flex items-center gap-2 border-b px-3 py-2.5">
                   <span className="text-ink/60">
                     <SearchIcon />
                   </span>
                   <input
                     ref={searchRef}
+                    autoFocus
                     value={query}
                     onChange={(event) => {
                       setQuery(event.target.value)
@@ -281,58 +288,76 @@ export function Selector({
                     aria-autocomplete="list"
                     aria-activedescendant={visible[active] ? `${listboxId}-${active}` : undefined}
                     placeholder={searchPlaceholder}
-                    className="text-ink placeholder:text-ink/65 min-w-0 flex-1 bg-transparent text-[12.5px] outline-none"
+                    // 16px keeps iOS from zooming the page when the field takes focus.
+                    className="text-ink placeholder:text-ink/65 min-w-0 flex-1 bg-transparent text-[16px] outline-none sm:text-[12.5px]"
                   />
                 </div>
               ) : null}
 
-              {hasFilters ? (
+              {hasFilters || (searchable && !searchOpen) ? (
                 <div className="border-line flex flex-wrap items-center gap-1.5 border-b px-3 py-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setFilter('all')
-                      setActiveIndex(0)
-                    }}
-                    className={cn(
-                      'relative rounded-full px-3 py-1.5 text-[10.5px] font-medium transition-colors',
-                      motionPress,
-                      filter === 'all' ? 'text-canvas' : 'text-ink/70 hover:text-ink',
-                    )}
-                  >
-                    {filter === 'all' ? (
-                      <motion.span
-                        layoutId={`${listboxId}-filter`}
-                        transition={motionSpring}
-                        className="bg-ink absolute inset-0 rounded-full"
-                      />
-                    ) : null}
-                    <span className="relative">{allFilterLabel}</span>
-                  </button>
-                  {filters.map((entry) => (
+                  {searchable && !searchOpen ? (
                     <button
-                      key={entry.id}
                       type="button"
-                      onClick={() => {
-                        setFilter(entry.id)
-                        setActiveIndex(0)
-                      }}
+                      onClick={() => setSearchOpen(true)}
                       className={cn(
-                        'relative rounded-full px-3 py-1.5 text-[10.5px] font-medium transition-colors',
+                        'text-ink/70 hover:text-ink border-line flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[10.5px] font-medium transition-colors',
                         motionPress,
-                        filter === entry.id ? 'text-canvas' : 'text-ink/70 hover:text-ink',
                       )}
                     >
-                      {filter === entry.id ? (
-                        <motion.span
-                          layoutId={`${listboxId}-filter`}
-                          transition={motionSpring}
-                          className="bg-ink absolute inset-0 rounded-full"
-                        />
-                      ) : null}
-                      <span className="relative">{entry.label}</span>
+                      <SearchIcon />
+                      <span>Search</span>
                     </button>
-                  ))}
+                  ) : null}
+                  {hasFilters ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFilter('all')
+                          setActiveIndex(0)
+                        }}
+                        className={cn(
+                          'relative rounded-full px-3 py-1.5 text-[10.5px] font-medium transition-colors',
+                          motionPress,
+                          filter === 'all' ? 'text-canvas' : 'text-ink/70 hover:text-ink',
+                        )}
+                      >
+                        {filter === 'all' ? (
+                          <motion.span
+                            layoutId={`${listboxId}-filter`}
+                            transition={motionSpring}
+                            className="bg-ink absolute inset-0 rounded-full"
+                          />
+                        ) : null}
+                        <span className="relative">{allFilterLabel}</span>
+                      </button>
+                      {filters.map((entry) => (
+                        <button
+                          key={entry.id}
+                          type="button"
+                          onClick={() => {
+                            setFilter(entry.id)
+                            setActiveIndex(0)
+                          }}
+                          className={cn(
+                            'relative rounded-full px-3 py-1.5 text-[10.5px] font-medium transition-colors',
+                            motionPress,
+                            filter === entry.id ? 'text-canvas' : 'text-ink/70 hover:text-ink',
+                          )}
+                        >
+                          {filter === entry.id ? (
+                            <motion.span
+                              layoutId={`${listboxId}-filter`}
+                              transition={motionSpring}
+                              className="bg-ink absolute inset-0 rounded-full"
+                            />
+                          ) : null}
+                          <span className="relative">{entry.label}</span>
+                        </button>
+                      ))}
+                    </>
+                  ) : null}
                 </div>
               ) : null}
 
