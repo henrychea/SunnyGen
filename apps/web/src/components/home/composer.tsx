@@ -43,7 +43,7 @@ import { createFolderFn } from '~/server/library.functions'
 import { ModelCombobox } from '~/components/model-combobox'
 import { AspectRatioSelector, QualitySelector } from '~/components/generation-selectors'
 import { sortModelChoices } from '~/lib/model-choices'
-import { buildEditPrompt, orderEditAssets } from '~/lib/edit-prompt'
+import { buildEditPromptResult, orderEditAssets } from '~/lib/edit-prompt'
 import {
   editReferencePlan as editReferencePlanFor,
   flattenReferenceAssets,
@@ -342,12 +342,21 @@ export function HomeComposer({
       })
     }
 
+    const editPrompts = editTargets.map((target) => ({
+      ...buildEditPromptResult(prompt, fittedEditPlan, profile, { modelId: model.id }),
+      assetIds: orderEditAssets(fittedEditPlan, target.id, profile),
+    }))
+    const overflow = editPrompts.find((entry) => entry.overflow)?.overflow
+    if (overflow) {
+      setError(
+        `${model.label} truncates prompts at ${overflow.maxChars} characters and this one is ${overflow.overBy} over. Shorten the instruction or pick a model without a cap.`,
+      )
+      return
+    }
+
     const jobs =
       mode === 'edit'
-        ? editTargets.map((target) => ({
-            prompt: buildEditPrompt(prompt, fittedEditPlan, profile, { modelId: model.id }),
-            assetIds: orderEditAssets(fittedEditPlan, target.id, profile),
-          }))
+        ? editPrompts.map(({ prompt: editPrompt, assetIds }) => ({ prompt: editPrompt, assetIds }))
         : (() => {
             const blocks = multi
               ? prompt

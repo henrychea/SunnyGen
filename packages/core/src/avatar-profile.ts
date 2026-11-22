@@ -1,3 +1,5 @@
+import type { EditPromptFamily } from './edit-prompt-profiles'
+
 export const SHEET_SECTION_IDS = [
   'basic',
   'body-angles',
@@ -685,7 +687,7 @@ export function buildPanelSheetPrompt(profile: AvatarProfile): string {
   ].join(' ')
 }
 
-export type AvatarModelFamily = 'qwen' | 'nano-banana' | 'seedream' | 'flux' | 'gpt-image' | 'generic'
+export type AvatarModelFamily = EditPromptFamily
 
 const FAMILY_PATTERNS: ReadonlyArray<[RegExp, AvatarModelFamily]> = [
   [/qwen/i, 'qwen'],
@@ -693,6 +695,7 @@ const FAMILY_PATTERNS: ReadonlyArray<[RegExp, AvatarModelFamily]> = [
   [/seedream/i, 'seedream'],
   [/gpt-image/i, 'gpt-image'],
   [/flux/i, 'flux'],
+  [/grok/i, 'grok'],
 ]
 
 export function avatarModelFamily(modelId: string): AvatarModelFamily {
@@ -708,6 +711,7 @@ export const IDENTITY_CLAUSE_BUDGETS: Record<AvatarModelFamily, number> = {
   seedream: 600,
   flux: 600,
   'gpt-image': 600,
+  grok: 350,
   generic: 600,
 }
 
@@ -851,12 +855,19 @@ export function identitySubject(profile: AvatarProfile): string {
 
 export function identityClause(
   profile: AvatarProfile,
-  options: { modelFamily?: AvatarModelFamily; budget?: number } = {},
+  options: {
+    modelFamily?: AvatarModelFamily
+    budget?: number
+    omitBody?: boolean
+    omitOutfit?: boolean
+  } = {},
 ): string {
   const family = options.modelFamily ?? 'generic'
   const budget = options.budget ?? IDENTITY_CLAUSE_BUDGETS[family]
   const tokens = [identitySubject(profile)]
   const ranked = keywordsFrom(profile)
+    .filter((anchor) => !(options.omitBody && anchor.group === 'body'))
+    .filter((anchor) => !(options.omitOutfit && anchor.group === 'outfit'))
     .map((anchor, index) => ({ ...anchor, index }))
     .sort((left, right) => left.priority - right.priority || left.index - right.index)
   for (const anchor of ranked) {
@@ -864,5 +875,6 @@ export function identityClause(
     if (next.length <= budget) tokens.push(anchor.text)
   }
   const clause = tokens.join(', ')
-  return clause.length <= budget ? clause : clause.slice(0, budget).trimEnd()
+  // The subject is the floor: a budget under the subject line trims the clause to just the subject.
+  return clause.length <= budget ? clause : (tokens[0] as string)
 }

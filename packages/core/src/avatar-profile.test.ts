@@ -172,6 +172,13 @@ test('the clause spends its budget in priority order', () => {
   assert.doesNotMatch(clause, /black stockings/)
 })
 
+test('omitting the body keeps the subject as the floor when the budget runs out', () => {
+  const clause = identityClause(DEFAULT_AVATAR_PROFILE, { modelFamily: 'qwen', omitBody: true })
+  assert.match(clause, /^26yo East Asian woman, soft oval face/)
+  assert.doesNotMatch(clause, /slim hourglass|long legs|large bust|168 cm/)
+  assert.equal(identityClause(DEFAULT_AVATAR_PROFILE, { budget: 5 }), '26yo East Asian woman')
+})
+
 test('a stored profile merges over the defaults and rejects minors', () => {
   const parsed = parseAvatarProfile({ identity: { age: 32, gender: 'male' }, hair: { length: 'short' } })
   assert.ok(parsed)

@@ -21,13 +21,18 @@ export const AVATAR_CROP_CELLS: Record<AvatarCropRole, { row: number; column: nu
   'body-front': { row: 0, column: 0, label: 'Full body' },
 }
 
+// Models weight earlier images, and a second face adds little next to a frontal crop, so the
+// body lands second: the edit prompt then cites it for proportions after the target.
+const REFERENCE_ORDER: readonly AvatarCropRole[] = ['face-front', 'body-front', 'face-three-quarter']
+
 const FAMILY_CROPS: Record<AvatarModelFamily, readonly AvatarCropRole[]> = {
   qwen: ['face-front', 'body-front'],
-  'nano-banana': AVATAR_CROP_ROLES,
-  seedream: AVATAR_CROP_ROLES,
-  flux: AVATAR_CROP_ROLES,
-  'gpt-image': AVATAR_CROP_ROLES,
-  generic: AVATAR_CROP_ROLES,
+  'nano-banana': REFERENCE_ORDER,
+  seedream: REFERENCE_ORDER,
+  flux: REFERENCE_ORDER,
+  'gpt-image': REFERENCE_ORDER,
+  grok: REFERENCE_ORDER,
+  generic: REFERENCE_ORDER,
 }
 
 export function avatarReferenceLimit(family: AvatarModelFamily): number {

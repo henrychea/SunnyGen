@@ -17,7 +17,8 @@ const CROPS = [
 
 test('Qwen takes the frontal face and the full body, other families take every crop', () => {
   assert.deepEqual(avatarCropPlan('qwen'), ['face-front', 'body-front'])
-  assert.deepEqual(avatarCropPlan('nano-banana'), [...AVATAR_CROP_ROLES])
+  // The body crop leads the second face so the body reference is the second image of an edit.
+  assert.deepEqual(avatarCropPlan('nano-banana'), ['face-front', 'body-front', 'face-three-quarter'])
   assert.equal(avatarReferenceLimit('qwen'), 2)
   assert.equal(avatarReferenceLimit('seedream'), 4)
   for (const crop of avatarCropPlan('nano-banana')) {
@@ -26,7 +27,7 @@ test('Qwen takes the frontal face and the full body, other families take every c
 })
 
 test('planned assets follow the plan, not the stored order', () => {
-  assert.deepEqual(plannedAvatarAssets(CROPS, 'nano-banana'), ['face-front', 'face-3q', 'body'])
+  assert.deepEqual(plannedAvatarAssets(CROPS, 'nano-banana'), ['face-front', 'body', 'face-3q'])
   assert.deepEqual(plannedAvatarAssets([...CROPS].reverse(), 'qwen'), ['face-front', 'body'])
   assert.deepEqual(plannedAvatarAssets([CROPS[0]!], 'nano-banana'), ['face-front'])
 })
