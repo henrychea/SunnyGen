@@ -163,6 +163,70 @@ test('existing library names are skipped without blocking new items', () => {
   assert.deepEqual(plan.skipped, [{ file: 'poses/P002-sit.jpg', reason: 'Already in the library.' }])
 })
 
+test('garment views map onto extra files and stay out of the item list', () => {
+  const viewEntries = [
+    { path: 'wardrobe/jacket.png' },
+    { path: 'wardrobe/jacket-back.png' },
+    { path: 'wardrobe/jacket-left.png' },
+    { path: 'wardrobe/jacket-left-clean.png' },
+  ]
+  const manifest: PackManifest = {
+    items: [
+      {
+        file: 'wardrobe/jacket.png',
+        kind: 'garment',
+        name: 'Bomber',
+        data: { slot: 'outerwear', views: [{ angle: 'back', assetId: 'stale' }] },
+        views: [
+          { angle: 'back', file: 'wardrobe/jacket-back.png' },
+          { angle: 'left', file: 'wardrobe/jacket-left.png', cleanFile: 'wardrobe/jacket-left-clean.png' },
+        ],
+      },
+    ],
+  }
+  const plan = planPack({ entries: viewEntries, manifest, manifestPath: 'pack.json' })
+  assert.equal(plan.items.length, 1)
+  assert.deepEqual(plan.items[0]?.views, [
+    { angle: 'back', file: 'wardrobe/jacket-back.png', cleanFile: null },
+    { angle: 'left', file: 'wardrobe/jacket-left.png', cleanFile: 'wardrobe/jacket-left-clean.png' },
+  ])
+  assert.equal(plan.items[0]?.data.views, undefined)
+  assert.deepEqual(plan.skipped, [])
+  assert.deepEqual(plan.issues, [])
+})
+
+test('bad view angles are reported instead of planned', () => {
+  const viewEntries = [
+    { path: 'wardrobe/jacket.png' },
+    { path: 'wardrobe/jacket-back.png' },
+    { path: 'wardrobe/jacket-left.png' },
+  ]
+  const planFor = (views: NonNullable<PackManifest['items']>[number]['views']): ReturnType<typeof planPack> =>
+    planPack({
+      entries: viewEntries,
+      manifest: {
+        items: [{ file: 'wardrobe/jacket.png', kind: 'garment', name: 'Bomber', views }],
+      },
+    })
+
+  assert.ok(
+    planFor([{ angle: 'front', file: 'wardrobe/jacket-back.png' }]).issues.some((issue) =>
+      issue.error.includes('front view is "file"'),
+    ),
+  )
+  assert.ok(
+    planFor([
+      { angle: 'back', file: 'wardrobe/jacket-back.png' },
+      { angle: 'back', file: 'wardrobe/jacket-left.png' },
+    ]).issues.some((issue) => issue.error === 'Duplicate back view.'),
+  )
+  assert.ok(
+    planFor([{ angle: 'back', file: 'wardrobe/missing.png' }]).issues.some((issue) =>
+      issue.error.startsWith('View image not found'),
+    ),
+  )
+})
+
 test('names strip control characters and clamp to the column limit', () => {
   assert.equal(packItemName('a/  weird\u0007 name .png'), 'weird name')
   assert.equal(packItemName(`${'x'.repeat(120)}.png`).length, 80)

@@ -2,6 +2,7 @@ import {
   SLOT_LABELS,
   SOURCE_LABELS,
   parseAvatarLora,
+  parseGarmentViews,
   type GarmentSlot,
   type GarmentSource,
   type StudioKind,
@@ -43,11 +44,10 @@ export function StudioLibraryGrid({
       <AnimatePresence initial={false}>
         {items.map((item) => {
           const sourceKind = item.data.sourceKind as GarmentSource | undefined
+          const views = kind === 'garment' ? parseGarmentViews(item) : []
+          const unprepared = views.filter((view) => !view.cleanAssetId).length
           const needsPrep =
-            kind === 'garment' &&
-            item.assetUrl &&
-            !item.cleanAssetUrl &&
-            (sourceKind === 'on-model' || sourceKind === 'supplier')
+            kind === 'garment' && unprepared > 0 && (sourceKind === 'on-model' || sourceKind === 'supplier')
           const image = kind === 'garment' ? (item.cleanAssetUrl ?? item.assetUrl) : item.assetUrl
           const lora = kind === 'avatar' ? parseAvatarLora(item.data.lora) : null
 
@@ -107,7 +107,9 @@ export function StudioLibraryGrid({
                             ? 'Anime 2D'
                             : 'Photoreal'
                           : item.kind === 'garment'
-                            ? `${SLOT_LABELS[(item.data.slot as GarmentSlot) ?? 'top']} · ${SOURCE_LABELS[(item.data.sourceKind as GarmentSource) ?? 'flat-lay']}`
+                            ? `${SLOT_LABELS[(item.data.slot as GarmentSlot) ?? 'top']} · ${SOURCE_LABELS[(item.data.sourceKind as GarmentSource) ?? 'flat-lay']}${
+                                views.length > 1 ? ` · ${views.length} views` : ''
+                              }`
                             : new Date(item.createdAt).toLocaleDateString()}
                       </p>
                     </div>
@@ -156,7 +158,9 @@ export function StudioLibraryGrid({
                       onClick={() => onPrepare(item)}
                     >
                       <Sparkles size={10} />
-                      {item.cleanAssetUrl ? 'Re-prep' : 'Prepare'}
+                      {unprepared > 0
+                        ? `Prepare ${unprepared} view${unprepared === 1 ? '' : 's'}`
+                        : 'Re-prep'}
                     </Button>
                   ) : null}
                 </div>

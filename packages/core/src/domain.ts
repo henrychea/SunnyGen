@@ -29,7 +29,7 @@ export type GarmentSlot = (typeof GARMENT_SLOTS)[number]
 export const GARMENT_SOURCES = ['flat-lay', 'on-model', 'supplier'] as const
 export type GarmentSource = (typeof GARMENT_SOURCES)[number]
 
-export const STUDIO_ANGLES = ['front', 'three-quarter', 'side', 'back'] as const
+export const STUDIO_ANGLES = ['front', 'three-quarter', 'left', 'right', 'back', 'top', 'under'] as const
 export type StudioAngle = (typeof STUDIO_ANGLES)[number]
 
 export type ProviderCapability = 'image' | 'video' | 'assistant'

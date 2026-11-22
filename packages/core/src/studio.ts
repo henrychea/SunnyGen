@@ -3,15 +3,22 @@ import { STUDIO_ANGLES, type GarmentSlot, type GarmentSource, type StudioAngle }
 export const STUDIO_ANGLE_LABELS: Record<StudioAngle, string> = {
   front: 'Front',
   'three-quarter': 'Three-quarter',
-  side: 'Side',
+  left: 'Left side',
+  right: 'Right side',
   back: 'Back',
+  top: 'Top-down',
+  under: 'Underside',
 }
 
 export const STUDIO_ANGLE_CAMERA: Record<StudioAngle, string> = {
   front: 'Straight-on camera at eye level, shoulder-width framing.',
   'three-quarter': 'Turn the subject 45 degrees to their left, keeping the face and outfit readable.',
-  side: 'Full left profile, 90 degrees, with the same garments and silhouette.',
+  left: 'Full left profile, 90 degrees, with the same garments and silhouette.',
+  right: 'Full right profile, 90 degrees, with the same garments and silhouette.',
   back: 'From behind, 180 degrees. Keep the same garments visible from the back; never invent a different print, colour, or construction.',
+  top: 'Overhead camera looking straight down, showing the top of the head, shoulders, hands, and the top surfaces of the outfit.',
+  under:
+    'Low camera near the floor looking up at the subject, showing the underside of each garment, the soles of the shoes, and the lining where it shows.',
 }
 
 export const SLOT_LABELS: Record<GarmentSlot, string> = {
@@ -38,6 +45,90 @@ const SLOT_RANK: Record<GarmentSlot, number> = {
   shoes: 4,
   bag: 5,
   accessory: 6,
+}
+
+/** Lowercase label, ready for a prompt ("left side view", "top-down view"). */
+export function anglePhrase(angle: StudioAngle): string {
+  return STUDIO_ANGLE_LABELS[angle].toLowerCase()
+}
+
+/** Order a shot asks for a view in, most faithful first. */
+const VIEW_PREFERENCE: Record<StudioAngle, StudioAngle[]> = {
+  front: ['front', 'three-quarter', 'left', 'right', 'back', 'top', 'under'],
+  'three-quarter': ['three-quarter', 'front', 'left', 'right', 'back', 'top', 'under'],
+  left: ['left', 'three-quarter', 'front', 'right', 'back', 'top', 'under'],
+  right: ['right', 'three-quarter', 'front', 'left', 'back', 'top', 'under'],
+  back: ['back', 'front', 'left', 'right', 'three-quarter', 'top', 'under'],
+  top: ['top', 'front', 'back', 'three-quarter', 'left', 'right', 'under'],
+  under: ['under', 'front', 'back', 'three-quarter', 'left', 'right', 'top'],
+}
+
+export interface GarmentView {
+  angle: StudioAngle
+  assetId: string
+  cleanAssetId: string | null
+}
+
+export interface GarmentViewSource {
+  assetId: string | null
+  cleanAssetId: string | null
+  data: Record<string, unknown>
+}
+
+/**
+ * A garment keeps its front photo in `assetId`/`cleanAssetId` and every other
+ * angle in `data.views`. Reading both here keeps older garments working and
+ * gives every caller one ordered list.
+ */
+export function parseGarmentViews(item: GarmentViewSource): GarmentView[] {
+  const views = new Map<StudioAngle, GarmentView>()
+  for (const raw of Array.isArray(item.data.views) ? item.data.views : []) {
+    if (!raw || typeof raw !== 'object') continue
+    const entry = raw as Record<string, unknown>
+    const angle = entry.angle as StudioAngle
+    const assetId = entry.assetId
+    if (!STUDIO_ANGLES.includes(angle) || views.has(angle)) continue
+    if (typeof assetId !== 'string' || !assetId) continue
+    views.set(angle, {
+      angle,
+      assetId,
+      cleanAssetId: typeof entry.cleanAssetId === 'string' && entry.cleanAssetId ? entry.cleanAssetId : null,
+    })
+  }
+  if (item.assetId) {
+    views.set('front', { angle: 'front', assetId: item.assetId, cleanAssetId: item.cleanAssetId })
+  }
+  return STUDIO_ANGLES.flatMap((angle) => views.get(angle) ?? [])
+}
+
+/** The view of a garment that best answers a shot angle. */
+export function pickGarmentView(views: GarmentView[], angle: StudioAngle): GarmentView | null {
+  for (const candidate of VIEW_PREFERENCE[angle]) {
+    const view = views.find((entry) => entry.angle === candidate)
+    if (view) return view
+  }
+  return views[0] ?? null
+}
+
+/** Warn only where a garment was tagged with several views but not the one being shot. */
+export function missingViewWarnings(
+  garments: Array<{ name: string; views: StudioAngle[] }>,
+  angles: StudioAngle[],
+): string[] {
+  const warnings: string[] = []
+  for (const garment of garments) {
+    if (garment.views.length < 2) continue
+    for (const angle of new Set(angles)) {
+      if (garment.views.includes(angle)) continue
+      const fallback = VIEW_PREFERENCE[angle].find((candidate) => garment.views.includes(candidate))
+      warnings.push(
+        fallback
+          ? `${garment.name} has no ${anglePhrase(angle)} view; its ${anglePhrase(fallback)} view is used.`
+          : `${garment.name} has no ${anglePhrase(angle)} view.`,
+      )
+    }
+  }
+  return warnings
 }
 
 export interface StudioGarmentInput {
@@ -101,7 +192,7 @@ export function normalizeAngles(angles: StudioAngle[]): StudioAngle[] {
 }
 
 export interface StudioPromptInput {
-  garments: Array<StudioGarmentInput & { imageIndex: number }>
+  garments: Array<StudioGarmentInput & { imageIndex: number; view?: StudioAngle }>
   hasPose: boolean
   poseImageIndex: number | null
   hasSceneImage: boolean
@@ -129,7 +220,10 @@ export function buildStudioPrompt(input: StudioPromptInput): string {
   lines.push('Wear exactly these garments, one per slot, in this order:')
   for (const [position, garment] of input.garments.entries()) {
     const details = garment.notes?.trim() ? ` Details: ${garment.notes.trim()}` : ''
-    lines.push(`${position + 1}. Image ${garment.imageIndex}: "${garment.name}" (${garment.slot}).${details}`)
+    const view = garment.view ? `, shown from the ${anglePhrase(garment.view)} view` : ''
+    lines.push(
+      `${position + 1}. Image ${garment.imageIndex}: "${garment.name}" (${garment.slot}${view}).${details}`,
+    )
   }
   lines.push(
     'Preserve colour, fabric, print, hardware, stitching, and cut exactly. Do not invent, substitute, or remove any piece of clothing.',
@@ -160,11 +254,16 @@ export function buildStudioPrompt(input: StudioPromptInput): string {
   return lines.join('\n')
 }
 
-export function garmentPrepPrompt(name: string, slot: GarmentSlot, notes?: string): string {
+export function garmentPrepPrompt(
+  name: string,
+  slot: GarmentSlot,
+  notes?: string,
+  view: StudioAngle = 'front',
+): string {
   const details = notes?.trim() ? ` Details to keep: ${notes.trim()}` : ''
   return [
     'E-commerce product reference of the garment in image 1.',
-    'Show exactly one garment, front view, centred, the whole garment in frame, on a plain white background.',
+    `Show exactly one garment, ${anglePhrase(view)} view, centred, the whole garment in frame, on a plain white background.`,
     'Remove any person, mannequin, hanger, props, and background.',
     'Preserve colour, fabric, print, logos, buttons, stitching, and cut exactly. Never restyle, recolour, shorten, or add detail.',
     'No text, borders, watermarks, models, or extra garments. Realistic product photography with even, soft lighting and sharp focus.',

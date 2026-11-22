@@ -2,8 +2,11 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
   buildStudioPrompt,
+  missingViewWarnings,
   normalizeAngles,
   orderStudioGarments,
+  parseGarmentViews,
+  pickGarmentView,
   validateStudioLook,
   type StudioGarmentInput,
 } from './studio'
@@ -66,7 +69,7 @@ test('prompt indices follow the reference list exactly', () => {
     poseImageIndex: 4,
     hasSceneImage: true,
     sceneImageIndex: 5,
-    angle: 'side',
+    angle: 'left',
     notes: 'Keep the sleeves rolled.',
   })
   assert.match(prompt, /image 1/)
@@ -76,6 +79,18 @@ test('prompt indices follow the reference list exactly', () => {
   assert.match(prompt, /image 5/)
   assert.match(prompt, /Full left profile/)
   assert.match(prompt, /Additional direction: Keep the sleeves rolled\./)
+})
+
+test('prompt names the garment view it was handed', () => {
+  const prompt = buildStudioPrompt({
+    garments: [{ ...jacket, imageIndex: 2, view: 'back' }],
+    hasPose: false,
+    poseImageIndex: null,
+    hasSceneImage: false,
+    sceneImageIndex: null,
+    angle: 'back',
+  })
+  assert.match(prompt, /1\. Image 2: "Jacket" \(outerwear, shown from the back view\)/)
 })
 
 test('prompt omits the scene index when the background is the white studio', () => {
@@ -93,7 +108,58 @@ test('prompt omits the scene index when the background is the white studio', () 
 
 test('angle normalization keeps order and never returns an empty set', () => {
   assert.deepEqual(normalizeAngles(['back', 'front']), ['front', 'back'])
+  assert.deepEqual(normalizeAngles(['under', 'left', 'front']), ['front', 'left', 'under'])
   assert.deepEqual(normalizeAngles([]), ['front'])
+})
+
+test('garment views read the front photo plus the tagged angles', () => {
+  const views = parseGarmentViews({
+    assetId: 'front-photo',
+    cleanAssetId: 'front-clean',
+    data: {
+      views: [
+        { angle: 'back', assetId: 'back-photo', cleanAssetId: 'back-clean' },
+        { angle: 'back', assetId: 'duplicate' },
+        { angle: 'diagonal', assetId: 'bogus' },
+        { angle: 'left', assetId: '' },
+        { angle: 'top', assetId: 'top-photo' },
+        { angle: 'front', assetId: 'stale-front' },
+      ],
+    },
+  })
+  assert.deepEqual(
+    views.map((view) => [view.angle, view.assetId]),
+    [
+      ['front', 'front-photo'],
+      ['back', 'back-photo'],
+      ['top', 'top-photo'],
+    ],
+  )
+  assert.equal(views[0]?.cleanAssetId, 'front-clean')
+  assert.equal(views[1]?.cleanAssetId, 'back-clean')
+})
+
+test('a shot angle picks the closest garment view it can', () => {
+  const views = parseGarmentViews({
+    assetId: 'front-photo',
+    cleanAssetId: null,
+    data: { views: [{ angle: 'left', assetId: 'left-photo' }] },
+  })
+  assert.equal(pickGarmentView(views, 'left')?.assetId, 'left-photo')
+  assert.equal(pickGarmentView(views, 'right')?.angle, 'front')
+  assert.equal(pickGarmentView(views, 'back')?.angle, 'front')
+  assert.equal(pickGarmentView([], 'front'), null)
+})
+
+test('missing views only warn for garments tagged with more than one angle', () => {
+  const warnings = missingViewWarnings(
+    [
+      { name: 'Jacket', views: ['front', 'back'] },
+      { name: 'Tee', views: ['front'] },
+    ],
+    ['back', 'left'],
+  )
+  assert.deepEqual(warnings, ['Jacket has no left side view; its front view is used.'])
 })
 
 test('an avatar identity clause rides with the sheet reference', () => {

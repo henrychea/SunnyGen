@@ -16,9 +16,11 @@ import {
   loraTrainingCost,
   parseAvatarLora,
   parseAvatarProfile,
+  parseGarmentViews,
   type AvatarProfile,
   type GarmentSlot,
   type GarmentSource,
+  type GarmentView,
   type StudioKind,
 } from '@sunnygen/core'
 import {
@@ -132,11 +134,18 @@ export const saveStudioItemFn = createServerFn({ method: 'POST', strict: false }
       }
     }
     if (data.kind === 'garment') {
-      if (!data.assetId) throw new Error('Upload a garment photo first.')
+      if (!data.assetId) throw new Error('Upload a garment front view first.')
       const slot = data.data.slot
       const sourceKind = data.data.sourceKind
       if (!GARMENT_SLOTS.includes(slot as GarmentSlot)) throw new Error('Choose a slot.')
       if (!GARMENT_SOURCES.includes(sourceKind as GarmentSource)) throw new Error('Choose a source type.')
+      data.data.views = parseGarmentViews({
+        assetId: data.assetId,
+        cleanAssetId: data.cleanAssetId ?? null,
+        data: data.data,
+      })
+        .filter((view) => view.angle !== 'front')
+        .map((view) => ({ angle: view.angle, assetId: view.assetId, cleanAssetId: view.cleanAssetId }))
     }
     if (data.kind === 'pose' && !data.assetId) throw new Error('Upload a pose image first.')
     if (data.kind === 'scene' && !data.assetId) throw new Error('Upload a scene image first.')
@@ -206,47 +215,78 @@ export const prepareGarmentFn = createServerFn({ method: 'POST', strict: false }
     if (!model || model.kind !== 'image') throw new Error('Choose an image model for prep.')
     if (!model.supportsImages) throw new Error('The prep model needs to accept a reference image.')
 
-    const submitted = await submitGeneration({
-      data: {
-        kind: 'image',
-        model: model.id,
-        prompt: garmentPrepPrompt(item.name, slot, String(item.data.notes ?? '')),
-        assetIds: [item.assetId],
-        params: { aspectRatio: '3:4', quality: model.defaultQuality },
-      },
-    })
-
-    if (submitted.generation.status === 'failed') {
-      throw new Error(submitted.generation.error ?? 'Prep job failed')
+    const views = parseGarmentViews(item)
+    const missing = views.filter((view) => !view.cleanAssetId)
+    // Fill the gaps; once every view is done, re-prep refreshes the front.
+    const targets = missing.length > 0 ? missing : views.slice(0, 1)
+    let prepped = views
+    let saved = item
+    for (const view of targets) {
+      const cleanAssetId = await prepGarmentView(item, view, slot, model)
+      prepped = prepped.map((entry) => (entry.angle === view.angle ? { ...entry, cleanAssetId } : entry))
+      // Save each view as it lands so a later failure does not throw away paid work.
+      saved = saveGarmentViews(item, prepped)
     }
-
-    let outputId = submitted.generation.outputAssetIds[0]
-    if (!outputId) {
-      for (let attempt = 0; attempt < 450; attempt += 1) {
-        await new Promise((resolve) => setTimeout(resolve, 2_000))
-        const view = await getGenerationView({ data: { id: submitted.generation.id } })
-        if (!view) throw new Error('Prep job disappeared')
-        if (view.generation.status === 'failed') throw new Error(view.generation.error ?? 'Prep job failed')
-        if (view.generation.status === 'cancelled') throw new Error('Prep canceled')
-        if (view.generation.status === 'succeeded') {
-          outputId = view.generation.outputAssetIds[0]
-          break
-        }
-      }
-    }
-
-    if (!outputId) throw new Error('Prep returned no image')
-    const saved = saveStudioItem({
-      id: item.id,
-      kind: 'garment',
-      name: item.name,
-      assetId: item.assetId,
-      cleanAssetId: outputId,
-      data: item.data,
-    })
-    deleteGeneration(submitted.generation.id)
     return toDto(saved)
   })
+
+function saveGarmentViews(item: StudioItemRecord, views: GarmentView[]): StudioItemRecord {
+  return saveStudioItem({
+    id: item.id,
+    kind: 'garment',
+    name: item.name,
+    assetId: item.assetId,
+    cleanAssetId: views.find((view) => view.angle === 'front')?.cleanAssetId ?? null,
+    data: {
+      ...item.data,
+      views: views
+        .filter((view) => view.angle !== 'front')
+        .map((view) => ({ angle: view.angle, assetId: view.assetId, cleanAssetId: view.cleanAssetId })),
+    },
+  })
+}
+
+async function prepGarmentView(
+  item: StudioItemRecord,
+  view: GarmentView,
+  slot: GarmentSlot,
+  model: { id: string; defaultQuality: string },
+): Promise<string> {
+  const submitted = await submitGeneration({
+    data: {
+      kind: 'image',
+      model: model.id,
+      prompt: garmentPrepPrompt(item.name, slot, String(item.data.notes ?? ''), view.angle),
+      assetIds: [view.assetId],
+      params: { aspectRatio: '3:4', quality: model.defaultQuality },
+    },
+  })
+
+  if (submitted.generation.status === 'failed') {
+    throw new Error(submitted.generation.error ?? 'Prep job failed')
+  }
+
+  let outputId = submitted.generation.outputAssetIds[0]
+  if (!outputId) {
+    for (let attempt = 0; attempt < 450; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 2_000))
+      const current = await getGenerationView({ data: { id: submitted.generation.id } })
+      if (!current) throw new Error('Prep job disappeared')
+      if (current.generation.status === 'failed') {
+        throw new Error(current.generation.error ?? 'Prep job failed')
+      }
+      if (current.generation.status === 'cancelled') throw new Error('Prep canceled')
+      if (current.generation.status === 'succeeded') {
+        outputId = current.generation.outputAssetIds[0]
+        break
+      }
+    }
+  }
+
+  if (!outputId) throw new Error('Prep returned no image')
+  deleteGeneration(submitted.generation.id)
+  return outputId
+}
 
 export interface TrainingImage {
   id: string
