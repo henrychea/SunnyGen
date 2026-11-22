@@ -226,7 +226,7 @@ export function StudioPackDialog({
                   transition={motionFast}
                   className="inline-block"
                 >
-                  {source ?? 'Packs can also hold all five angles of each pose, or prepped garment images.'}
+                  {source ?? 'Packs can also carry extra garment angles, each with a prepped image.'}
                 </motion.span>
               </AnimatePresence>
             </span>

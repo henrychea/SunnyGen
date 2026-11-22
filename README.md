@@ -91,13 +91,14 @@ still need the local server and a network connection.
 ### Studio
 
 Studio is the main workspace: pick a saved avatar, stack up to six garments in slot order,
-choose a pose and scene, then render one to four angles over the same reference list.
+choose a pose and scene, then render one to seven angles over the same reference list.
 On-model and supplier photos can be prepped into clean product references without leaving
-the app.
+the app. A garment can carry several angles of its own (front, three-quarter, left, right,
+back, top-down, underside), and each shot uses the view that matches its camera angle.
 
 <img src="docs/screenshots/studio-wardrobe.webp" alt="Studio wardrobe slots filled with a bag, sneakers, a tobacco bomber, jeans, and a heavyweight tee, next to the shot angle, model, ratio, and quality pickers" width="100%" />
 
-<p align="center"><sub>The wardrobe library stores slot, source type, notes, and a prepared clean reference per piece.</sub></p>
+<p align="center"><sub>The wardrobe library stores slot, source type, notes, and a prepared clean reference per view.</sub></p>
 
 #### Importing packs
 
@@ -144,7 +145,11 @@ Sample mapping:
       "kind": "garment",
       "name": "Silk slip dress",
       "data": { "slot": "dress", "sourceKind": "flat-lay", "notes": "studio light" },
-      "cleanFile": "wardrobe/dress-silk-clean.png"
+      "cleanFile": "wardrobe/dress-silk-clean.png",
+      "views": [
+        { "angle": "back", "file": "wardrobe/dress-silk-back.png" },
+        { "angle": "left", "file": "wardrobe/dress-silk-left.png" }
+      ]
     },
     {
       "file": "poses/P003-recline.png",
@@ -159,7 +164,9 @@ Sample mapping:
 `kind` on the manifest sets the default for every item; garment pieces need `slot`
 (`top`, `bottom`, `dress`, `outerwear`, `shoes`, `bag`, `accessory`) and `sourceKind`
 (`flat-lay`, `on-model`, `supplier`). Defaults are `top` and `flat-lay`. `cleanFile`
-attaches a prepared reference; `characterSheetFile` is required for avatars.
+attaches a prepared reference; `characterSheetFile` is required for avatars. `views` adds
+extra garment angles, each with an optional `cleanFile`; the front view is the item `file`,
+and angles are `three-quarter`, `left`, `right`, `back`, `top` and `under`.
 
 A shorthand map works when you only need names or per-file overrides:
 
@@ -216,7 +223,7 @@ that use the model. Training runs on fal.ai at $2 per 1,000 steps — 500 steps 
 
 | Surface       | What it does                                                                                                                 |
 | ------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| **Studio**    | Avatar sheets, wardrobe slots, garment prep, pose and scene references, then 1–4 angle renders per look.                     |
+| **Studio**    | Avatar sheets, wardrobe slots, multi-angle garment prep, pose and scene references, then 1–7 angle renders per look.         |
 | **LoRA**      | FLUX LoRA training on an avatar from 10–40 crops at $2 per 1,000 steps, then FLUX.1 LoRA renders on fal.ai.                  |
 | **Canvas**    | Infinite node editor with prompt, media, generate, note, and comment nodes. Graphs autosave and execute in dependency order. |
 | **Gallery**   | Image and video renders in a canvas wall or grid, folders, failed-job retry, lightbox, download, and social imports.         |

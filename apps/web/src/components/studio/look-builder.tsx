@@ -5,9 +5,12 @@ import {
   avatarModelFamily,
   buildStudioPrompt,
   identityClause,
+  missingViewWarnings,
   normalizeAngles,
   orderStudioGarments,
   parseAvatarProfile,
+  parseGarmentViews,
+  pickGarmentView,
   validateStudioLook,
   type StudioAngle,
   type StudioGarmentInput,
@@ -95,15 +98,25 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
   const scene = library.scenes.find((item) => item.id === sceneId) ?? null
   const hasSceneImage = Boolean(scene?.assetUrl)
 
-  const garmentInputs: StudioGarmentInput[] = orderedGarments.map((item) => ({
+  const garmentViews = orderedGarments.map((item) => parseGarmentViews(item))
+  const garmentInputs: StudioGarmentInput[] = orderedGarments.map((item, index) => ({
     id: item.id,
     name: item.name,
     slot: (item.data.slot as StudioGarmentInput['slot']) ?? 'top',
     sourceKind: (item.data.sourceKind as StudioGarmentInput['sourceKind']) ?? 'flat-lay',
-    hasCleanReference: Boolean(item.cleanAssetId),
+    hasCleanReference:
+      (garmentViews[index]?.length ?? 0) > 0 &&
+      garmentViews[index]!.every((view) => Boolean(view.cleanAssetId)),
     notes: String(item.data.notes ?? ''),
   }))
   const validation = validateStudioLook(garmentInputs)
+  const viewWarnings = missingViewWarnings(
+    orderedGarments.map((item, index) => ({
+      name: item.name,
+      views: (garmentViews[index] ?? []).map((view) => view.angle),
+    })),
+    angles,
+  )
 
   const { choices, catalogOnly } = useModelChoices()
   const modelOptions = sortModelChoices(choices, catalogOnly).filter(
@@ -120,21 +133,36 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
       ? 'Add at least one garment.'
       : (validation.blocking[0] ?? (!model ? 'Pick an image model.' : null))
 
-  const promptInput = {
-    garments: orderedGarments.map((item, index) => ({
-      ...garmentInputs[index]!,
-      imageIndex: index + 1 + avatarCount,
-    })),
-    hasPose: Boolean(pose),
-    poseImageIndex: pose ? 1 + avatarCount + orderedGarments.length : null,
-    hasSceneImage,
-    sceneImageIndex: hasSceneImage ? 1 + avatarCount + orderedGarments.length + (pose ? 1 : 0) : null,
-    angle: angles[0] ?? 'front',
-    notes,
-    identityImageCount: avatarCount,
-    identity: avatarProfile
-      ? identityClause(avatarProfile, { modelFamily: avatarModelFamily(model?.id ?? '') })
-      : undefined,
+  const promptFor = (angle: StudioAngle) =>
+    buildStudioPrompt({
+      garments: orderedGarments.map((item, index) => ({
+        ...garmentInputs[index]!,
+        imageIndex: index + 1 + avatarCount,
+        view: pickGarmentView(garmentViews[index] ?? [], angle)?.angle,
+      })),
+      hasPose: Boolean(pose),
+      poseImageIndex: pose ? 1 + avatarCount + orderedGarments.length : null,
+      hasSceneImage,
+      sceneImageIndex: hasSceneImage ? 1 + avatarCount + orderedGarments.length + (pose ? 1 : 0) : null,
+      angle,
+      notes,
+      identityImageCount: avatarCount,
+      identity: avatarProfile
+        ? identityClause(avatarProfile, { modelFamily: avatarModelFamily(model?.id ?? '') })
+        : undefined,
+    })
+
+  // One reference per garment: whichever view answers the angle being shot.
+  const referenceIdsFor = (angle: StudioAngle): string[] => {
+    if (!avatar) return []
+    const ids = [...avatarImages]
+    for (const [index] of orderedGarments.entries()) {
+      const view = pickGarmentView(garmentViews[index] ?? [], angle)
+      ids.push(view?.cleanAssetId ?? view?.assetId ?? '')
+    }
+    if (pose?.assetId) ids.push(pose.assetId)
+    if (scene?.assetId) ids.push(scene.assetId)
+    return ids
   }
 
   const canToggleGarment = (item: StudioItemDto): boolean => {
@@ -209,15 +237,6 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
     applySelection({ garmentIds, poseId, sceneId }, next)
   }
 
-  const referenceIds: string[] = []
-  if (avatar) {
-    referenceIds.push(...avatarImages)
-    for (const item of orderedGarments) referenceIds.push(item.cleanAssetId ?? item.assetId ?? '')
-    if (pose?.assetId) referenceIds.push(pose.assetId)
-    if (scene?.assetId) referenceIds.push(scene.assetId)
-  }
-  const usableReferenceIds = referenceIds.filter(Boolean).slice(0, model?.maxImages ?? referenceIds.length)
-
   const updateResult = (angle: StudioAngle, patch: Partial<AngleResult>) => {
     setResults((current) => current.map((entry) => (entry.angle === angle ? { ...entry, ...patch } : entry)))
   }
@@ -243,7 +262,8 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
       for (const angle of selected) {
         if (runToken.current !== token) return
         updateResult(angle, { status: 'running' })
-        const prompt = buildStudioPrompt({ ...promptInput, angle })
+        const prompt = promptFor(angle)
+        const usableReferenceIds = referenceIdsFor(angle).filter(Boolean).slice(0, model.maxImages)
         const submitted = await submitGeneration({
           data: {
             kind: 'image',
@@ -616,6 +636,21 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
             ) : null}
           </AnimatePresence>
           <AnimatePresence initial={false}>
+            {viewWarnings.length > 0 ? (
+              <motion.p
+                key={viewWarnings[0]}
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={motionFast}
+                className="text-warning mt-2 overflow-hidden text-[10.5px] leading-snug"
+              >
+                {viewWarnings[0]}
+                {viewWarnings.length > 1 ? ` (+${viewWarnings.length - 1} more)` : ''}
+              </motion.p>
+            ) : null}
+          </AnimatePresence>
+          <AnimatePresence initial={false}>
             {validation.warnings.length > 0 ? (
               <motion.p
                 key={validation.warnings[0]}
@@ -702,7 +737,7 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
                   className="overflow-hidden"
                 >
                   <pre className="bg-canvas text-ink/55 mt-2 max-h-48 overflow-auto rounded-lg p-2 text-[10px] leading-relaxed whitespace-pre-wrap">
-                    {buildStudioPrompt(promptInput)}
+                    {promptFor(angles[0] ?? 'front')}
                   </pre>
                 </motion.div>
               ) : null}

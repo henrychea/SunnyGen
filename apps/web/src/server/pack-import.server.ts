@@ -164,6 +164,34 @@ export async function importPack(source: PackSource): Promise<PackImportResult> 
       }
 
       const data = { ...item.data }
+      if (item.views.length > 0) {
+        const views: Array<{ angle: string; assetId: string; cleanAssetId: string | null }> = []
+        for (const view of item.views) {
+          const viewBuffer = files.get(view.file.toLowerCase())
+          if (!viewBuffer) throw new Error(`View image not found: ${view.file}`)
+          const viewAsset = await storeBuffer({
+            buffer: Buffer.from(viewBuffer),
+            mime: await imageMime(viewBuffer),
+            kind: 'image',
+            source: 'studio',
+          })
+          let viewCleanId: string | null = null
+          if (view.cleanFile) {
+            const viewClean = files.get(view.cleanFile.toLowerCase())
+            if (!viewClean) throw new Error(`Prepared image not found: ${view.cleanFile}`)
+            viewCleanId = (
+              await storeBuffer({
+                buffer: Buffer.from(viewClean),
+                mime: await imageMime(viewClean),
+                kind: 'image',
+                source: 'studio',
+              })
+            ).id
+          }
+          views.push({ angle: view.angle, assetId: viewAsset.id, cleanAssetId: viewCleanId })
+        }
+        data.views = views
+      }
       if (item.characterSheetFile) {
         const sheet = files.get(item.characterSheetFile.toLowerCase())
         if (!sheet) throw new Error(`Character sheet not found: ${item.characterSheetFile}`)

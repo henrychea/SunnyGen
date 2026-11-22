@@ -2,9 +2,11 @@ import { z } from 'zod'
 import {
   GARMENT_SLOTS,
   GARMENT_SOURCES,
+  STUDIO_ANGLES,
   STUDIO_KINDS,
   type GarmentSlot,
   type GarmentSource,
+  type StudioAngle,
   type StudioKind,
 } from './domain'
 
@@ -23,12 +25,19 @@ export const PACK_NAME_LIMIT = 80
 
 const pathField = z.string().trim().min(1).max(400)
 
+const packViewSchema = z.object({
+  angle: z.enum(STUDIO_ANGLES),
+  file: pathField,
+  cleanFile: pathField.optional(),
+})
+
 const packSidecarSchema = z.object({
   file: pathField.optional(),
   name: z.string().trim().min(1).max(PACK_NAME_LIMIT).optional(),
   kind: z.enum(STUDIO_KINDS).optional(),
   data: z.record(z.string(), z.unknown()).optional(),
   cleanFile: pathField.optional(),
+  views: z.array(packViewSchema).max(STUDIO_ANGLES.length).optional(),
   characterSheetFile: pathField.optional(),
   include: z.boolean().optional(),
 })
@@ -59,12 +68,19 @@ export interface PackEntry {
   size?: number
 }
 
+export interface PlannedPackView {
+  angle: StudioAngle
+  file: string
+  cleanFile: string | null
+}
+
 export interface PlannedPackItem {
   file: string
   name: string
   kind: StudioKind
   data: Record<string, unknown>
   cleanFile: string | null
+  views: PlannedPackView[]
   characterSheetFile: string | null
   size: number
 }
@@ -186,6 +202,50 @@ function sidecarEntries(manifest: PackManifest): Array<PackSidecar & { file: str
   return list
 }
 
+function planViews(input: {
+  file: string
+  kind: StudioKind
+  views: NonNullable<PackSidecar['views']>
+  byPath: Map<string, PackEntry>
+  claimed: Set<string>
+}): { views: PlannedPackView[]; issue: PackPlanIssue | null } {
+  if (input.kind !== 'garment') {
+    return { views: [], issue: { file: input.file, error: 'Views are only supported on garments.' } }
+  }
+  const views: PlannedPackView[] = []
+  const angles = new Set<StudioAngle>()
+  for (const view of input.views) {
+    const viewPath = normalizePackPath(view.file)
+    const entry = input.byPath.get(viewPath.toLowerCase())
+    if (!entry || !isPackImage(entry.path)) {
+      return { views: [], issue: { file: viewPath, error: `View image not found: ${view.file}` } }
+    }
+    if (view.angle === 'front') {
+      return {
+        views: [],
+        issue: {
+          file: input.file,
+          error: 'The front view is "file"; list only the other angles in "views".',
+        },
+      }
+    }
+    if (angles.has(view.angle)) {
+      return { views: [], issue: { file: input.file, error: `Duplicate ${view.angle} view.` } }
+    }
+    let cleanFile: string | null = null
+    if (view.cleanFile) {
+      const clean = input.byPath.get(normalizePackPath(view.cleanFile).toLowerCase())
+      if (!clean || !isPackImage(clean.path)) {
+        return { views: [], issue: { file: viewPath, error: `Prepared image not found: ${view.cleanFile}` } }
+      }
+      cleanFile = clean.path
+    }
+    angles.add(view.angle)
+    views.push({ angle: view.angle, file: entry.path, cleanFile })
+  }
+  return { views, issue: null }
+}
+
 function garmentData(raw: Record<string, unknown>): { data: Record<string, unknown>; error: string | null } {
   const slot = (raw.slot ?? 'top') as GarmentSlot
   const sourceKind = (raw.sourceKind ?? 'flat-lay') as GarmentSource
@@ -239,6 +299,7 @@ export function planPack(options: PlanPackOptions): PackPlan {
     kind?: StudioKind
     data?: Record<string, unknown>
     cleanFile?: string | null
+    views?: PackSidecar['views']
     characterSheetFile?: string | null
   }): void => {
     const file = normalizePackPath(input.file)
@@ -279,6 +340,8 @@ export function planPack(options: PlanPackOptions): PackPlan {
         return
       }
       Object.assign(data, garment.data)
+      // Views in a pack come from files, never from hand-written data.
+      delete data.views
     }
 
     let characterSheetFile: string | null = null
@@ -310,6 +373,19 @@ export function planPack(options: PlanPackOptions): PackPlan {
       claimed.add(clean.path.toLowerCase())
     }
 
+    const plannedViews = input.views?.length
+      ? planViews({ file, kind, views: input.views, byPath, claimed })
+      : { views: [], issue: null }
+    if (plannedViews.issue) {
+      plan.issues.push(plannedViews.issue)
+      return
+    }
+    const views = plannedViews.views
+    for (const view of views) {
+      claimed.add(view.file.toLowerCase())
+      if (view.cleanFile) claimed.add(view.cleanFile.toLowerCase())
+    }
+
     const key = `${kind}|${name.toLowerCase()}`
     if (planned.has(key)) {
       plan.skipped.push({ file, reason: 'Duplicate name inside the pack.' })
@@ -326,6 +402,7 @@ export function planPack(options: PlanPackOptions): PackPlan {
       kind,
       data,
       cleanFile,
+      views,
       characterSheetFile,
       size: entry.size ?? 0,
     })
@@ -346,6 +423,7 @@ export function planPack(options: PlanPackOptions): PackPlan {
         kind: sidecar.kind,
         data: sidecar.data,
         cleanFile: sidecar.cleanFile,
+        views: sidecar.views,
         characterSheetFile: sidecar.characterSheetFile,
       })
     }

@@ -348,7 +348,7 @@ function StudioPage() {
               {tab !== 'look' ? (
                 <p className="text-ink/35 mt-4 text-[10.5px]">
                   {tab === 'wardrobe'
-                    ? 'On-model and supplier photos must be prepared before a shoot. Prep costs one image generation.'
+                    ? 'On-model and supplier photos must be prepared before a shoot. Prep fills every missing view and costs one image generation per view.'
                     : tab === 'avatars'
                       ? 'Build the sheet and 4×4 panel in the wizard, then edit the profile to refresh the identity keywords.'
                       : tab === 'models'

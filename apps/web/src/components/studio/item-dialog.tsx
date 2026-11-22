@@ -3,9 +3,15 @@ import {
   GARMENT_SOURCES,
   SLOT_LABELS,
   SOURCE_LABELS,
+  STUDIO_ANGLES,
+  STUDIO_ANGLE_LABELS,
+  anglePhrase,
   parseAvatarLora,
+  parseGarmentViews,
   type GarmentSlot,
   type GarmentSource,
+  type GarmentView,
+  type StudioAngle,
   type StudioKind,
 } from '@sunnygen/core'
 import {
@@ -63,6 +69,15 @@ export function StudioItemDialog({
     (item?.data.sourceKind as GarmentSource) ?? 'flat-lay',
   )
   const [notes, setNotes] = useState(String(item?.data.notes ?? ''))
+  const [views, setViews] = useState<Partial<Record<StudioAngle, GarmentView>>>(() =>
+    Object.fromEntries(
+      parseGarmentViews({
+        assetId: item?.assetId ?? null,
+        cleanAssetId: item?.cleanAssetId ?? null,
+        data: item?.data ?? {},
+      }).map((view) => [view.angle, view]),
+    ),
+  )
   const [uploading, setUploading] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -85,7 +100,11 @@ export function StudioItemDialog({
       const payload = (await response.json()) as { id?: string; error?: string }
       if (!response.ok || !payload.id) throw new Error(payload.error ?? 'Upload failed')
       if (field === 'character') setCharacterSheetId(payload.id)
-      else setSheetId(payload.id)
+      else if (field.startsWith('view:')) {
+        const angle = field.slice('view:'.length) as StudioAngle
+        // A new photo invalidates any prep done on the old one.
+        setViews((current) => ({ ...current, [angle]: { angle, assetId: payload.id!, cleanAssetId: null } }))
+      } else setSheetId(payload.id)
     } catch (uploadError) {
       setError(uploadError instanceof Error ? uploadError.message : 'Upload failed')
     } finally {
@@ -106,14 +125,21 @@ export function StudioItemDialog({
         data.slot = slot
         data.sourceKind = sourceKind
         data.notes = notes.trim()
+        data.views = STUDIO_ANGLES.flatMap((angle) => {
+          const view = views[angle]
+          return angle === 'front' || !view
+            ? []
+            : [{ angle, assetId: view.assetId, cleanAssetId: view.cleanAssetId }]
+        })
       }
+      const front = views.front
       await saveStudioItemFn({
         data: {
           id: item?.id,
           kind,
           name: name.trim(),
-          assetId: sheetId,
-          cleanAssetId: item?.cleanAssetId ?? null,
+          assetId: kind === 'garment' ? (front?.assetId ?? null) : sheetId,
+          cleanAssetId: kind === 'garment' ? (front?.cleanAssetId ?? null) : (item?.cleanAssetId ?? null),
           data,
         },
       })
@@ -129,6 +155,7 @@ export function StudioItemDialog({
   const title =
     kind === 'avatar' ? 'Avatar' : kind === 'garment' ? 'Garment' : kind === 'pose' ? 'Pose' : 'Scene'
   const lora = parseAvatarLora(item?.data.lora)
+  const preppedViews = STUDIO_ANGLES.filter((angle) => views[angle]?.cleanAssetId).length
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -236,12 +263,17 @@ export function StudioItemDialog({
                   </Select>
                 </label>
               </div>
-              <UploadBox
-                label="Garment photo"
-                hint={sourceKind === 'flat-lay' ? 'Clean flat lay' : 'Needs prep after saving'}
-                assetId={sheetId}
-                busy={uploading === 'asset'}
-                onPick={() => pick('asset')}
+              <ViewGrid
+                views={views}
+                uploading={uploading}
+                onPick={(angle) => pick(`view:${angle}`)}
+                onClear={(angle) =>
+                  setViews((current) => {
+                    const next = { ...current }
+                    delete next[angle]
+                    return next
+                  })
+                }
               />
               <label className="flex flex-col gap-1.5">
                 <Label>Details to keep</Label>
@@ -265,25 +297,36 @@ export function StudioItemDialog({
             />
           ) : null}
 
-          <AnimatePresence initial={false}>
-            {item?.cleanAssetUrl ? (
-              <motion.div
-                key="clean-reference"
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={motionFast}
-                className="overflow-hidden"
-              >
-                <div className="flex items-center gap-2">
-                  <Badge tone="success">Clean reference ready</Badge>
-                  <span className="border-line relative size-10 overflow-hidden rounded-md border">
-                    <FadeImage shimmer src={item.cleanAssetUrl} alt="" className="size-full object-cover" />
-                  </span>
-                </div>
-              </motion.div>
-            ) : null}
-          </AnimatePresence>
+          {kind === 'garment' ? (
+            preppedViews > 0 ? (
+              <div className="flex items-center gap-2">
+                <Badge tone="success">
+                  {preppedViews} view{preppedViews === 1 ? '' : 's'} prepped
+                </Badge>
+                <span className="text-ink/35 text-[10px]">Prep from the Wardrobe tab to fill the rest.</span>
+              </div>
+            ) : null
+          ) : (
+            <AnimatePresence initial={false}>
+              {item?.cleanAssetUrl ? (
+                <motion.div
+                  key="clean-reference"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={motionFast}
+                  className="overflow-hidden"
+                >
+                  <div className="flex items-center gap-2">
+                    <Badge tone="success">Clean reference ready</Badge>
+                    <span className="border-line relative size-10 overflow-hidden rounded-md border">
+                      <FadeImage shimmer src={item.cleanAssetUrl} alt="" className="size-full object-cover" />
+                    </span>
+                  </div>
+                </motion.div>
+              ) : null}
+            </AnimatePresence>
+          )}
 
           <AnimatePresence initial={false}>
             {error ? (
@@ -323,6 +366,89 @@ export function StudioItemDialog({
         />
       </DialogSurface>
     </Dialog.Root>
+  )
+}
+
+function ViewGrid({
+  views,
+  uploading,
+  onPick,
+  onClear,
+}: {
+  views: Partial<Record<StudioAngle, GarmentView>>
+  uploading: string | null
+  onPick: (angle: StudioAngle) => void
+  onClear: (angle: StudioAngle) => void
+}) {
+  const count = STUDIO_ANGLES.filter((angle) => views[angle]?.assetId).length
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center justify-between">
+        <Label>Views</Label>
+        <span className="text-ink/35 text-[10px] tabular-nums">
+          {count}/{STUDIO_ANGLES.length}
+        </span>
+      </div>
+      <div className="grid grid-cols-4 gap-2">
+        {STUDIO_ANGLES.map((angle) => {
+          const view = views[angle]
+          const image = view?.cleanAssetId ?? view?.assetId
+          const label = STUDIO_ANGLE_LABELS[angle]
+          return (
+            <div key={angle} className="relative flex flex-col gap-1">
+              <button
+                type="button"
+                onClick={() => onPick(angle)}
+                aria-label={`${image ? 'Replace' : 'Add'} ${anglePhrase(angle)} view`}
+                className={cn(
+                  'border-line bg-canvas/50 text-ink/35 relative grid h-20 place-items-center overflow-hidden rounded-lg border border-dashed',
+                  'transition-[color,border-color,background-color,scale] duration-200 ease-out hover:border-accent/40 hover:bg-surface hover:text-accent',
+                  'active:scale-[0.98] motion-reduce:active:scale-100',
+                )}
+              >
+                <AnimatePresence mode="wait" initial={false}>
+                  <motion.span
+                    key={uploading === `view:${angle}` ? 'busy' : image ? 'asset' : 'empty'}
+                    variants={motionPop}
+                    initial="hidden"
+                    animate="visible"
+                    exit="hidden"
+                    className="absolute inset-0 grid place-items-center"
+                  >
+                    {uploading === `view:${angle}` ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : image ? (
+                      <FadeImage
+                        shimmer
+                        src={`/api/media/${image}`}
+                        alt=""
+                        className="size-full object-contain"
+                      />
+                    ) : (
+                      <ImagePlus size={14} />
+                    )}
+                  </motion.span>
+                </AnimatePresence>
+              </button>
+              {image && angle !== 'front' ? (
+                <button
+                  type="button"
+                  onClick={() => onClear(angle)}
+                  aria-label={`Remove ${anglePhrase(angle)} view`}
+                  className="border-line bg-surface/95 text-ink/40 hover:text-error absolute top-1 right-1 grid size-5 place-items-center rounded-full border transition-colors duration-150 ease-out"
+                >
+                  <X size={10} />
+                </button>
+              ) : null}
+              <span className="text-ink/45 text-center text-[9.5px]">{label}</span>
+            </div>
+          )
+        })}
+      </div>
+      <p className="text-ink/35 text-[10px] leading-snug">
+        Add the angles you have. A shoot uses the closest one for each shot angle.
+      </p>
+    </div>
   )
 }
 
