@@ -1,6 +1,6 @@
 import { useEffect, useRef, useSyncExternalStore } from 'react'
 
-export type PromptSource = 'home' | 'studio'
+export type PromptSource = 'home' | 'studio' | 'video'
 
 export interface PromptContext {
   source: PromptSource

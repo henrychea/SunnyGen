@@ -1,5 +1,5 @@
 import { useRouterState } from '@tanstack/react-router'
-import { motionTransition } from '@sunnygen/ui'
+import { cn, motionTransition } from '@sunnygen/ui'
 import { motion } from 'motion/react'
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
 import { AssistantFab } from './assistant/fab'
@@ -116,7 +116,13 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
         <NavigationProgress pending={pending} />
         <MobileNav />
-        <main className="min-h-0 flex-1 overflow-hidden">
+        <main
+          className={cn(
+            'min-h-0 flex-1 overflow-hidden',
+            panelOpen &&
+              'md:pr-[420px] transition-[padding] duration-200 ease-out motion-reduce:transition-none',
+          )}
+        >
           <motion.div
             key={segment}
             initial={hydrated && !viewTransition ? { opacity: 0, y: 6 } : false}

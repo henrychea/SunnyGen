@@ -103,6 +103,27 @@ test('appends a prompt without duplicating blank space', () => {
   assert.equal(mergePrompt('existing', '   '), 'existing')
 })
 
+test('round trips the video page prompt through the assistant', () => {
+  resetAssistantStore()
+  let videoPrompt = ''
+  registerPromptContext({
+    source: 'video',
+    label: 'Video prompt',
+    value: videoPrompt,
+    expanded: false,
+    apply: (value) => {
+      videoPrompt = value
+    },
+  })
+
+  updatePromptContext('video', 'a slow dolly through a workshop', false)
+  assert.equal(getPromptContext()?.source, 'video')
+  assert.equal(getPromptContext()?.value, 'a slow dolly through a workshop')
+
+  assert.equal(insertIntoPrompt('a slow dolly through a workshop, golden hour'), true)
+  assert.equal(videoPrompt, 'a slow dolly through a workshop, golden hour')
+})
+
 test('remembers the current session for the panel', () => {
   resetAssistantStore()
   assert.equal(getAssistantSession(), null)
