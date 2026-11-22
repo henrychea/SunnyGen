@@ -101,6 +101,8 @@ function dynamicVideo(provider: 'sunra' | 'fal'): VideoModelDefinition {
     sound: false,
     modes: [],
     defaultMode: '',
+    videoModes: {},
+    defaultVideoMode: 'text',
     sourceId: 'test/video',
     dynamic: true,
   }

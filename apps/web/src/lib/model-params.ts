@@ -10,7 +10,14 @@ export interface ComposerParams {
   count: number
 }
 
-export type ParamField = 'aspectRatio' | 'quality' | 'duration' | 'resolution' | 'count'
+export type ParamField =
+  | 'aspectRatio'
+  | 'quality'
+  | 'duration'
+  | 'resolution'
+  | 'count'
+  | 'videoMode'
+  | 'sound'
 
 export interface ParamChange {
   field: ParamField

@@ -1,0 +1,91 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Sora 2 Pro API",
+    "docs": "https://oapi.sunra.ai/main/openai/sora-2-pro/ddf6cb742904d9f8bc15081a014eb7c7ba010943.json"
+  },
+  "paths": {
+    "/openai/sora-2-pro/text-to-video": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["prompt"],
+                "properties": {
+                  "prompt": {
+                    "type": "string",
+                    "maxLength": 5000
+                  },
+                  "duration": {
+                    "type": "integer",
+                    "enum": [4, 8, 12, 16, 20],
+                    "default": 4
+                  },
+                  "aspect_ratio": {
+                    "type": "string",
+                    "enum": ["9:16", "16:9"],
+                    "default": "16:9"
+                  },
+                  "resolution": {
+                    "type": "string",
+                    "enum": ["720p", "1080p"],
+                    "default": "1080p"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/openai/sora-2-pro/image-to-video": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["prompt", "start_image"],
+                "properties": {
+                  "prompt": {
+                    "type": "string",
+                    "maxLength": 5000
+                  },
+                  "duration": {
+                    "type": "integer",
+                    "enum": [4, 8, 12, 16, 20],
+                    "default": 4
+                  },
+                  "aspect_ratio": {
+                    "type": "string",
+                    "enum": ["auto", "9:16", "16:9"],
+                    "default": "auto"
+                  },
+                  "resolution": {
+                    "type": "string",
+                    "enum": ["720p", "1080p"],
+                    "default": "1080p"
+                  },
+                  "start_image": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 2083,
+                        "minLength": 1
+                      },
+                      {
+                        "type": "string"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

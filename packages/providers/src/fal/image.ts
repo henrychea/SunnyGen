@@ -104,7 +104,10 @@ export function parseFalOpenApi(document: unknown): FalRequestSchema | null {
   }
 }
 
-async function fetchFalSchema(context: AdapterContext, endpoint: string): Promise<FalRequestSchema | null> {
+export async function fetchFalSchema(
+  context: AdapterContext,
+  endpoint: string,
+): Promise<FalRequestSchema | null> {
   const cached = schemaCache.get(endpoint)
   if (cached) return cached
 

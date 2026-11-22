@@ -1,0 +1,274 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Kling v4 API",
+    "docs": "https://oapi.sunra.ai/main/kling/kling-v4/ddf6cb742904d9f8bc15081a014eb7c7ba010943.json"
+  },
+  "paths": {
+    "/kling/kling-v4/text-to-video": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["prompt"],
+                "properties": {
+                  "resolution": {
+                    "type": "string",
+                    "enum": ["720p", "1080p", "4k"],
+                    "default": "1080p"
+                  },
+                  "dynamic_range": {
+                    "type": "string",
+                    "enum": ["sdr", "hdr"],
+                    "default": "sdr"
+                  },
+                  "prompt": {
+                    "type": "string",
+                    "maxLength": 26000,
+                    "minLength": 1
+                  },
+                  "aspect_ratio": {
+                    "type": "string",
+                    "enum": ["21:9", "16:9", "9:16", "1:1"],
+                    "default": "16:9"
+                  },
+                  "duration": {
+                    "type": "integer",
+                    "default": 5
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/kling/kling-v4/image-to-video": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["image_url"],
+                "properties": {
+                  "resolution": {
+                    "type": "string",
+                    "enum": ["720p", "1080p", "4k"],
+                    "default": "1080p"
+                  },
+                  "dynamic_range": {
+                    "type": "string",
+                    "enum": ["sdr", "hdr"],
+                    "default": "sdr"
+                  },
+                  "prompt": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 26000
+                      }
+                    ]
+                  },
+                  "image_url": {
+                    "type": "string"
+                  },
+                  "middle_image_urls": {
+                    "anyOf": [
+                      {
+                        "type": "array",
+                        "maxItems": 9,
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ]
+                  },
+                  "end_image_url": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "duration": {
+                    "type": "integer",
+                    "default": 5
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/kling/kling-v4/reference-to-video": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["prompt"],
+                "properties": {
+                  "resolution": {
+                    "type": "string",
+                    "enum": ["720p", "1080p", "4k"],
+                    "default": "1080p"
+                  },
+                  "dynamic_range": {
+                    "type": "string",
+                    "enum": ["sdr", "hdr"],
+                    "default": "sdr"
+                  },
+                  "image_urls": {
+                    "anyOf": [
+                      {
+                        "type": "array",
+                        "maxItems": 10,
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ]
+                  },
+                  "element_ids": {
+                    "anyOf": [
+                      {
+                        "type": "array",
+                        "maxItems": 7,
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ]
+                  },
+                  "prompt": {
+                    "type": "string",
+                    "maxLength": 26000,
+                    "minLength": 1
+                  },
+                  "start_image_url": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "end_image_url": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "video_urls": {
+                    "anyOf": [
+                      {
+                        "type": "array",
+                        "maxItems": 5,
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ]
+                  },
+                  "voice_ids": {
+                    "anyOf": [
+                      {
+                        "type": "array",
+                        "maxItems": 3,
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ]
+                  },
+                  "aspect_ratio": {
+                    "type": "string",
+                    "enum": ["adaptive", "21:9", "16:9", "9:16", "1:1"],
+                    "default": "adaptive"
+                  },
+                  "duration": {
+                    "type": "integer",
+                    "default": 5
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/kling/kling-v4/video-to-video": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["prompt", "video_url"],
+                "properties": {
+                  "resolution": {
+                    "type": "string",
+                    "enum": ["720p", "1080p", "4k"],
+                    "default": "1080p"
+                  },
+                  "dynamic_range": {
+                    "type": "string",
+                    "enum": ["sdr", "hdr"],
+                    "default": "sdr"
+                  },
+                  "image_urls": {
+                    "anyOf": [
+                      {
+                        "type": "array",
+                        "maxItems": 10,
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ]
+                  },
+                  "element_ids": {
+                    "anyOf": [
+                      {
+                        "type": "array",
+                        "maxItems": 7,
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ]
+                  },
+                  "prompt": {
+                    "type": "string",
+                    "maxLength": 26000,
+                    "minLength": 1
+                  },
+                  "video_url": {
+                    "type": "string"
+                  },
+                  "aspect_ratio": {
+                    "type": "string",
+                    "enum": ["adaptive", "21:9", "16:9", "9:16", "1:1"],
+                    "default": "adaptive"
+                  },
+                  "duration": {
+                    "anyOf": [
+                      {
+                        "type": "integer"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

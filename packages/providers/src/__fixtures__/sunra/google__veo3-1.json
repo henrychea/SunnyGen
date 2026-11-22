@@ -11,10 +11,19 @@
           "content": {
             "application/json": {
               "schema": {
+                "type": "object",
+                "required": ["prompt"],
                 "properties": {
                   "prompt": {
                     "type": "string",
                     "maxLength": 20000
+                  },
+                  "negative_prompt": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      }
+                    ]
                   },
                   "aspect_ratio": {
                     "type": "string",
@@ -39,15 +48,10 @@
                     "anyOf": [
                       {
                         "type": "integer"
-                      },
-                      {
-                        "type": "null"
                       }
                     ]
                   }
-                },
-                "type": "object",
-                "required": ["prompt"]
+                }
               }
             }
           }
@@ -60,18 +64,26 @@
           "content": {
             "application/json": {
               "schema": {
+                "type": "object",
+                "required": ["prompt", "image"],
                 "properties": {
                   "prompt": {
                     "type": "string",
                     "maxLength": 20000
+                  },
+                  "negative_prompt": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      }
+                    ]
                   },
                   "image": {
                     "anyOf": [
                       {
                         "type": "string",
                         "maxLength": 2083,
-                        "minLength": 1,
-                        "format": "uri"
+                        "minLength": 1
                       },
                       {
                         "type": "string"
@@ -83,14 +95,10 @@
                       {
                         "type": "string",
                         "maxLength": 2083,
-                        "minLength": 1,
-                        "format": "uri"
+                        "minLength": 1
                       },
                       {
                         "type": "string"
-                      },
-                      {
-                        "type": "null"
                       }
                     ]
                   },
@@ -117,15 +125,10 @@
                     "anyOf": [
                       {
                         "type": "integer"
-                      },
-                      {
-                        "type": "null"
                       }
                     ]
                   }
-                },
-                "type": "object",
-                "required": ["prompt", "image"]
+                }
               }
             }
           }
@@ -138,28 +141,29 @@
           "content": {
             "application/json": {
               "schema": {
+                "type": "object",
+                "required": ["prompt", "image_urls"],
                 "properties": {
                   "prompt": {
                     "type": "string",
                     "maxLength": 20000
                   },
                   "image_urls": {
+                    "type": "array",
+                    "maxItems": 3,
+                    "minItems": 1,
                     "items": {
                       "anyOf": [
                         {
                           "type": "string",
                           "maxLength": 2083,
-                          "minLength": 1,
-                          "format": "uri"
+                          "minLength": 1
                         },
                         {
                           "type": "string"
                         }
                       ]
-                    },
-                    "type": "array",
-                    "maxItems": 3,
-                    "minItems": 1
+                    }
                   },
                   "aspect_ratio": {
                     "type": "string",
@@ -179,15 +183,10 @@
                     "anyOf": [
                       {
                         "type": "integer"
-                      },
-                      {
-                        "type": "null"
                       }
                     ]
                   }
-                },
-                "type": "object",
-                "required": ["prompt", "image_urls"]
+                }
               }
             }
           }

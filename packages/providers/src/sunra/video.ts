@@ -1,4 +1,9 @@
-import type { VideoModelDefinition } from '@sunnygen/core'
+import {
+  videoModeCapability,
+  type VideoModeCapability,
+  type VideoModeKey,
+  type VideoModelDefinition,
+} from '@sunnygen/core'
 import { SUNRA_VIDEO_SPECS, type SunraVideoSpec } from '../models'
 import {
   conformBody,
@@ -17,6 +22,7 @@ const PROMPT_LIMIT = 20_000
 const IMAGE_FIELDS = ['start_image_url', 'image', 'image_url', 'input_image'] as const
 const END_IMAGE_FIELDS = ['end_image_url', 'end_image', 'last_frame_image_url', 'tail_image_url'] as const
 const REFERENCE_FIELDS = ['reference_images', 'reference_image_urls', 'image_urls', 'input_images'] as const
+const AUDIO_FIELDS = ['generate_audio', 'audio'] as const
 
 function firstField(schema: RequestSchema, names: readonly string[]): string | null {
   return names.find((name) => name in schema.properties) ?? null
@@ -49,6 +55,20 @@ function legacyOperation(
   return 'text-to-video'
 }
 
+function requestedMode(request: ProviderRequest): VideoModeKey | null {
+  const mode = String(request.params.videoMode ?? '')
+  return mode === 'text' || mode === 'image' || mode === 'frames' || mode === 'references' ? mode : null
+}
+
+function capabilityPath(alias: string, capability: VideoModeCapability): string {
+  const operation = capability.endpoint.split('/').filter(Boolean).pop() ?? ''
+  return `${alias}/${operation}`
+}
+
+function capabilityOperation(schema: SunraModelSchema, path: string): RequestSchema | null {
+  return Object.values(schema.operations).find((operation) => operation.path === `/${path}`) ?? null
+}
+
 interface VideoInputs {
   prompt: string
   duration: number
@@ -58,6 +78,82 @@ interface VideoInputs {
   startFrame?: string
   endFrame?: string
   references: string[]
+}
+
+function modeInputs(
+  mode: VideoModeKey,
+  capability: VideoModeCapability,
+  urls: string[],
+  inputs: Omit<VideoInputs, 'startFrame' | 'endFrame' | 'references'>,
+): VideoInputs {
+  if (mode === 'image') return { ...inputs, startFrame: urls[0], references: [] }
+  if (mode === 'frames') return { ...inputs, startFrame: urls[0], endFrame: urls[1], references: [] }
+  if (mode === 'references') return { ...inputs, references: urls.slice(0, capability.maxImages) }
+  return { ...inputs, references: [] }
+}
+
+function applyImages(
+  body: Record<string, unknown>,
+  capability: VideoModeCapability,
+  inputs: VideoInputs,
+  operation: RequestSchema,
+  components: Record<string, unknown>,
+  model: VideoModelDefinition,
+): void {
+  if (capability.fieldsMode === 'array') {
+    const field = capability.fields[0]
+    if (!field || inputs.references.length === 0) return
+    const max = maxItemsOf(operation.properties[field], components) ?? capability.maxImages
+    const list = inputs.references.slice(0, Math.max(0, max))
+    body[field] =
+      field === 'elements'
+        ? list.map((url) => ({ frontal_image_url: url, reference_image_urls: [] }))
+        : isArrayProperty(operation.properties[field], components)
+          ? list
+          : list[0]
+    return
+  }
+  const frames = [inputs.startFrame, inputs.endFrame]
+  capability.fields.forEach((field, index) => {
+    const url = frames[index]
+    if (url) body[field] = url
+  })
+  if (!model.supportsImages) return
+}
+
+function capabilityBody(
+  model: VideoModelDefinition,
+  capability: VideoModeCapability,
+  inputs: VideoInputs,
+  operation: RequestSchema,
+  components: Record<string, unknown>,
+): Record<string, unknown> {
+  const properties = operation.properties
+  const body: Record<string, unknown> = {
+    prompt: cleanSunraPrompt(
+      inputs.prompt,
+      Math.min(maxLengthOf(properties.prompt, components) ?? PROMPT_LIMIT, PROMPT_LIMIT),
+    ),
+  }
+  applyImages(body, capability, inputs, operation, components, model)
+
+  const audioField = firstField(operation, AUDIO_FIELDS)
+  if (audioField) body[audioField] = inputs.sound
+
+  if ('duration' in properties) {
+    const value = schemaValue('duration', operation, components, inputs.duration)
+    if (value !== undefined) body.duration = value
+  }
+  if ('aspect_ratio' in properties) {
+    const value = schemaValue('aspect_ratio', operation, components, inputs.aspectRatio)
+    if (value !== undefined) body.aspect_ratio = value
+  }
+  if ('resolution' in properties) {
+    const value = schemaValue('resolution', operation, components, inputs.resolution)
+    if (value !== undefined) body.resolution = value
+  }
+
+  return conformBody(body, operation, components)
 }
 
 function schemaBody(
@@ -86,6 +182,10 @@ function schemaBody(
   }
 
   if (inputs.references.length > 0) {
+    const startField = firstField(operation.schema, IMAGE_FIELDS)
+    if (startField && operation.schema.required.includes(startField) && !(startField in body)) {
+      body[startField] = inputs.references[0]
+    }
     const field = firstField(operation.schema, REFERENCE_FIELDS)
     if (field) {
       const max = maxItemsOf(properties[field], components) ?? model.maxImages
@@ -181,9 +281,34 @@ async function buildVideoRequest(
 ): Promise<{ endpoint: string; body: Record<string, unknown> }> {
   const model = request.model as VideoModelDefinition
   const spec = SUNRA_VIDEO_SPECS[model.id]
-  const mode = String(request.params.mode ?? model.defaultMode)
-  const alias = spec?.apiIdByMode?.[mode] ?? spec?.apiId ?? (model.dynamic ? model.sourceId : null)
+  const mode = requestedMode(request)
+  const qualityMode = String(request.params.mode ?? model.defaultMode)
+  const alias = spec?.apiIdByMode?.[qualityMode] ?? spec?.apiId ?? (model.dynamic ? model.sourceId : null)
   if (!alias) throw new ProviderError('sunra', `${model.label} is not available on Sunra`)
+
+  const capability = mode ? videoModeCapability(model, mode) : null
+  if (mode && capability) {
+    const schema = await fetchSunraSchema(context, alias, model.schemaUrl)
+    const path = capabilityPath(alias, capability)
+    const operation = schema ? capabilityOperation(schema, path) : null
+    if (!schema || !operation) {
+      throw new ProviderError(
+        'sunra',
+        `${model.label} has no documented ${mode === 'text' ? 'text' : mode} to video endpoint on Sunra.ai`,
+      )
+    }
+    const inputs = modeInputs(mode, capability, urls, {
+      prompt: request.prompt,
+      duration: Number(request.params.durationSeconds ?? model.defaultDuration),
+      aspectRatio: String(request.params.aspectRatio ?? model.defaultRatio),
+      resolution: String(request.params.resolution ?? model.defaultResolution),
+      sound: Boolean(request.params.sound ?? capability.audio),
+    })
+    return {
+      endpoint: `${SUNRA_BASE}/queue/${path}`,
+      body: capabilityBody(model, capability, inputs, operation, schema.components),
+    }
+  }
 
   const schema = await fetchSunraSchema(context, alias, model.schemaUrl)
   const imageOperation = schema?.operations['image-to-video']

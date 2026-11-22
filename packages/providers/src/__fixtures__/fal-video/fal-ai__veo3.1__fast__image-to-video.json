@@ -1,0 +1,74 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/veo3.1/fast/image-to-video",
+    "docs": "https://fal.ai/api/openapi/queue/openapi.json?endpoint_id=fal-ai/veo3.1/fast/image-to-video"
+  },
+  "paths": {
+    "/fal-ai/veo3.1/fast/image-to-video": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["prompt", "image_url"],
+                "properties": {
+                  "auto_fix": {
+                    "type": "boolean",
+                    "default": false
+                  },
+                  "duration": {
+                    "type": "string",
+                    "enum": ["4s", "6s", "8s"],
+                    "default": "8s"
+                  },
+                  "generate_audio": {
+                    "type": "boolean",
+                    "default": true
+                  },
+                  "negative_prompt": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "resolution": {
+                    "type": "string",
+                    "enum": ["720p", "1080p", "4k"],
+                    "default": "720p"
+                  },
+                  "aspect_ratio": {
+                    "type": "string",
+                    "enum": ["auto", "16:9", "9:16"],
+                    "default": "auto"
+                  },
+                  "seed": {
+                    "anyOf": [
+                      {
+                        "type": "integer"
+                      }
+                    ]
+                  },
+                  "image_url": {
+                    "type": "string"
+                  },
+                  "safety_tolerance": {
+                    "type": "string",
+                    "enum": ["1", "2", "3", "4", "5", "6"],
+                    "default": "4"
+                  },
+                  "prompt": {
+                    "type": "string",
+                    "maxLength": 20000
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

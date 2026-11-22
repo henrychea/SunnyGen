@@ -1,0 +1,141 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Queue OpenAPI for minimax/h3-max/reference-to-video",
+    "docs": "https://fal.ai/api/openapi/queue/openapi.json?endpoint_id=minimax/h3-max/reference-to-video"
+  },
+  "paths": {
+    "/minimax/h3-max/reference-to-video": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["prompt", "prompt_expansion_mode"],
+                "properties": {
+                  "duration": {
+                    "type": "number",
+                    "default": 5
+                  },
+                  "reference_image_urls": {
+                    "type": "array",
+                    "maxItems": 9,
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "resolution": {
+                    "type": "string",
+                    "enum": ["480P", "768P", "1080P"],
+                    "default": "768P"
+                  },
+                  "end_image_url": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    ]
+                  },
+                  "prompt_expansion_mode": {
+                    "type": "string",
+                    "default": "balanced"
+                  },
+                  "sync_mode": {
+                    "type": "boolean",
+                    "default": false
+                  },
+                  "reference_conditions": {
+                    "type": "array",
+                    "maxItems": 12,
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "url": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "type": {
+                          "type": "string",
+                          "enum": ["image", "video", "audio"]
+                        }
+                      },
+                      "required": ["type", "url"]
+                    }
+                  },
+                  "image_url": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    ]
+                  },
+                  "reference_audio_urls": {
+                    "type": "array",
+                    "maxItems": 3,
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "prompt": {
+                    "type": "string",
+                    "maxLength": 50000,
+                    "minLength": 1
+                  },
+                  "target_audio_url": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    ]
+                  },
+                  "middle_image_url": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    ]
+                  },
+                  "middle_frame_time": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      }
+                    ]
+                  },
+                  "aspect_ratio": {
+                    "type": "string",
+                    "enum": ["adaptive", "21:9", "16:9", "4:3", "1:1", "3:4", "9:16"],
+                    "default": "adaptive"
+                  },
+                  "seed": {
+                    "anyOf": [
+                      {
+                        "type": "integer"
+                      }
+                    ]
+                  },
+                  "enable_safety_checker": {
+                    "type": "boolean",
+                    "default": true
+                  },
+                  "reference_video_urls": {
+                    "type": "array",
+                    "maxItems": 3,
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
