@@ -1,6 +1,14 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { DEFAULT_EDIT_PROFILE, editProfile, editToken } from '@sunnygen/core'
+import {
+  DEFAULT_AVATAR_PROFILE,
+  DEFAULT_EDIT_PROFILE,
+  EDIT_PROMPT_PROFILES,
+  avatarModelFamily,
+  editProfile,
+  editToken,
+} from '@sunnygen/core'
+import { editReferencePlan } from './avatar-references'
 import { buildEditPrompt, orderEditAssets } from './edit-prompt'
 
 const AVATAR = [{ id: 'sheet', assetIds: ['sheet', 'panel'], avatar: true }]
@@ -128,12 +136,11 @@ test('three or more avatar sheets keep the panel as the body source', () => {
   assert.match(prompt, /@image2 and @image3 remain the source of truth/)
 })
 
-import { DEFAULT_AVATAR_PROFILE } from '@sunnygen/core'
-
+// Fixtures follow the production crop plan: the body crop rides second, behind the frontal face.
 const CROP_REFS = [
   { id: 'face-front', avatar: true, profile: DEFAULT_AVATAR_PROFILE, role: 'front face' },
-  { id: 'face-3q', avatar: true, profile: DEFAULT_AVATAR_PROFILE, role: 'three-quarter face' },
   { id: 'body', avatar: true, profile: DEFAULT_AVATAR_PROFILE, role: 'full body' },
+  { id: 'face-3q', avatar: true, profile: DEFAULT_AVATAR_PROFILE, role: 'three-quarter face' },
 ]
 
 const FAMILIES = [
@@ -147,13 +154,18 @@ const FAMILIES = [
 test('a profiled avatar is described by roles and identity anchors', () => {
   for (const modelId of FAMILIES) {
     const prompt = buildEditPrompt('', CROP_REFS, editProfile(modelId), { modelId })
+    const profile = EDIT_PROMPT_PROFILES[avatarModelFamily(modelId)]
     assert.match(prompt, /\(front face\)/)
-    assert.match(prompt, /\(three-quarter face\)/)
+    // Qwen takes two references, so its third crop is a supporting reference, not an identity source.
+    if (profile.maxRefs >= 3) assert.match(prompt, /\(three-quarter face\)/)
+    else assert.doesNotMatch(prompt, /identity references of the same avatar: [^\n]*three-quarter/)
     assert.match(prompt, /\(full body\)/)
     assert.match(prompt, /soft oval face/)
     assert.match(prompt, /slender arched brows/)
     assert.match(prompt, /pose, clothing, hair unless changed, background, lighting and camera/)
-    assert.match(prompt, /Do not slim, widen or beautify the body\./)
+    assert.match(prompt, /with the avatar's: 168 cm, very slim and hourglass build/)
+    assert.match(prompt, /from @?image ?3 \(full body\)/)
+    assert.doesNotMatch(prompt, /Do not slim, widen or beautify/)
     assert.doesNotMatch(prompt, /Copy the exact face shape/)
     assert.doesNotMatch(prompt, /100%/)
   }
@@ -188,14 +200,22 @@ test('Qwen stays under 800 characters and the wider families keep more anchors',
   })
   assert.ok(qwen.length < 800, `${qwen.length}`)
   assert.ok(nano.length > qwen.length)
-  assert.doesNotMatch(qwen, /black high heels/)
-  assert.match(nano, /black high heels/)
+  // Qwen names two references and drops the compact body detail; Gemini names three and restates.
+  assert.doesNotMatch(qwen, /three-quarter face/)
+  assert.match(nano, /three-quarter face/)
+  assert.match(nano, /The result keeps image 1's pose and the avatar's body proportions\./)
+  assert.doesNotMatch(qwen, /The result keeps/)
+  assert.match(qwen, /Take the body proportions from/)
+  assert.match(nano, /shoulder width, chest, waist, hips and thigh width/)
 
+  // The instruction is never cut: budget pressure trims the clause back to its shorter form instead.
   const dense = buildEditPrompt('x'.repeat(400), CROP_REFS, editProfile('fal:fal-ai/qwen-image-edit-2509'), {
     modelId: 'fal:fal-ai/qwen-image-edit-2509',
   })
-  assert.ok(dense.length < 800, `${dense.length}`)
-  assert.match(dense, /Additional instructions:\nxxxx/)
+  assert.ok(dense.endsWith(`Additional instructions:\n${'x'.repeat(400)}`), `${dense.length}`)
+  assert.ok(dense.length <= 800, `${dense.length}`)
+  const clause = (prompt: string) => prompt.match(/same avatar: (.*)\.\n/)?.[1] ?? ''
+  assert.ok(clause(dense).length < clause(qwen).length, clause(dense))
 })
 
 test('an avatar reference without a profile keeps the legacy prompt', () => {
@@ -241,3 +261,68 @@ test('the default profile still closes the list with the target', () => {
   assert.match(prompt, /^image 4 is the target photo\./)
   assert.match(prompt, /image 1 \(front face\)/)
 })
+
+const K4_PROFILE = {
+  ...DEFAULT_AVATAR_PROFILE,
+  identity: { gender: 'female' as const, age: 24, ethnicity: 'East Asian', heightCm: 165, weightKg: 49 },
+  body: { build: 'slim', legs: 'long', bust: 'slight' },
+}
+
+const BODY_CROPS = [
+  { role: 'face-front' as const, assetId: 'face-front', width: 1200, height: 1200 },
+  { role: 'face-three-quarter' as const, assetId: 'face-3q', width: 1200, height: 1200 },
+  { role: 'body-front' as const, assetId: 'body', width: 1200, height: 1600 },
+]
+
+const BODY_FAMILIES = [
+  'fal:google/nano-banana-2.1',
+  'sunra:google/gemini-nano-banana-2.1',
+  'sunra:qwen/qwen-image-2.1',
+  'sunra:bytedance/seedream-5.5',
+  'sunra:black-forest-labs/flux-3-image',
+  'gpt-image-2',
+]
+
+for (const modelId of BODY_FAMILIES) {
+  test(`the avatar body replaces the target body for ${modelId}`, () => {
+    const profile = editProfile(modelId)
+    const references = editReferencePlan(
+      [{ id: 'avatar', avatar: true, profile: K4_PROFILE, crops: BODY_CROPS }],
+      modelId,
+    )
+    const ordered = orderEditAssets(references, 'target', profile)
+    const bodyIndex = ordered.indexOf('body') + 1
+    const body = escapeToken(editToken(profile, bodyIndex))
+    const target = escapeToken(editToken(profile, 1))
+    const prompt = buildEditPrompt('', references, profile, { modelId })
+
+    // The full-body crop rides second, behind the target, so the body outranks the second face.
+    assert.equal(bodyIndex, 3, modelId)
+    if (ordered.includes('face-3q')) assert.ok(ordered.indexOf('body') < ordered.indexOf('face-3q'), modelId)
+    assert.match(
+      prompt,
+      new RegExp(
+        `Replace ${target}'s body with the avatar's: 165 cm, 49 kg, slim build, slight bust, long legs\\.`,
+      ),
+      modelId,
+    )
+    assert.match(
+      prompt,
+      new RegExp(
+        EDIT_PROMPT_PROFILES[avatarModelFamily(modelId)].detail === 'compact'
+          ? `Take the body proportions from ${body} \\(full body\\)`
+          : `Take shoulder width, chest, waist, hips and thigh width from ${body} \\(full body\\)`,
+      ),
+      modelId,
+    )
+    assert.doesNotMatch(prompt, /Do not slim, widen or beautify/, modelId)
+    if (avatarModelFamily(modelId) === 'qwen') {
+      assert.ok(prompt.length <= 800, `${modelId} ${prompt.length}`)
+      // A 400-character instruction still fits once the clause is down to its subject.
+      const typed = 'x'.repeat(400)
+      const busy = buildEditPrompt(typed, references, profile, { modelId })
+      assert.ok(busy.endsWith(typed), `${modelId} ${busy.length}`)
+      assert.ok(busy.length <= 800, `${modelId} ${busy.length}`)
+    }
+  })
+}

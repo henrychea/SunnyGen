@@ -27,8 +27,8 @@ const PROFILED = {
 test('crops replace the collage sheets and are labelled by role', () => {
   assert.deepEqual(avatarAssetSlots(PROFILED, 'fal:fal-ai/nano-banana-pro'), [
     { id: 'face-front', role: 'front face' },
-    { id: 'face-3q', role: 'three-quarter face' },
     { id: 'body', role: 'full body' },
+    { id: 'face-3q', role: 'three-quarter face' },
   ])
   assert.deepEqual(avatarReferenceAssets(PROFILED, 'fal:fal-ai/qwen-image-edit-2509'), ['face-front', 'body'])
 })
@@ -53,8 +53,8 @@ test('edit plans flatten each avatar into one profiled reference per crop', () =
     plan.map((reference) => [reference.id, reference.avatar, reference.role]),
     [
       ['face-front', true, 'front face'],
-      ['face-3q', true, 'three-quarter face'],
       ['body', true, 'full body'],
+      ['face-3q', true, 'three-quarter face'],
       ['pose', false, undefined],
     ],
   )
