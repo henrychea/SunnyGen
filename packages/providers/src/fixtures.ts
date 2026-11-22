@@ -261,6 +261,16 @@ function mockContext(route: (url: string, init?: RequestInit) => Response | null
   }
 }
 
+// Uploads run concurrently, so numbering by initiation order races. The asset's own
+// file name keeps each mock URL attached to the asset the test meant.
+function uploadNumber(init?: RequestInit): number | null {
+  if (typeof init?.body !== 'string') return null
+  const sent = JSON.parse(init.body) as { file_name?: string }
+  const digits = sent.file_name?.match(/-(\d+)\./)?.[1]
+  const index = Number(digits ?? 0)
+  return index > 0 ? index : null
+}
+
 function sunraAlias(fixture: OpenApiFixture): string {
   const path = Object.keys(fixture.paths)[0] ?? ''
   return path.split('/').filter(Boolean).slice(0, -1).join('/')
@@ -289,7 +299,7 @@ export function mockSunra(fixtures: OpenApiFixture[]): MockContext {
     })
   }
   let uploadIndex = 0
-  return mockContext((url) => {
+  return mockContext((url, init) => {
     if (url.startsWith('https://api.sunra.ai/v1/models')) {
       return Response.json({ object: 'list', data: models, has_more: false })
     }
@@ -297,9 +307,10 @@ export function mockSunra(fixtures: OpenApiFixture[]): MockContext {
     if (fixture) return Response.json(fixture)
     if (url.includes('/storage/upload/initiate')) {
       uploadIndex += 1
+      const index = uploadNumber(init) ?? uploadIndex
       return Response.json({
-        upload_url: `https://upload.test/sunra/${uploadIndex}`,
-        file_url: `https://cdn.test/sunra-${uploadIndex}.png`,
+        upload_url: `https://upload.test/sunra/${index}`,
+        file_url: `https://cdn.test/sunra-${index}.png`,
       })
     }
     if (url.startsWith('https://upload.test/')) return new Response('ok', { status: 200 })
@@ -316,7 +327,7 @@ export function mockFal(fixtures: OpenApiFixture[]): MockContext {
     byEndpoint.set(path.replace(/^\//, ''), fixture)
   }
   let uploadIndex = 0
-  return mockContext((url) => {
+  return mockContext((url, init) => {
     if (url.startsWith('https://fal.ai/api/openapi/queue/openapi.json')) {
       const endpoint = new URL(url).searchParams.get('endpoint_id')
       const fixture = endpoint ? byEndpoint.get(endpoint) : undefined
@@ -324,9 +335,10 @@ export function mockFal(fixtures: OpenApiFixture[]): MockContext {
     }
     if (url.includes('/storage/upload/initiate')) {
       uploadIndex += 1
+      const index = uploadNumber(init) ?? uploadIndex
       return Response.json({
-        upload_url: `https://upload.test/fal/${uploadIndex}`,
-        file_url: `https://cdn.test/fal-${uploadIndex}.png`,
+        upload_url: `https://upload.test/fal/${index}`,
+        file_url: `https://cdn.test/fal-${index}.png`,
       })
     }
     if (url.startsWith('https://upload.test/')) return new Response('ok', { status: 200 })

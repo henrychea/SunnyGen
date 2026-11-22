@@ -1,6 +1,7 @@
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 import {
+  DEFAULT_ASSISTANT_MODEL,
   GARMENT_SLOTS,
   GARMENT_SOURCES,
   LORA_MAX_IMAGES,
@@ -11,8 +12,11 @@ import {
   getModel,
   garmentPrepPrompt,
   isLoraStepCount,
+  identityKeywords,
   loraTrainingCost,
   parseAvatarLora,
+  parseAvatarProfile,
+  type AvatarProfile,
   type GarmentSlot,
   type GarmentSource,
   type StudioKind,
@@ -31,6 +35,8 @@ import {
 import sharp from 'sharp'
 import { getGenerationView, submitGeneration } from './generation.functions'
 import { assetUrl, readAssetBuffer, storeBuffer } from './media.server'
+import { ensureAvatarCrops } from './avatar-crops.server'
+import { extractAvatarProfile } from './avatar-profile.server'
 
 export interface StudioItemDto {
   id: string
@@ -109,13 +115,21 @@ const saveSchema = z.object({
 
 export const saveStudioItemFn = createServerFn({ method: 'POST', strict: false })
   .validator(saveSchema)
-  .handler(({ data }): StudioItemDto => {
+  .handler(async ({ data }): Promise<StudioItemDto> => {
     if (data.kind === 'avatar') {
       const characterSheet = data.data.characterSheetAssetId
       if (typeof characterSheet !== 'string' || !characterSheet) {
         throw new Error('Upload the character sheet first.')
       }
       if (!data.assetId) throw new Error('Upload the 4x4 panel sheet first.')
+      if (data.data.avatarProfile !== undefined) {
+        const profile = parseAvatarProfile(data.data.avatarProfile)
+        if (!profile) throw new Error('Avatar profiles must describe an adult aged 18 or older.')
+        data.data.avatarProfile = profile
+        data.data.identityKeywords = identityKeywords(profile)
+      } else {
+        delete data.data.identityKeywords
+      }
     }
     if (data.kind === 'garment') {
       if (!data.assetId) throw new Error('Upload a garment photo first.')
@@ -135,7 +149,33 @@ export const saveStudioItemFn = createServerFn({ method: 'POST', strict: false }
       cleanAssetId: data.cleanAssetId ?? null,
       data: data.data,
     })
+    if (saved.kind === 'avatar') {
+      await ensureAvatarCrops(saved)
+      return toDto(getStudioItem(saved.id) ?? saved)
+    }
     return toDto(saved)
+  })
+
+const OPENROUTER_KEY_SETTING = 'assistant.openrouter.key'
+
+export const extractAvatarProfileFn = createServerFn({ method: 'POST', strict: false })
+  .validator(z.object({ avatarId: z.string().min(1) }))
+  .handler(async ({ data }): Promise<AvatarProfile> => {
+    const avatar = getStudioItem(data.avatarId)
+    if (!avatar || avatar.kind !== 'avatar') throw new Error('Avatar not found')
+    const sheetId =
+      typeof avatar.data.characterSheetAssetId === 'string'
+        ? avatar.data.characterSheetAssetId
+        : avatar.assetId
+    if (!sheetId) throw new Error('This avatar has no sheet to read.')
+    const sheet = await readAssetBuffer(sheetId)
+    if (!sheet) throw new Error('The avatar sheet is missing from disk.')
+    const key = readSetting(OPENROUTER_KEY_SETTING)?.trim() || process.env.OPENROUTER_API_KEY?.trim() || ''
+    return extractAvatarProfile({
+      imageDataUrl: `data:${sheet.asset.mime};base64,${sheet.buffer.toString('base64')}`,
+      key,
+      model: DEFAULT_ASSISTANT_MODEL,
+    })
   })
 
 export const deleteStudioItemFn = createServerFn({ method: 'POST' })

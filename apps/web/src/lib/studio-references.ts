@@ -2,6 +2,7 @@ export interface StudioReferenceCounts {
   garmentCount: number
   hasPose: boolean
   hasScene: boolean
+  avatarCount?: number
 }
 
 export interface StudioReferenceFit extends StudioReferenceCounts {
@@ -16,7 +17,7 @@ export function trimStudioReferences(
   let hasPose = counts.hasPose
   let hasScene = counts.hasScene
   let removed = 0
-  const total = () => 1 + garmentCount + (hasPose ? 1 : 0) + (hasScene ? 1 : 0)
+  const total = () => (counts.avatarCount ?? 1) + garmentCount + (hasPose ? 1 : 0) + (hasScene ? 1 : 0)
 
   while (total() > maxReferences) {
     if (hasScene) hasScene = false

@@ -7,6 +7,7 @@ import { PackagePlus, Plus } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { PageBody, PageHeader, PageScroll } from '~/components/app-shell'
 import { StudioPackDialog } from '~/components/studio/import-dialog'
+import { AvatarWizard } from '~/components/studio/avatar-wizard'
 import { StudioItemDialog } from '~/components/studio/item-dialog'
 import { StudioLibraryGrid } from '~/components/studio/library-grid'
 import { StudioLookBuilder } from '~/components/studio/look-builder'
@@ -90,6 +91,7 @@ function StudioPage() {
   const queryClient = useQueryClient()
   const [tab, setTab] = useState<Tab>('look')
   const [dialog, setDialog] = useState<{ kind: StudioKind; item: StudioItemDto | null } | null>(null)
+  const [wizard, setWizard] = useState<{ item: StudioItemDto | null } | null>(null)
   const [packOpen, setPackOpen] = useState(false)
   const [preparingId, setPreparingId] = useState<string | null>(null)
   const [trainAvatar, setTrainAvatar] = useState<StudioItemDto | null>(null)
@@ -208,8 +210,8 @@ function StudioPage() {
                 <Button variant="outline" onClick={() => setPackOpen(true)}>
                   <PackagePlus size={13} /> Import pack
                 </Button>
-                <Button onClick={() => setDialog({ kind: activeKind, item: null })}>
-                  <Plus size={13} /> Add {activeKind}
+                <Button onClick={() => setWizard({ item: null })}>
+                  <Plus size={13} /> New avatar
                 </Button>
               </motion.div>
             ) : null}
@@ -329,8 +331,14 @@ function StudioPage() {
                           ? data.poses
                           : data.scenes
                   }
-                  onAdd={() => setDialog({ kind: TAB_KIND[tab], item: null })}
-                  onEdit={(item) => setDialog({ kind: TAB_KIND[tab], item })}
+                  onAdd={() =>
+                    tab === 'avatars'
+                      ? setWizard({ item: null })
+                      : setDialog({ kind: TAB_KIND[tab], item: null })
+                  }
+                  onEdit={(item) =>
+                    tab === 'avatars' ? setWizard({ item }) : setDialog({ kind: TAB_KIND[tab], item })
+                  }
                   onDelete={(item) => remove.mutate(item.id)}
                   onPrepare={tab === 'wardrobe' ? (item) => prepare.mutate(item) : undefined}
                   preparingId={preparingId}
@@ -342,7 +350,7 @@ function StudioPage() {
                   {tab === 'wardrobe'
                     ? 'On-model and supplier photos must be prepared before a shoot. Prep costs one image generation.'
                     : tab === 'avatars'
-                      ? 'Use the two-sheet flow: upload a character sheet and a 4×4 panel sheet.'
+                      ? 'Build the sheet and 4×4 panel in the wizard, then edit the profile to refresh the identity keywords.'
                       : tab === 'models'
                         ? 'Trained LoRAs belong to their avatar and are used from the home prompt bar in Generate mode.'
                         : 'References only guide stance and lighting. Identity and garments come from the look.'}
@@ -352,6 +360,18 @@ function StudioPage() {
           </motion.div>
         </AnimatePresence>
       </PageBody>
+
+      {wizard ? (
+        <AvatarWizard
+          key={wizard.item?.id ?? 'new-avatar'}
+          open
+          onOpenChange={(open) => {
+            if (!open) setWizard(null)
+          }}
+          item={wizard.item}
+          onSaved={() => queryClient.invalidateQueries({ queryKey: ['studio'] })}
+        />
+      ) : null}
 
       {dialog ? (
         <StudioItemDialog

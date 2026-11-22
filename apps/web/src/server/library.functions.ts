@@ -8,6 +8,7 @@ import {
   deleteFailedGenerations,
   deleteGeneration,
   getAssetsByIds,
+  getStudioItem,
   listAssets,
   listFolders,
   listGenerations,
@@ -26,6 +27,7 @@ import {
 } from './media.server'
 import { assetMediaKind, generationMediaKind } from '~/lib/media-kind'
 import { referenceAvatar, type ReferenceAvatar } from '~/lib/reference-avatar'
+import { ensureAvatarCrops } from './avatar-crops.server'
 
 export interface GalleryItem {
   id: string
@@ -265,25 +267,32 @@ function largestImage(assets: Array<{ byteSize: number; width: number | null; he
 }
 
 export const loadReferenceLibrary = createServerFn({ method: 'GET', strict: false }).handler(
-  (): ReferenceLibrary => ({
-    avatars: listStudioItems('avatar').flatMap((item) => {
-      const reference = referenceAvatar(item)
-      if (!reference) return []
-      return [
-        {
-          ...reference,
-          url: assetUrl(reference.id),
-          ...largestImage(getAssetsByIds(reference.assetIds)),
-        },
-      ]
-    }),
-    assets: listAssets({
-      kind: 'image',
-      sources: ['upload', 'social', 'generated', 'studio'],
-      excludeKind: 'lora',
-      limit: 120,
-    }).map(toPublicAsset),
-  }),
+  async (): Promise<ReferenceLibrary> => {
+    const avatars = await Promise.all(
+      listStudioItems('avatar').map(async (item) => {
+        await ensureAvatarCrops(item)
+        return referenceAvatar(getStudioItem(item.id) ?? item)
+      }),
+    )
+    return {
+      avatars: avatars.flatMap((reference) => {
+        if (!reference) return []
+        return [
+          {
+            ...reference,
+            url: assetUrl(reference.id),
+            ...largestImage(getAssetsByIds(reference.assetIds)),
+          },
+        ]
+      }),
+      assets: listAssets({
+        kind: 'image',
+        sources: ['upload', 'social', 'generated', 'studio'],
+        excludeKind: 'lora',
+        limit: 120,
+      }).map(toPublicAsset),
+    }
+  },
 )
 
 export const cleanupFailedGenerations = createServerFn({ method: 'POST', strict: false }).handler(

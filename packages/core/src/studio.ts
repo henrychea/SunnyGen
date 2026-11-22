@@ -108,23 +108,28 @@ export interface StudioPromptInput {
   sceneImageIndex: number | null
   angle: StudioAngle
   notes?: string
+  identityImageCount?: number
+  identity?: string
 }
 
 export function buildStudioPrompt(input: StudioPromptInput): string {
   const lines: string[] = []
+  const identityCount = Math.max(1, input.identityImageCount ?? 1)
+  const identityRefs = identityCount > 1 ? `images 1 to ${identityCount}` : 'image 1'
 
   lines.push(
-    'Full-body fashion photograph of the character in <<<image 1>>>, the attached identity reference sheet.',
+    `Full-body fashion photograph of the character in ${identityRefs}, the attached identity reference${identityCount > 1 ? 's' : ' sheet'}.`,
   )
   lines.push(
-    'Use image 1 only for identity: face shape, features, skin tone, hair, and body proportions. Do not use it as the base photo, and do not copy its grid layout, panel poses, backgrounds, or sheet clothing.',
+    identityCount > 1
+      ? `Use ${identityRefs} only for identity: face shape, features, skin tone, hair, and body proportions. Do not use them as the base photo, and do not copy their grid layout, panel poses, backgrounds, or sheet clothing.`
+      : 'Use image 1 only for identity: face shape, features, skin tone, hair, and body proportions. Do not use it as the base photo, and do not copy its grid layout, panel poses, backgrounds, or sheet clothing.',
   )
+  if (input.identity?.trim()) lines.push(`Identity anchors: ${input.identity.trim()}.`)
   lines.push('Wear exactly these garments, one per slot, in this order:')
   for (const [position, garment] of input.garments.entries()) {
     const details = garment.notes?.trim() ? ` Details: ${garment.notes.trim()}` : ''
-    lines.push(
-      `${position + 1}. <<<image ${garment.imageIndex}>>> — "${garment.name}" (${garment.slot}).${details}`,
-    )
+    lines.push(`${position + 1}. Image ${garment.imageIndex}: "${garment.name}" (${garment.slot}).${details}`)
   }
   lines.push(
     'Preserve colour, fabric, print, hardware, stitching, and cut exactly. Do not invent, substitute, or remove any piece of clothing.',
@@ -132,7 +137,7 @@ export function buildStudioPrompt(input: StudioPromptInput): string {
 
   if (input.hasPose && input.poseImageIndex !== null) {
     lines.push(
-      `Use <<<image ${input.poseImageIndex}>>> only as a body-pose guide: match limb placement, weight shift, torso angle, and stance. Do not copy its line-art style, simplified anatomy, background, clothing, or face.`,
+      `Use image ${input.poseImageIndex} only as a body-pose guide: match limb placement, weight shift, torso angle, and stance. Do not copy its line-art style, simplified anatomy, background, clothing, or face.`,
     )
   } else {
     lines.push('Use a relaxed, natural full-body stance facing the camera.')
@@ -140,7 +145,7 @@ export function buildStudioPrompt(input: StudioPromptInput): string {
 
   if (input.hasSceneImage && input.sceneImageIndex !== null) {
     lines.push(
-      `Place the subject in the scene in <<<image ${input.sceneImageIndex}>>>. Match its light direction, colour temperature, perspective, and depth of field. Do not copy any person, garment, or text from it.`,
+      `Place the subject in the scene in image ${input.sceneImageIndex}. Match its light direction, colour temperature, perspective, and depth of field. Do not copy any person, garment, or text from it.`,
     )
   } else {
     lines.push('Use a seamless white studio background with soft, even product lighting.')
@@ -158,7 +163,7 @@ export function buildStudioPrompt(input: StudioPromptInput): string {
 export function garmentPrepPrompt(name: string, slot: GarmentSlot, notes?: string): string {
   const details = notes?.trim() ? ` Details to keep: ${notes.trim()}` : ''
   return [
-    'E-commerce product reference of the garment in <<<image 1>>>.',
+    'E-commerce product reference of the garment in image 1.',
     'Show exactly one garment, front view, centred, the whole garment in frame, on a plain white background.',
     'Remove any person, mannequin, hanger, props, and background.',
     'Preserve colour, fabric, print, logos, buttons, stitching, and cut exactly. Never restyle, recolour, shorten, or add detail.',

@@ -1,10 +1,28 @@
-import { DEFAULT_EDIT_PROFILE, editToken, type EditProfile } from '@sunnygen/core'
+import {
+  DEFAULT_EDIT_PROFILE,
+  IDENTITY_CLAUSE_BUDGETS,
+  avatarModelFamily,
+  editToken,
+  identityClause,
+  type AvatarModelFamily,
+  type AvatarProfile,
+  type EditProfile,
+} from '@sunnygen/core'
 
 export interface EditReference {
   id: string
   assetIds?: string[]
   avatar?: boolean
+  profile?: AvatarProfile | null
+  role?: string
 }
+
+export interface EditPromptOptions {
+  modelId?: string
+  modelFamily?: AvatarModelFamily
+}
+
+const QWEN_PROMPT_LIMIT = 800
 
 function referenceAssets(reference: EditReference): string[] {
   return reference.assetIds && reference.assetIds.length > 0 ? reference.assetIds : [reference.id]
@@ -27,11 +45,14 @@ export function buildEditPrompt(
   prompt: string,
   references: EditReference[],
   profile: EditProfile = DEFAULT_EDIT_PROFILE,
+  options: EditPromptOptions = {},
 ): string {
   const detail = prompt.trim()
   const avatarIds = references.filter((reference) => reference.avatar).flatMap(referenceAssets)
   const otherIds = references.filter((reference) => !reference.avatar).flatMap(referenceAssets)
-  const ref = (index: number) => `<<<${editToken(profile, index)}>>>`
+  const avatarProfile = references.find((reference) => reference.avatar && reference.profile)?.profile
+  if (avatarProfile) return buildKeywordEditPrompt(detail, references, profile, options, avatarProfile)
+  const ref = (index: number) => editToken(profile, index)
   const target =
     profile.target === 'second' && (avatarIds.length > 0 || otherIds.length > 0)
       ? Math.max(2, avatarIds.length + 1)
@@ -85,4 +106,85 @@ export function buildEditPrompt(
       : ''
 
   return `${identity}${proportions}${extra}${detail ? `\n\nAdditional instructions:\n${detail}` : ''}`
+}
+
+interface EditSlot {
+  index: number
+  role: string
+  avatar: boolean
+}
+
+function referenceSlots(references: EditReference[], avatar: boolean): EditSlot[] {
+  return references.flatMap((reference) =>
+    referenceAssets(reference).map(() => ({
+      index: 0,
+      role: reference.role ?? (avatar ? 'identity reference' : 'supporting reference'),
+      avatar,
+    })),
+  )
+}
+
+function orderedSlots(references: EditReference[], profile: EditProfile): EditSlot[] {
+  const avatars = referenceSlots(
+    references.filter((reference) => reference.avatar),
+    true,
+  )
+  const others = referenceSlots(
+    references.filter((reference) => !reference.avatar),
+    false,
+  )
+  const target: EditSlot = { index: 0, role: 'target photo', avatar: false }
+  const ordered =
+    profile.target === 'first'
+      ? [target, ...avatars, ...others]
+      : avatars.length > 0
+        ? [...avatars, target, ...others]
+        : others.length === 0
+          ? [target]
+          : [others[0] as EditSlot, target, ...others.slice(1)]
+  return ordered.map((slot, position) => ({ ...slot, index: position + 1 }))
+}
+
+function buildKeywordEditPrompt(
+  detail: string,
+  references: EditReference[],
+  profile: EditProfile,
+  options: EditPromptOptions,
+  avatarProfile: AvatarProfile,
+): string {
+  const family = options.modelFamily ?? avatarModelFamily(options.modelId ?? '')
+  const slots = orderedSlots(references, profile)
+  const ref = (index: number) => editToken(profile, index)
+  const target = slots.find((slot) => slot.role === 'target photo') as EditSlot
+  const avatars = slots.filter((slot) => slot.avatar)
+  const extras = slots.filter((slot) => !slot.avatar && slot !== target)
+
+  const roles = avatars.map((slot) => `${ref(slot.index)} (${slot.role})`).join(', ')
+  const identity =
+    avatars.length === 0
+      ? `Use the avatar as the new identity: ${'clause'}.`
+      : avatars.length === 1
+        ? `${roles} is the avatar identity reference: ${'clause'}.`
+        : `${roles} are identity references of the same avatar: ${'clause'}.`
+  const keep = `Keep ${ref(target.index)}'s pose, clothing, hair unless changed, background, lighting and camera. Do not slim, widen or beautify the body.`
+  const supporting =
+    extras.length > 0
+      ? `${extras.map((slot) => ref(slot.index)).join(' ')} ${extras.length === 1 ? 'is a supporting reference' : 'are supporting references'} only.`
+      : ''
+
+  const pieces = [`${ref(target.index)} is the target photo.`, identity, keep, supporting]
+  const withoutClause = pieces.filter(Boolean).join('\n').length - 'clause'.length
+  const budget =
+    family === 'qwen'
+      ? Math.min(
+          IDENTITY_CLAUSE_BUDGETS.qwen,
+          Math.max(0, QWEN_PROMPT_LIMIT - withoutClause - (detail ? detail.length + 28 : 0)),
+        )
+      : undefined
+  const clause = identityClause(avatarProfile, { modelFamily: family, budget })
+  const body = pieces
+    .filter(Boolean)
+    .map((piece) => piece.replace('clause', clause))
+    .join('\n')
+  return detail ? `${body}\n\nAdditional instructions:\n${detail}` : body
 }
