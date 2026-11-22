@@ -37,7 +37,7 @@ export function StudioLibraryGrid({
         className="border-line bg-surface/50 text-ink/40 hover:border-accent/40 hover:text-accent hover:bg-surface flex min-h-44 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed transition-[color,border-color,background-color,scale] duration-200 ease-out active:scale-[0.99] motion-reduce:active:scale-100"
       >
         <Plus size={20} />
-        <span className="text-[11.5px] font-medium">Add {kind}</span>
+        <span className="text-[11.5px] font-medium">{kind === 'avatar' ? 'New avatar' : `Add ${kind}`}</span>
       </button>
 
       <AnimatePresence initial={false}>
@@ -114,14 +114,24 @@ export function StudioLibraryGrid({
                     <div className="flex items-center gap-1">
                       {!item.builtin ? (
                         <>
-                          <button
-                            type="button"
-                            onClick={() => onEdit(item)}
-                            className="text-ink/40 hover:bg-ink/5 hover:text-ink grid size-7 place-items-center rounded-md transition-[color,background-color,scale] duration-150 ease-out active:scale-[0.92] motion-reduce:active:scale-100"
-                            aria-label={`Edit ${item.name}`}
-                          >
-                            <Pencil size={12} />
-                          </button>
+                          {kind === 'avatar' ? (
+                            <button
+                              type="button"
+                              onClick={() => onEdit(item)}
+                              className="text-ink/45 hover:bg-ink/5 hover:text-ink rounded-md px-1.5 py-1 text-[10px] font-medium transition-[color,background-color] duration-150 ease-out"
+                            >
+                              Edit profile
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => onEdit(item)}
+                              className="text-ink/40 hover:bg-ink/5 hover:text-ink grid size-7 place-items-center rounded-md transition-[color,background-color,scale] duration-150 ease-out active:scale-[0.92] motion-reduce:active:scale-100"
+                              aria-label={`Edit ${item.name}`}
+                            >
+                              <Pencil size={12} />
+                            </button>
+                          )}
                           <button
                             type="button"
                             onClick={() => {

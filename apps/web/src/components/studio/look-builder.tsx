@@ -2,9 +2,12 @@ import {
   SLOT_LABELS,
   STUDIO_ANGLES,
   STUDIO_ANGLE_LABELS,
+  avatarModelFamily,
   buildStudioPrompt,
+  identityClause,
   normalizeAngles,
   orderStudioGarments,
+  parseAvatarProfile,
   validateStudioLook,
   type StudioAngle,
   type StudioGarmentInput,
@@ -38,6 +41,8 @@ import { describeReferenceTrim, reconcileParams } from '~/lib/model-params'
 import { trimStudioReferences } from '~/lib/studio-references'
 import { useModelChoices } from '~/lib/use-model-choices'
 import { usePromptBridge } from '~/lib/assistant-context'
+import { avatarReferenceAssets } from '~/lib/avatar-references'
+import { referenceAvatar } from '~/lib/reference-avatar'
 
 interface AngleResult {
   angle: StudioAngle
@@ -75,6 +80,8 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
   const runToken = useRef(0)
 
   const avatar = library.avatars.find((item) => item.id === avatarId) ?? null
+  const avatarProfile = parseAvatarProfile(avatar?.data.avatarProfile)
+  const avatarReference = avatar ? referenceAvatar(avatar) : null
   const selectedGarments = garmentIds
     .map((id) => library.garments.find((item) => item.id === id))
     .filter((item): item is StudioItemDto => Boolean(item))
@@ -98,12 +105,14 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
   }))
   const validation = validateStudioLook(garmentInputs)
 
-  const referenceCount = (avatar ? 1 : 0) + orderedGarments.length + (pose ? 1 : 0) + (hasSceneImage ? 1 : 0)
   const { choices, catalogOnly } = useModelChoices()
   const modelOptions = sortModelChoices(choices, catalogOnly).filter(
     (entry) => entry.kind === 'image' && Boolean(entry.definition?.supportsImages),
   )
   const model = modelOptions.find((entry) => entry.modelId === modelId)?.definition ?? null
+  const avatarImages = avatarReference ? avatarReferenceAssets(avatarReference, model?.id ?? 'generic') : []
+  const avatarCount = avatarImages.length
+  const referenceCount = avatarCount + orderedGarments.length + (pose ? 1 : 0) + (hasSceneImage ? 1 : 0)
 
   const blocking = !avatar
     ? 'Pick an avatar.'
@@ -114,14 +123,18 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
   const promptInput = {
     garments: orderedGarments.map((item, index) => ({
       ...garmentInputs[index]!,
-      imageIndex: index + 2,
+      imageIndex: index + 1 + avatarCount,
     })),
     hasPose: Boolean(pose),
-    poseImageIndex: pose ? 2 + orderedGarments.length : null,
+    poseImageIndex: pose ? 1 + avatarCount + orderedGarments.length : null,
     hasSceneImage,
-    sceneImageIndex: hasSceneImage ? 2 + orderedGarments.length + (pose ? 1 : 0) : null,
+    sceneImageIndex: hasSceneImage ? 1 + avatarCount + orderedGarments.length + (pose ? 1 : 0) : null,
     angle: angles[0] ?? 'front',
     notes,
+    identityImageCount: avatarCount,
+    identity: avatarProfile
+      ? identityClause(avatarProfile, { modelFamily: avatarModelFamily(model?.id ?? '') })
+      : undefined,
   }
 
   const canToggleGarment = (item: StudioItemDto): boolean => {
@@ -160,6 +173,7 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
         garmentCount: selection.garmentIds.length,
         hasPose: selection.poseId !== 'none',
         hasScene,
+        avatarCount: Math.max(1, avatarCount),
       },
       definition.maxImages,
     )
@@ -197,12 +211,12 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
 
   const referenceIds: string[] = []
   if (avatar) {
-    referenceIds.push(avatar.assetId ?? '')
+    referenceIds.push(...avatarImages)
     for (const item of orderedGarments) referenceIds.push(item.cleanAssetId ?? item.assetId ?? '')
     if (pose?.assetId) referenceIds.push(pose.assetId)
     if (scene?.assetId) referenceIds.push(scene.assetId)
   }
-  const usableReferenceIds = referenceIds.filter(Boolean)
+  const usableReferenceIds = referenceIds.filter(Boolean).slice(0, model?.maxImages ?? referenceIds.length)
 
   const updateResult = (angle: StudioAngle, patch: Partial<AngleResult>) => {
     setResults((current) => current.map((entry) => (entry.angle === angle ? { ...entry, ...patch } : entry)))

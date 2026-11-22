@@ -63,6 +63,7 @@ import {
   type ReferenceItem,
 } from '~/lib/reference-images'
 import { oversizedReferences, shouldConfirmResize } from '~/lib/oversized-images'
+import { flattenReferenceAssets, referenceIdentity, withIdentityClause } from '~/lib/avatar-references'
 import { loadGallery, type GalleryItem } from '~/server/library.functions'
 import { submitGeneration } from '~/server/generation.functions'
 
@@ -241,8 +242,8 @@ export function VideoPage() {
         data: {
           kind: 'video',
           model: activeModel.id,
-          prompt: prompt.trim(),
-          assetIds: items.flatMap((item) => item.assetIds ?? [item.id]),
+          prompt: withIdentityClause(prompt.trim(), referenceIdentity(items), activeModel.id),
+          assetIds: flattenReferenceAssets(items, activeModel.id).slice(0, limits?.maxImages ?? items.length),
           params: {
             videoMode: mode,
             durationSeconds: params.duration,

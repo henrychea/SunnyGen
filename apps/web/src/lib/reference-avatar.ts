@@ -1,4 +1,11 @@
-import { parseAvatarLora, type AvatarLora } from '@sunnygen/core'
+import {
+  parseAvatarCrops,
+  parseAvatarLora,
+  parseAvatarProfile,
+  type AvatarCrop,
+  type AvatarLora,
+  type AvatarProfile,
+} from '@sunnygen/core'
 
 export interface AvatarReference {
   id: string
@@ -6,6 +13,8 @@ export interface AvatarReference {
   name: string
   assetIds: string[]
   lora: AvatarLora | null
+  profile: AvatarProfile | null
+  crops: AvatarCrop[] | undefined
 }
 
 export interface ReferenceAvatar extends AvatarReference {
@@ -39,5 +48,7 @@ export function referenceAvatar(source: AvatarSource): AvatarReference | null {
     name: source.name,
     assetIds,
     lora: parseAvatarLora(source.data.lora),
+    profile: parseAvatarProfile(source.data.avatarProfile),
+    crops: parseAvatarCrops(source.data.crops),
   }
 }

@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   FadeImage,
+  LAYER,
   Skeleton,
   cn,
   motionFade,
@@ -176,6 +177,8 @@ export function ReferencePicker({
         avatar: true,
         avatarId: avatar.avatarId,
         lora: avatar.lora,
+        profile: avatar.profile,
+        crops: avatar.crops,
         byteSize: avatar.byteSize,
         width: avatar.width,
         height: avatar.height,
@@ -330,7 +333,10 @@ export function ReferencePicker({
       initial="hidden"
       animate="visible"
       exit="hidden"
-      className="bg-ink/35 fixed inset-0 z-[70] flex items-center justify-center p-3 md:p-8 md:backdrop-blur-sm"
+      className={cn(
+        'bg-ink/35 fixed inset-0 flex items-center justify-center p-3 md:p-8 md:backdrop-blur-sm',
+        LAYER.picker,
+      )}
       onClick={onClose}
     >
       <motion.div

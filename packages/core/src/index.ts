@@ -1,4 +1,6 @@
 export * from './assistant'
+export * from './avatar-profile'
+export * from './avatar-references'
 export * from './domain'
 export * from './edit-references'
 export * from './generation'

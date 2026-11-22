@@ -69,11 +69,11 @@ test('prompt indices follow the reference list exactly', () => {
     angle: 'side',
     notes: 'Keep the sleeves rolled.',
   })
-  assert.match(prompt, /<<<image 1>>>/)
-  assert.match(prompt, /<<<image 2>>> — "Dress"/)
-  assert.match(prompt, /<<<image 3>>> — "Tee"/)
-  assert.match(prompt, /<<<image 4>>> only as a body-pose guide/)
-  assert.match(prompt, /<<<image 5>>>/)
+  assert.match(prompt, /image 1/)
+  assert.match(prompt, /1\. Image 2: "Dress"/)
+  assert.match(prompt, /2\. Image 3: "Tee"/)
+  assert.match(prompt, /image 4 only as a body-pose guide/)
+  assert.match(prompt, /image 5/)
   assert.match(prompt, /Full left profile/)
   assert.match(prompt, /Additional direction: Keep the sleeves rolled\./)
 })
@@ -88,10 +88,40 @@ test('prompt omits the scene index when the background is the white studio', () 
     angle: 'front',
   })
   assert.match(prompt, /seamless white studio background/)
-  assert.doesNotMatch(prompt, /<<<image 3>>>/)
+  assert.doesNotMatch(prompt, /image 3/)
 })
 
 test('angle normalization keeps order and never returns an empty set', () => {
   assert.deepEqual(normalizeAngles(['back', 'front']), ['front', 'back'])
   assert.deepEqual(normalizeAngles([]), ['front'])
+})
+
+test('an avatar identity clause rides with the sheet reference', () => {
+  const prompt = buildStudioPrompt({
+    garments: [{ ...jacket, imageIndex: 4 }],
+    hasPose: false,
+    poseImageIndex: null,
+    hasSceneImage: false,
+    sceneImageIndex: null,
+    angle: 'front',
+    identityImageCount: 3,
+    identity: '26yo East Asian woman, soft oval face',
+  })
+  assert.match(prompt, /character in images 1 to 3, the attached identity references/)
+  assert.match(prompt, /Use images 1 to 3 only for identity/)
+  assert.match(prompt, /Identity anchors: 26yo East Asian woman, soft oval face\./)
+  assert.match(prompt, /1\. Image 4: "Jacket"/)
+})
+
+test('the single sheet reference keeps the original opening', () => {
+  const prompt = buildStudioPrompt({
+    garments: [{ ...jacket, imageIndex: 2 }],
+    hasPose: false,
+    poseImageIndex: null,
+    hasSceneImage: false,
+    sceneImageIndex: null,
+    angle: 'front',
+  })
+  assert.match(prompt, /the attached identity reference sheet\./)
+  assert.doesNotMatch(prompt, /Identity anchors/)
 })

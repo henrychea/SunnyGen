@@ -44,6 +44,12 @@ import { ModelCombobox } from '~/components/model-combobox'
 import { AspectRatioSelector, QualitySelector } from '~/components/generation-selectors'
 import { sortModelChoices } from '~/lib/model-choices'
 import { buildEditPrompt, orderEditAssets } from '~/lib/edit-prompt'
+import {
+  editReferencePlan as editReferencePlanFor,
+  flattenReferenceAssets,
+  referenceIdentity,
+  withIdentityClause,
+} from '~/lib/avatar-references'
 import { editModeSwitch } from '~/lib/edit-mode'
 import {
   MAX_IMAGE_RESULTS,
@@ -319,18 +325,28 @@ export function HomeComposer({
       }
     }
 
-    const editReferencePlan = editReferences.map((reference) => ({
-      id: reference.id,
-      assetIds: reference.assetIds ?? [reference.id],
-      avatar: reference.avatar === true,
-    }))
+    const editReferencePlan = editReferencePlanFor(editReferences, model.id)
+    const editBudget = Math.max(0, model.maxImages - 1)
+    const fittedEditPlan = editReferencePlan.slice(0, editBudget)
+    if (fittedEditPlan.length < editReferencePlan.length) {
+      toast(`${model.label} takes ${model.maxImages} images; the extra references were dropped.`, {
+        tone: 'warning',
+      })
+    }
     const profile = editProfile(model.id)
+    const identity = referenceIdentity(references)
+    const generateAssetIds = flattenReferenceAssets(references, model.id)
+    if (generateAssetIds.length > model.maxImages) {
+      toast(`${model.label} takes ${model.maxImages} images; the extra references were dropped.`, {
+        tone: 'warning',
+      })
+    }
 
     const jobs =
       mode === 'edit'
         ? editTargets.map((target) => ({
-            prompt: buildEditPrompt(prompt, editReferencePlan, profile),
-            assetIds: orderEditAssets(editReferencePlan, target.id, profile),
+            prompt: buildEditPrompt(prompt, fittedEditPlan, profile, { modelId: model.id }),
+            assetIds: orderEditAssets(fittedEditPlan, target.id, profile),
           }))
         : (() => {
             const blocks = multi
@@ -342,8 +358,8 @@ export function HomeComposer({
             const repeats = multi || isVideo ? 1 : Math.min(count, MAX_IMAGE_RESULTS)
             return blocks.flatMap((block) =>
               Array.from({ length: repeats }, () => ({
-                prompt: block,
-                assetIds: references.flatMap((reference) => reference.assetIds ?? [reference.id]),
+                prompt: withIdentityClause(block, identity, model.id),
+                assetIds: generateAssetIds.slice(0, model.maxImages),
               })),
             )
           })()
