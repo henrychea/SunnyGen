@@ -14,8 +14,10 @@ export const PANEL_GRID = 4
 export const PANEL_CROP_MIN_SIDE = 1024
 
 export const AVATAR_CROP_CELLS: Record<AvatarCropRole, { row: number; column: number; label: string }> = {
+  // The panel prompt puts the four body angles in row 0 and the four faces in row 1.
+  // Reading a face from row 0 sends the model a back view and no face at all.
   'face-front': { row: 1, column: 0, label: 'Front face' },
-  'face-three-quarter': { row: 0, column: 1, label: 'Three-quarter face' },
+  'face-three-quarter': { row: 1, column: 1, label: 'Three-quarter face' },
   'body-front': { row: 0, column: 0, label: 'Full body' },
 }
 
