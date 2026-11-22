@@ -221,7 +221,6 @@ export function ChatThread({
         onModelChange={chat.setModel}
         compact={compact}
         autoFocus={!compact}
-        menuClassName={compact ? 'z-[105]' : undefined}
       />
     </div>
   )

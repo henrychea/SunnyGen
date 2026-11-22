@@ -166,7 +166,6 @@ export function AssistantPanel({
               searchable
               searchPlaceholder="Search chats"
               menuMinWidth={260}
-              menuClassName="z-[105]"
               showTriggerDescription={false}
             />
             <Link
