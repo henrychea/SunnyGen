@@ -4,12 +4,15 @@ import {
   GENERATION_KINDS,
   LORA_TRAINER_MODEL,
   PROVIDER_IDS,
+  defaultVideoMode,
   getModel,
+  videoModeDefinition,
   type GenerationKind,
   type GenerationParams,
   type GenerationRecord,
   type GenerationStatus,
   type ProviderId,
+  type VideoModeKey,
 } from '@sunnygen/core'
 import {
   createGeneration,
@@ -67,36 +70,52 @@ export const submitGeneration = createServerFn({ method: 'POST', strict: false }
 
     const requestedRatio = String(data.params.aspectRatio ?? '')
     const requestedQuality = String(data.params.quality ?? '')
+    const requestedVideoMode = String(data.params.videoMode ?? '')
+    const videoMode: VideoModeKey | null =
+      model.kind === 'video'
+        ? ((Object.keys(model.videoModes) as VideoModeKey[]).find((key) => key === requestedVideoMode) ??
+          defaultVideoMode(model))
+        : null
+    const videoLimits = model.kind === 'video' && videoMode ? videoModeDefinition(model, videoMode) : null
+    const ratios = videoLimits?.ratios.length ? videoLimits.ratios : model.ratios
+    const limits =
+      model.kind === 'video'
+        ? { durations: model.durations, resolutions: model.resolutions }
+        : { durations: [], resolutions: [] }
+    const durations = videoLimits?.durations.length ? videoLimits.durations : limits.durations
+    const resolutions = videoLimits?.resolutions.length ? videoLimits.resolutions : limits.resolutions
+    const requestedDuration = Number(data.params.durationSeconds)
+    const requestedResolution = String(data.params.resolution ?? '')
+    const requestedMode = String(data.params.mode ?? '')
+    const imageVideoParams: GenerationParams =
+      model.kind === 'video' && videoMode && videoLimits
+        ? {
+            videoMode,
+            durationSeconds: durations.includes(requestedDuration)
+              ? requestedDuration
+              : videoLimits.defaultDuration,
+            resolution: resolutions.includes(requestedResolution)
+              ? requestedResolution
+              : videoLimits.defaultResolution,
+            aspectRatio: ratios.includes(requestedRatio) ? requestedRatio : videoLimits.defaultRatio,
+            sound: typeof data.params.sound === 'boolean' ? data.params.sound : videoLimits.sound,
+            mode: model.modes.some((entry) => entry.value === requestedMode)
+              ? requestedMode
+              : model.defaultMode,
+          }
+        : {}
+    const imageParams: GenerationParams =
+      model.kind === 'image'
+        ? {
+            aspectRatio: model.ratios.includes(requestedRatio) ? requestedRatio : '1:1',
+            quality: model.qualityOptions.includes(requestedQuality)
+              ? requestedQuality
+              : model.defaultQuality,
+          }
+        : {}
     const params: GenerationParams = isTraining
       ? { ...data.params }
-      : {
-          ...data.params,
-          aspectRatio: model.ratios.includes(requestedRatio)
-            ? requestedRatio
-            : model.kind === 'video'
-              ? model.defaultRatio
-              : '1:1',
-          quality:
-            model.kind === 'image'
-              ? model.qualityOptions.includes(requestedQuality)
-                ? requestedQuality
-                : model.defaultQuality
-              : '',
-          ...(model.kind === 'video'
-            ? {
-                durationSeconds: model.durations.includes(Number(data.params.durationSeconds))
-                  ? Number(data.params.durationSeconds)
-                  : model.defaultDuration,
-                resolution: model.resolutions.includes(String(data.params.resolution ?? ''))
-                  ? String(data.params.resolution)
-                  : model.defaultResolution,
-                sound: typeof data.params.sound === 'boolean' ? data.params.sound : model.sound,
-                mode: model.modes.some((entry) => entry.value === String(data.params.mode ?? ''))
-                  ? String(data.params.mode)
-                  : model.defaultMode,
-              }
-            : {}),
-        }
+      : { ...data.params, ...imageParams, ...imageVideoParams }
 
     let prompt = data.prompt
     if (!isTraining) prompt = await applyAvatarLora(model, data.assetIds, prompt, params)
