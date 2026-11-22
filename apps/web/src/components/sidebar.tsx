@@ -3,6 +3,7 @@ import { Link, useRouterState } from '@tanstack/react-router'
 import { APP_NAME, APP_VERSION } from '@sunnygen/core'
 import { cn, motionFade, motionSpring, motionTransition } from '@sunnygen/ui'
 import {
+  Clapperboard,
   FolderOpen,
   Images,
   LayoutGrid,
@@ -26,6 +27,7 @@ interface NavItem {
 
 const NAV: NavItem[] = [
   { to: '/', label: 'Home', icon: Sparkles, exact: true },
+  { to: '/video', label: 'Video', icon: Clapperboard },
   { to: '/canvas', label: 'Canvas', icon: LayoutGrid },
   { to: '/gallery', label: 'Gallery', icon: Images },
   { to: '/studio', label: 'Studio', icon: Shirt },
