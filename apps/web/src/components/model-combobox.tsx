@@ -31,6 +31,7 @@ export function ModelCombobox({
   className,
   ariaLabel,
   onChange,
+  menuClassName,
 }: {
   value: string | null
   options: ModelOption[]
@@ -40,6 +41,7 @@ export function ModelCombobox({
   showCompanyFilter?: boolean
   className?: string
   ariaLabel?: string
+  menuClassName?: string
   onChange: (entry: ModelOption) => void
 }) {
   const selectedKey = options.find((entry) => entry.modelId === value)?.key ?? null
@@ -108,6 +110,7 @@ export function ModelCombobox({
       allFilterLabel="All providers"
       menuMinWidth={440}
       menuMaxWidth={560}
+      menuClassName={menuClassName}
       footer={
         hasDisabled || hasGeneric ? (
           <div className="space-y-1">

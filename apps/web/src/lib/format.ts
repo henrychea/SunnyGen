@@ -17,3 +17,15 @@ export function formatDate(timestamp: number): string {
     year: new Date(timestamp).getFullYear() === new Date().getFullYear() ? undefined : 'numeric',
   })
 }
+
+export function formatRelativeDate(timestamp: number, now = Date.now()): string {
+  const elapsed = Math.max(0, now - timestamp)
+  const minute = 60_000
+  const hour = 3_600_000
+  const day = 86_400_000
+  if (elapsed < minute) return 'Just now'
+  if (elapsed < hour) return `${Math.floor(elapsed / minute)}m ago`
+  if (elapsed < day) return `${Math.floor(elapsed / hour)}h ago`
+  if (elapsed < day * 7) return `${Math.floor(elapsed / day)}d ago`
+  return formatDate(timestamp)
+}

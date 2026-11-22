@@ -37,6 +37,7 @@ import { sortModelChoices } from '~/lib/model-choices'
 import { describeReferenceTrim, reconcileParams } from '~/lib/model-params'
 import { trimStudioReferences } from '~/lib/studio-references'
 import { useModelChoices } from '~/lib/use-model-choices'
+import { usePromptBridge } from '~/lib/assistant-context'
 
 interface AngleResult {
   angle: StudioAngle
@@ -66,6 +67,7 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
   const [ratio, setRatio] = useState('3:4')
   const [quality, setQuality] = useState('1k')
   const [notes, setNotes] = useState('')
+  usePromptBridge('studio', 'Studio direction', notes, (value) => setNotes(value.slice(0, 500)))
   const [running, setRunning] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [results, setResults] = useState<AngleResult[]>([])
@@ -628,7 +630,7 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
             ) : null}
           </AnimatePresence>
 
-          <div className="mt-3 flex gap-2">
+          <div className="mt-3 flex gap-2" data-assistant-clearance="">
             <Button
               className="flex-1"
               onClick={() => void generate()}

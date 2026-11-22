@@ -47,6 +47,7 @@ import { ReferencePicker } from '~/components/home/reference-picker'
 import { ResizeImagesDialog } from '~/components/resize-images-dialog'
 import { sortModelChoices } from '~/lib/model-choices'
 import { useModelChoices } from '~/lib/use-model-choices'
+import { usePromptBridge } from '~/lib/assistant-context'
 import {
   defaultVideoParams,
   reconcileVideoParams,
@@ -126,6 +127,7 @@ export function VideoPage() {
   const [mode, setMode] = useState<VideoModeKey>('text')
   const [items, setItems] = useState<ReferenceItem[]>([])
   const [prompt, setPrompt] = useState('')
+  usePromptBridge('video', 'Video prompt', prompt, setPrompt)
   const [modelId, setModelId] = useState('')
   const [params, setParams] = useState<VideoParams>(() =>
     defaultVideoParams(getModel('veo3_lite') as VideoModelDefinition, 'text'),
@@ -670,7 +672,7 @@ function InputsStep({
         </AnimatePresence>
       </div>
 
-      <div className="mt-5 flex flex-wrap items-center justify-between gap-2">
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-2" data-assistant-clearance="">
         <button
           type="button"
           onClick={onBack}
@@ -867,7 +869,7 @@ function GenerateStep({
         ) : null}
       </AnimatePresence>
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-2" data-assistant-clearance="">
         <button
           type="button"
           onClick={onBack}

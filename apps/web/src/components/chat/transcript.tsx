@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { Check, Copy } from 'lucide-react'
-import { cn, motionFade, motionFadeRise, motionPop } from '@sunnygen/ui'
+import { Check, Copy, CornerDownLeft } from 'lucide-react'
+import { cn, motionFadeRise } from '@sunnygen/ui'
 import { AnimatePresence, motion } from 'motion/react'
+import { Markdown } from './markdown'
 
 export interface ChatTurn {
   role: 'user' | 'assistant'
@@ -24,10 +25,66 @@ export function TranscriptSkeleton() {
   )
 }
 
-export function Transcript({ turns }: { turns: ChatTurn[] }) {
+function StreamingLabel({ empty }: { empty: boolean }) {
+  return (
+    <span
+      role="status"
+      aria-label={empty ? 'Waiting for the assistant' : 'Assistant is replying'}
+      className="text-ink/40 mt-1 inline-flex items-center gap-1.5 text-[11px]"
+    >
+      {empty ? null : 'Replying'}
+      <span className="inline-flex items-center gap-1" aria-hidden="true">
+        {[0, 1, 2].map((dot) => (
+          <span
+            key={dot}
+            className="bg-ink/35 size-1 animate-pulse rounded-full"
+            style={{ animationDelay: `${dot * 160}ms` }}
+          />
+        ))}
+      </span>
+    </span>
+  )
+}
+
+function MessageAction({
+  label,
+  onClick,
+  active = false,
+  children,
+}: {
+  label: string
+  onClick: () => void
+  active?: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      className={cn(
+        'inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[10.5px]',
+        'transition-[color,background-color,transform] duration-150 ease-out active:scale-[0.94]',
+        active ? 'text-accent' : 'text-ink/30 hover:bg-ink/[0.05] hover:text-ink/60',
+      )}
+    >
+      {children}
+    </button>
+  )
+}
+
+export function Transcript({
+  turns,
+  onInsertPrompt,
+  insertLabel,
+}: {
+  turns: ChatTurn[]
+  onInsertPrompt?: (text: string) => void
+  insertLabel?: string
+}) {
   const scroller = useRef<HTMLDivElement>(null)
   const pinned = useRef(true)
-  const [copied, setCopied] = useState<number | null>(null)
+  const [copied, setCopied] = useState<string | null>(null)
   const copyTimer = useRef<number | undefined>(undefined)
 
   useEffect(() => {
@@ -51,12 +108,12 @@ export function Transcript({ turns }: { turns: ChatTurn[] }) {
     pinned.current = element.scrollHeight - element.scrollTop - element.clientHeight < 96
   }
 
-  function copy(index: number, text: string) {
+  function copy(key: string, text: string) {
     if (!navigator.clipboard) return
     void navigator.clipboard
       .writeText(text)
       .then(() => {
-        setCopied(index)
+        setCopied(key)
         window.clearTimeout(copyTimer.current)
         copyTimer.current = window.setTimeout(() => setCopied(null), 1500)
       })
@@ -64,98 +121,74 @@ export function Transcript({ turns }: { turns: ChatTurn[] }) {
   }
 
   return (
-    <div ref={scroller} onScroll={trackScroll} className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 px-4 py-6 md:px-6">
+    <div
+      ref={scroller}
+      onScroll={trackScroll}
+      className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain"
+    >
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 py-6 md:px-6">
         <AnimatePresence initial={false}>
           {turns.map((turn, index) => {
             const assistant = turn.role === 'assistant'
+            const key = `${turn.role}-${index}`
+            const copiedHere = copied === key
             return (
-              <motion.div
-                key={index}
+              <motion.article
+                key={key}
                 variants={motionFadeRise}
                 initial="hidden"
                 animate="visible"
                 exit="hidden"
-                className={cn('flex', assistant ? 'justify-start' : 'justify-end')}
+                className={cn('group flex min-w-0 flex-col', assistant ? 'items-start' : 'items-end')}
               >
+                <p className="text-ink/30 mb-1 px-1 text-[9.5px] font-semibold tracking-[0.12em] uppercase">
+                  {assistant ? 'SunnyGen' : 'You'}
+                </p>
                 <div
                   className={cn(
-                    'flex max-w-[88%] flex-col md:max-w-[78%]',
-                    assistant ? 'items-start' : 'items-end',
+                    'min-w-0 max-w-[94%] rounded-2xl border px-3.5 py-2.5 text-[13.5px] leading-relaxed sm:max-w-[88%]',
+                    assistant
+                      ? 'border-line bg-surface text-ink/85 rounded-tl-sm shadow-[0_8px_24px_-22px_rgba(42,30,23,0.4)]'
+                      : 'border-accent/15 bg-accent/[0.07] text-ink rounded-tr-sm',
                   )}
                 >
+                  {assistant ? (
+                    turn.content ? (
+                      <Markdown text={turn.content} />
+                    ) : null
+                  ) : (
+                    <p className="break-words whitespace-pre-wrap">{turn.content}</p>
+                  )}
+                  {turn.streaming ? <StreamingLabel empty={!turn.content} /> : null}
+                </div>
+
+                {!turn.streaming && turn.content ? (
                   <div
                     className={cn(
-                      'whitespace-pre-wrap break-words rounded-2xl border px-3.5 py-2.5 text-[13.5px] leading-relaxed',
-                      assistant
-                        ? 'border-line bg-surface text-ink/85 rounded-bl-md'
-                        : 'border-accent/20 bg-accent/[0.09] text-ink rounded-br-md',
+                      'mt-0.5 flex items-center gap-0.5 px-0.5 transition-opacity duration-150 ease-out',
+                      'focus-within:opacity-100 md:opacity-0 md:group-hover:opacity-100',
                     )}
                   >
-                    {turn.content}
-                    {turn.streaming ? (
-                      turn.content ? (
-                        <span
-                          aria-hidden="true"
-                          className="bg-ink/60 ml-0.5 inline-block h-[13px] w-[2px] translate-y-[2px] animate-pulse rounded-full"
-                        />
-                      ) : (
-                        <span
-                          aria-label="Waiting for the assistant"
-                          className="inline-flex items-center gap-1 py-1"
-                        >
-                          {[0, 1, 2].map((dot) => (
-                            <span
-                              key={dot}
-                              className="bg-ink/35 size-1.5 animate-pulse rounded-full"
-                              style={{ animationDelay: `${dot * 160}ms` }}
-                            />
-                          ))}
-                        </span>
-                      )
+                    <MessageAction
+                      label={copiedHere ? 'Copied' : 'Copy message'}
+                      onClick={() => copy(key, turn.content)}
+                      active={copiedHere}
+                    >
+                      {copiedHere ? <Check size={11} /> : <Copy size={11} />}
+                      {copiedHere ? 'Copied' : 'Copy'}
+                    </MessageAction>
+                    {assistant && onInsertPrompt ? (
+                      <MessageAction
+                        label={insertLabel ? `Insert into ${insertLabel}` : 'Insert into prompt'}
+                        onClick={() => onInsertPrompt(turn.content)}
+                      >
+                        <CornerDownLeft size={11} />
+                        Insert into prompt
+                      </MessageAction>
                     ) : null}
                   </div>
-
-                  <AnimatePresence initial={false}>
-                    {assistant && !turn.streaming && turn.content ? (
-                      <motion.div
-                        key="copy"
-                        variants={motionFade}
-                        initial="hidden"
-                        animate="visible"
-                        exit="hidden"
-                      >
-                        <button
-                          type="button"
-                          onClick={() => copy(index, turn.content)}
-                          className={cn(
-                            'mt-0.5 inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[10.5px]',
-                            'transition-[color,background-color,transform] duration-150 ease-out active:scale-[0.94]',
-                            copied === index
-                              ? 'text-accent'
-                              : 'text-ink/30 hover:bg-ink/[0.05] hover:text-ink/60',
-                          )}
-                          aria-label="Copy reply"
-                        >
-                          <AnimatePresence initial={false} mode="wait">
-                            <motion.span
-                              key={copied === index ? 'copied' : 'copy'}
-                              variants={motionPop}
-                              initial="hidden"
-                              animate="visible"
-                              exit="hidden"
-                              className="inline-flex items-center gap-1"
-                            >
-                              {copied === index ? <Check size={11} /> : <Copy size={11} />}
-                              {copied === index ? 'Copied' : 'Copy'}
-                            </motion.span>
-                          </AnimatePresence>
-                        </button>
-                      </motion.div>
-                    ) : null}
-                  </AnimatePresence>
-                </div>
-              </motion.div>
+                ) : null}
+              </motion.article>
             )
           })}
         </AnimatePresence>

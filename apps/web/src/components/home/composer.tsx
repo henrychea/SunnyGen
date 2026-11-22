@@ -63,6 +63,7 @@ import {
 } from '~/lib/reference-images'
 import type { ReferenceAvatar } from '~/lib/reference-avatar'
 import { useModelChoices } from '~/lib/use-model-choices'
+import { usePromptBridge } from '~/lib/assistant-context'
 import { oversizedReferences, referenceIsOversized, shouldConfirmResize } from '~/lib/oversized-images'
 import { ResizeImagesDialog } from '~/components/resize-images-dialog'
 import { ReferencePicker } from './reference-picker'
@@ -184,6 +185,7 @@ export function HomeComposer({
   const selectedChoice = allChoices.find((entry) => entry.modelId === modelId)
   const model = selectedChoice?.definition ?? modelFor(modelId)
   const isVideo = model.kind === 'video'
+  usePromptBridge('home', isVideo ? 'Video prompt' : 'Image prompt', prompt, setPrompt, expanded)
   const editChoices = allChoices.filter(
     (entry) => entry.kind === 'image' && entry.definition?.supportsImages === true,
   )
@@ -478,7 +480,10 @@ export function HomeComposer({
 
   if (minimized) {
     return (
-      <div className="pointer-events-none fixed bottom-4 left-1/2 z-50 -translate-x-1/2 px-3">
+      <div
+        data-assistant-clearance=""
+        className="pointer-events-none fixed bottom-4 left-1/2 z-50 -translate-x-1/2 px-3"
+      >
         <motion.button
           type="button"
           initial={{ opacity: 0, y: 10 }}
@@ -528,6 +533,7 @@ export function HomeComposer({
         <motion.div
           layout={!typing && !picker && loadingChips.size === 0}
           transition={motionSpring}
+          data-assistant-clearance=""
           className={cn(
             'border-line bg-surface md:bg-surface/92 pointer-events-auto relative mx-auto flex w-full flex-col overflow-hidden border shadow-[0_28px_80px_-30px_rgba(42,30,23,0.55)] transition-[border-radius,border-color] focus-within:border-accent/25 md:backdrop-blur-xl',
             expanded ? 'h-full max-h-[840px] max-w-[1000px] rounded-[26px]' : 'max-w-[860px] rounded-[22px]',
