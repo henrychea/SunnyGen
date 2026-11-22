@@ -60,6 +60,7 @@ export interface SelectorProps {
   emptyLabel?: string
   footer?: ReactNode
   showTriggerDescription?: boolean
+  menuClassName?: string
 }
 
 type MenuPosition = { left: number; width: number; top?: number; bottom?: number; maxHeight: number }
@@ -128,6 +129,7 @@ export function Selector({
   emptyLabel = 'No options match that search.',
   footer,
   showTriggerDescription = true,
+  menuClassName,
 }: SelectorProps) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -317,7 +319,10 @@ export function Selector({
                     transformOrigin: position.top !== undefined ? 'top center' : 'bottom center',
                     ...(position.top !== undefined ? { top: position.top } : { bottom: position.bottom }),
                   }}
-                  className="border-line bg-surface z-[80] flex flex-col overflow-hidden rounded-xl border shadow-[0_20px_50px_-20px_rgba(42,30,23,0.45)] outline-none"
+                  className={cn(
+                    'border-line bg-surface flex flex-col overflow-hidden rounded-xl border shadow-[0_20px_50px_-20px_rgba(42,30,23,0.45)] outline-none',
+                    menuClassName ?? 'z-[80]',
+                  )}
                 >
                   {searchable ? (
                     <div className="border-line flex items-center gap-2 border-b px-3 py-2.5">

@@ -1,7 +1,10 @@
 import { useRouterState } from '@tanstack/react-router'
 import { motionTransition } from '@sunnygen/ui'
 import { motion } from 'motion/react'
-import { useEffect, useState, useSyncExternalStore, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
+import { AssistantFab } from './assistant/fab'
+import { AssistantPanel } from './assistant/panel'
+import { isAssistantShortcut } from '~/lib/assistant-shortcut'
 import { MobileNav, Sidebar } from './sidebar'
 
 const noopSubscribe = () => () => {}
@@ -60,6 +63,52 @@ export function AppShell({ children }: { children: ReactNode }) {
     () => false,
   )
   const viewTransition = hydrated && 'startViewTransition' in window
+  const onChat = pathname === '/chat'
+
+  const [assistantOpen, setAssistantOpen] = useState(false)
+  const [assistantWorking, setAssistantWorking] = useState(false)
+  const [assistantUnread, setAssistantUnread] = useState(false)
+  const openRef = useRef(false)
+  const workingRef = useRef(false)
+  const openedAt = useRef(0)
+  const panelOpen = assistantOpen && !onChat
+
+  useEffect(() => {
+    openRef.current = assistantOpen
+  }, [assistantOpen])
+
+  const handlePanelOpenChange = useCallback((next: boolean) => {
+    if (!next && Date.now() - openedAt.current < 250) return
+    if (next) {
+      openedAt.current = Date.now()
+      setAssistantUnread(false)
+    }
+    setAssistantOpen(next)
+  }, [])
+
+  const handleWorkingChange = useCallback((working: boolean) => {
+    if (working === workingRef.current) return
+    workingRef.current = working
+    setAssistantWorking(working)
+    if (!working && !openRef.current) setAssistantUnread(true)
+  }, [])
+
+  useEffect(() => {
+    if (onChat) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!isAssistantShortcut(event)) return
+      event.preventDefault()
+      if (openRef.current) {
+        setAssistantOpen(false)
+        return
+      }
+      setAssistantUnread(false)
+      openedAt.current = Date.now()
+      setAssistantOpen(true)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [onChat])
 
   return (
     <div className="bg-canvas flex h-dvh overflow-hidden">
@@ -79,6 +128,25 @@ export function AppShell({ children }: { children: ReactNode }) {
           </motion.div>
         </main>
       </div>
+
+      {!onChat && !panelOpen ? (
+        <AssistantFab
+          onOpen={() => {
+            openedAt.current = Date.now()
+            setAssistantUnread(false)
+            setAssistantOpen(true)
+          }}
+          working={assistantWorking}
+          unread={assistantUnread}
+          pathname={pathname}
+        />
+      ) : null}
+
+      <AssistantPanel
+        open={panelOpen}
+        onOpenChange={handlePanelOpenChange}
+        onWorkingChange={handleWorkingChange}
+      />
     </div>
   )
 }
