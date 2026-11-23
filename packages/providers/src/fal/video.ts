@@ -24,7 +24,9 @@ function requestedVideoCapability(
   request: ProviderRequest,
 ): VideoModeCapability | null {
   const mode = String(request.params.videoMode ?? '')
-  if (mode !== 'text' && mode !== 'image' && mode !== 'frames' && mode !== 'references') return null
+  if (mode !== 'text' && mode !== 'image' && mode !== 'frames' && mode !== 'references' && mode !== 'edit') {
+    return null
+  }
   return videoModeCapability(model, mode satisfies VideoModeKey)
 }
 
@@ -91,7 +93,10 @@ export const falVideoFlow: ProviderFlow = {
     const schema = await fetchFalSchema(context, endpoint)
     const body: Record<string, unknown> = { prompt: request.prompt.slice(0, PROMPT_LIMIT) }
 
-    Object.assign(body, imageBody(capability, urls))
+    const videoField = capability.videoField
+    const sourceVideo = videoField ? urls[0] : undefined
+    if (videoField && sourceVideo) body[videoField] = sourceVideo
+    Object.assign(body, imageBody(capability, videoField ? urls.slice(1) : urls))
     if ('generate_audio' in (schema?.properties ?? {})) body.generate_audio = Boolean(request.params.sound)
     else if ('audio' in (schema?.properties ?? {})) body.audio = Boolean(request.params.sound)
     if (schema) {

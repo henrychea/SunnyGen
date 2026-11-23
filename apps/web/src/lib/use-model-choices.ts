@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import type { ModelOption } from '~/components/model-combobox'
 import { loadModelCatalog } from '~/server/model-catalog.functions'
 import { catalogModelDefinition } from './catalog-model'
+import { videoEditOnly } from './video-flow'
 
 /**
  * Supported models with the latest provider prices, plus catalog-only models
@@ -41,6 +42,7 @@ export function useModelChoices(): {
       supported: true,
       modelId: model.id,
       definition: model,
+      editOnly: model.kind === 'video' ? videoEditOnly(model) : undefined,
       providers: model.providers.map((provider) => ({
         id: provider,
         label: PROVIDERS.find((entry) => entry.id === provider)?.label ?? provider,
@@ -50,25 +52,26 @@ export function useModelChoices(): {
 
   const catalogOnly: ModelOption[] = (catalog.data?.entries ?? [])
     .filter((entry) => !entry.supported)
-    .map(
-      (entry) =>
-        ({
-          key: entry.key,
-          label: entry.label,
-          company: entry.company,
-          provider: entry.provider,
-          providerLabel: entry.providerLabel,
-          kind: entry.kind,
-          price: entry.price,
-          sourceId: entry.sourceId,
-          supported: false,
-          modelId: entry.key,
-          definition: catalogModelDefinition(entry),
-          providers: [{ id: entry.provider, label: entry.providerLabel }],
-          disabled: !entry.available,
-          limitation: entry.limitation,
-        }) satisfies ModelOption,
-    )
+    .map((entry) => {
+      const definition = catalogModelDefinition(entry)
+      return {
+        key: entry.key,
+        label: entry.label,
+        company: entry.company,
+        provider: entry.provider,
+        providerLabel: entry.providerLabel,
+        kind: entry.kind,
+        price: entry.price,
+        sourceId: entry.sourceId,
+        supported: false,
+        modelId: entry.key,
+        definition,
+        editOnly: definition.kind === 'video' ? videoEditOnly(definition) : undefined,
+        providers: [{ id: entry.provider, label: entry.providerLabel }],
+        disabled: !entry.available,
+        limitation: entry.limitation,
+      } satisfies ModelOption
+    })
 
   return { choices, catalogOnly, loading: catalog.isLoading }
 }

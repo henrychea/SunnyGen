@@ -69,6 +69,7 @@ function videoMode(
 ): VideoModeCapability {
   return {
     endpoint,
+    videoField: null,
     fields: images?.fields ?? [],
     fieldsMode: images?.fieldsMode ?? 'single',
     maxImages: images?.maxImages ?? 0,

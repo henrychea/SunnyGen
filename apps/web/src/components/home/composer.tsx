@@ -195,7 +195,7 @@ export function HomeComposer({
   const editChoices = allChoices.filter(
     (entry) => entry.kind === 'image' && entry.definition?.supportsImages === true,
   )
-  const modelOptions = isEdit ? editChoices : allChoices
+  const modelOptions = isEdit ? editChoices : allChoices.filter((entry) => !entry.editOnly)
   const canAddReferences = model.supportsImages || Boolean(model.supportsLora)
   const referenceMax = isEdit
     ? Math.max(0, model.maxImages - 1)

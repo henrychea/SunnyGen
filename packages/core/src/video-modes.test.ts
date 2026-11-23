@@ -8,6 +8,7 @@ import {
   type VideoModelDefinition,
 } from './models'
 import {
+  bestVideoMode,
   classifyVideoModes,
   operationVideoModes,
   videoModeKeys,
@@ -129,13 +130,85 @@ test('element references need a separate endpoint when the start frame is requir
   assert.equal(optional.references?.endpoint, 'vendor/model/image-to-video')
 })
 
+test('video + prompt + reference operations classify as edit', () => {
+  const modes = classifyVideoModes([
+    operation(
+      'video-to-video',
+      {
+        ...PROMPT,
+        video_url: field('string'),
+        reference_images: field('array', { maxItems: 4 }),
+      },
+      ['prompt', 'video_url'],
+    ),
+  ])
+  assert.deepEqual(videoModeKeys(modes), ['edit'])
+  const edit = modes.edit
+  assert.ok(edit)
+  assert.equal(edit.endpoint, 'vendor/model/video-to-video')
+  assert.equal(edit.videoField, 'video_url')
+  assert.deepEqual(edit.fields, ['reference_images'])
+  assert.equal(edit.fieldsMode, 'array')
+  assert.equal(edit.maxImages, 4)
+})
+
+test('a single string reference field still classifies as edit with one slot', () => {
+  const modes = classifyVideoModes([
+    operation(
+      'video-face-swap',
+      { ...PROMPT, video_url: field('string'), reference_image: field('string') },
+      ['prompt', 'video_url'],
+    ),
+  ])
+  assert.equal(modes.edit?.maxImages, 1)
+  assert.equal(modes.edit?.fieldsMode, 'single')
+  assert.deepEqual(modes.edit?.fields, ['reference_image'])
+})
+
+test('prompt-only video-input operations stay skipped', () => {
+  const modes = classifyVideoModes([
+    operation('extend-video', { ...PROMPT, video_url: field('string') }, ['prompt', 'video_url']),
+  ])
+  assert.deepEqual(videoModeKeys(modes), [])
+})
+
+test('operations requiring fields the app cannot fill are not editable', () => {
+  const modes = classifyVideoModes([
+    operation(
+      'motion-control',
+      {
+        ...PROMPT,
+        video_url: field('string'),
+        image_url: field('string'),
+        character_orientation: field('string', { values: ['image', 'video'] }),
+        elements: field('array'),
+      },
+      ['prompt', 'video_url', 'image_url', 'character_orientation'],
+    ),
+  ])
+  assert.deepEqual(videoModeKeys(modes), [])
+})
+
+test('bestVideoMode never returns edit', () => {
+  const editOnly = classifyVideoModes([
+    operation(
+      'video-to-video',
+      {
+        ...PROMPT,
+        video_url: field('string'),
+        reference_images: field('array', { maxItems: 4 }),
+      },
+      ['prompt', 'video_url'],
+    ),
+  ])
+  assert.equal(bestVideoMode({ edit: editOnly.edit }), null)
+
+  const mixed = classifyVideoModes([operation('text-to-video', { ...PROMPT }, ['prompt'])])
+  assert.equal(bestVideoMode({ ...mixed, edit: mixed.text }), 'text')
+})
+
 test('operations that need a video or audio input are skipped', () => {
   for (const [name, fields, required] of [
-    [
-      'video-to-video',
-      { ...PROMPT, video_url: field('string'), image_urls: field('array') },
-      ['prompt', 'video_url'],
-    ],
     ['extend-video', { ...PROMPT, video_url: field('string') }, ['prompt', 'video_url']],
     [
       'image-to-video',
@@ -162,6 +235,7 @@ test('every shipped video model documents its modes', () => {
     for (const mode of videoModeKeys(model.videoModes)) {
       const capability = videoModeCapability(model, mode)
       assert.ok(capability?.endpoint, `${model.id} ${mode} has no endpoint`)
+      assert.notEqual(mode, 'edit', `${model.id} hand-writes an edit mode`)
       if (mode === 'text') assert.equal(capability?.fields.length, 0)
       else assert.ok((capability?.fields.length ?? 0) > 0, `${model.id} ${mode} has no image field`)
       if (mode !== 'text') assert.ok((capability?.maxImages ?? 0) > 0, `${model.id} ${mode} takes no images`)

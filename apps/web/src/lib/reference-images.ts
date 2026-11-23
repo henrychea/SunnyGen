@@ -4,6 +4,7 @@ export interface ReferenceItem {
   id: string
   name: string
   url: string
+  kind?: 'image' | 'video'
   assetIds?: string[]
   avatar?: boolean
   avatarId?: string

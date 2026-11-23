@@ -90,13 +90,15 @@ export interface GenerationWallItem {
   updatedAt: number
 }
 
-export const loadGenerationWall = createServerFn({ method: 'GET', strict: false }).handler(
-  (): GenerationWallItem[] => {
+export const loadGenerationWall = createServerFn({ method: 'GET', strict: false })
+  .validator(z.object({ kind: z.enum(['all', 'video']).default('all') }).optional())
+  .handler(({ data }): GenerationWallItem[] => {
+    const kind = data?.kind === 'video' ? 'video' : undefined
     const generations = [
-      ...listGenerations({ status: 'running', limit: 30 }),
-      ...listGenerations({ status: 'queued', limit: 30 }),
-      ...listGenerations({ status: 'failed', limit: 20 }),
-      ...listGenerations({ status: 'succeeded', limit: 80 }),
+      ...listGenerations({ status: 'running', kind, limit: 30 }),
+      ...listGenerations({ status: 'queued', kind, limit: 30 }),
+      ...listGenerations({ status: 'failed', kind, limit: 20 }),
+      ...listGenerations({ status: 'succeeded', kind, limit: 80 }),
     ].filter((generation) => generation.kind !== 'lora')
     const outputIds = generations.flatMap((generation) => generation.outputAssetIds)
     const inputIds = generations.flatMap((generation) => generation.inputAssetIds)
@@ -152,8 +154,7 @@ export const loadGenerationWall = createServerFn({ method: 'GET', strict: false 
         (left, right) =>
           (priority[left.status] ?? 9) - (priority[right.status] ?? 9) || right.createdAt - left.createdAt,
       )
-  },
-)
+  })
 
 const galleryInput = z.object({
   kind: z.enum(['all', 'image', 'video']).default('all'),
@@ -266,34 +267,40 @@ function largestImage(assets: Array<{ byteSize: number; width: number | null; he
   }
 }
 
-export const loadReferenceLibrary = createServerFn({ method: 'GET', strict: false }).handler(
-  async (): Promise<ReferenceLibrary> => {
-    const avatars = await Promise.all(
-      listStudioItems('avatar').map(async (item) => {
-        await ensureAvatarCrops(item)
-        return referenceAvatar(getStudioItem(item.id) ?? item)
-      }),
-    )
+export const loadReferenceLibrary = createServerFn({ method: 'GET', strict: false })
+  .validator(z.object({ kind: z.enum(['image', 'video']).default('image') }).optional())
+  .handler(async ({ data }): Promise<ReferenceLibrary> => {
+    const kind = data?.kind ?? 'image'
+    const avatars =
+      kind === 'video'
+        ? []
+        : (
+            await Promise.all(
+              listStudioItems('avatar').map(async (item) => {
+                await ensureAvatarCrops(item)
+                return referenceAvatar(getStudioItem(item.id) ?? item)
+              }),
+            )
+          ).flatMap((reference) => {
+            if (!reference) return []
+            return [
+              {
+                ...reference,
+                url: assetUrl(reference.id),
+                ...largestImage(getAssetsByIds(reference.assetIds)),
+              },
+            ]
+          })
     return {
-      avatars: avatars.flatMap((reference) => {
-        if (!reference) return []
-        return [
-          {
-            ...reference,
-            url: assetUrl(reference.id),
-            ...largestImage(getAssetsByIds(reference.assetIds)),
-          },
-        ]
-      }),
+      avatars,
       assets: listAssets({
-        kind: 'image',
+        kind,
         sources: ['upload', 'social', 'generated', 'studio'],
         excludeKind: 'lora',
         limit: 120,
       }).map(toPublicAsset),
     }
-  },
-)
+  })
 
 export const cleanupFailedGenerations = createServerFn({ method: 'POST', strict: false }).handler(
   (): { deleted: number } => ({ deleted: deleteFailedGenerations() }),

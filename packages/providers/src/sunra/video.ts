@@ -57,7 +57,9 @@ function legacyOperation(
 
 function requestedMode(request: ProviderRequest): VideoModeKey | null {
   const mode = String(request.params.videoMode ?? '')
-  return mode === 'text' || mode === 'image' || mode === 'frames' || mode === 'references' ? mode : null
+  return mode === 'text' || mode === 'image' || mode === 'frames' || mode === 'references' || mode === 'edit'
+    ? mode
+    : null
 }
 
 function capabilityPath(alias: string, capability: VideoModeCapability): string {
@@ -78,6 +80,7 @@ interface VideoInputs {
   startFrame?: string
   endFrame?: string
   references: string[]
+  sourceVideo?: string
 }
 
 function modeInputs(
@@ -89,6 +92,9 @@ function modeInputs(
   if (mode === 'image') return { ...inputs, startFrame: urls[0], references: [] }
   if (mode === 'frames') return { ...inputs, startFrame: urls[0], endFrame: urls[1], references: [] }
   if (mode === 'references') return { ...inputs, references: urls.slice(0, capability.maxImages) }
+  if (mode === 'edit') {
+    return { ...inputs, sourceVideo: urls[0], references: urls.slice(1, 1 + capability.maxImages) }
+  }
   return { ...inputs, references: [] }
 }
 
@@ -135,6 +141,7 @@ function capabilityBody(
       Math.min(maxLengthOf(properties.prompt, components) ?? PROMPT_LIMIT, PROMPT_LIMIT),
     ),
   }
+  if (capability.videoField && inputs.sourceVideo) body[capability.videoField] = inputs.sourceVideo
   applyImages(body, capability, inputs, operation, components, model)
 
   const audioField = firstField(operation, AUDIO_FIELDS)

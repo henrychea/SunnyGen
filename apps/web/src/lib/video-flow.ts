@@ -3,6 +3,7 @@ import {
   VIDEO_MODE_LABELS,
   defaultVideoMode,
   videoModeDefinition,
+  videoModeKeys,
   type VideoModeKey,
   type VideoModelDefinition,
 } from '@sunnygen/core'
@@ -31,6 +32,11 @@ export function videoDefinitions(options: ModelOption[]): VideoModelDefinition[]
     models.push(definition)
   }
   return models
+}
+
+export function videoEditOnly(model: VideoModelDefinition): boolean {
+  const keys = videoModeKeys(model.videoModes)
+  return keys.length === 1 && keys[0] === 'edit'
 }
 
 export function videoModesFor(models: VideoModelDefinition[], mode: VideoModeKey): VideoModelDefinition[] {

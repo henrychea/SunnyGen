@@ -45,6 +45,7 @@ function assetItem(asset: PublicAsset): ReferenceItem {
     id: asset.id,
     name: assetLabel(asset),
     url: asset.url,
+    kind: asset.kind === 'video' ? 'video' : 'image',
     byteSize: asset.byteSize,
     width: asset.width,
     height: asset.height,
@@ -95,15 +96,25 @@ const PickerTile = memo(function PickerTile({
       )}
     >
       <div className="bg-ink/[0.06] relative aspect-square overflow-hidden">
-        <FadeImage
-          src={thumbUrl(item.url, 320)}
-          srcSet={thumbSrcSet(item.url, [320, 640])}
-          sizes="(min-width: 768px) 180px, 33vw"
-          alt=""
-          loading="lazy"
-          decoding="async"
-          className="relative size-full object-cover duration-300 [@media(hover:hover)]:group-hover:scale-[1.02]"
-        />
+        {item.kind === 'video' ? (
+          <video
+            src={item.url}
+            muted
+            preload="metadata"
+            playsInline
+            className="relative size-full object-cover"
+          />
+        ) : (
+          <FadeImage
+            src={thumbUrl(item.url, 320)}
+            srcSet={thumbSrcSet(item.url, [320, 640])}
+            sizes="(min-width: 768px) 180px, 33vw"
+            alt=""
+            loading="lazy"
+            decoding="async"
+            className="relative size-full object-cover duration-300 [@media(hover:hover)]:group-hover:scale-[1.02]"
+          />
+        )}
       </div>
       {item.lora ? (
         <span className="bg-accent text-canvas absolute top-1.5 left-1.5 rounded px-1 py-0.5 text-[8px] font-semibold tracking-[0.04em] uppercase">
@@ -129,6 +140,7 @@ export function ReferencePicker({
   allowAvatars,
   existingIds,
   max,
+  kind = 'image',
   onClose,
   onConfirm,
 }: {
@@ -136,6 +148,7 @@ export function ReferencePicker({
   allowAvatars: boolean
   existingIds: string[]
   max: number
+  kind?: 'image' | 'video'
   onClose: () => void
   onConfirm: (items: ReferenceItem[]) => void
 }) {
@@ -151,8 +164,8 @@ export function ReferencePicker({
   const loadMoreRef = useRef<HTMLDivElement>(null)
   const queryClient = useQueryClient()
   const library = useQuery({
-    queryKey: ['reference-library'],
-    queryFn: () => loadReferenceLibrary(),
+    queryKey: ['reference-library', kind],
+    queryFn: () => loadReferenceLibrary({ data: { kind } }),
     staleTime: 30_000,
   })
 
@@ -167,32 +180,38 @@ export function ReferencePicker({
   const existing = useMemo(() => new Set(existingIds), [existingIds])
   const pickedCount = referenceImageCount(picked)
   const groups = useMemo<Record<PickerTab, ReferenceItem[]>>(() => {
-    const allAssets = library.data?.assets ?? []
+    const allAssets = (library.data?.assets ?? []).filter((asset) => asset.kind === kind)
     return {
-      avatars: (library.data?.avatars ?? []).map((avatar) => ({
-        id: avatar.id,
-        name: avatar.name,
-        url: avatar.url,
-        assetIds: avatar.assetIds,
-        avatar: true,
-        avatarId: avatar.avatarId,
-        lora: avatar.lora,
-        profile: avatar.profile,
-        crops: avatar.crops,
-        byteSize: avatar.byteSize,
-        width: avatar.width,
-        height: avatar.height,
-      })),
+      avatars:
+        kind === 'video'
+          ? []
+          : (library.data?.avatars ?? []).map((avatar) => ({
+              id: avatar.id,
+              name: avatar.name,
+              url: avatar.url,
+              assetIds: avatar.assetIds,
+              avatar: true,
+              avatarId: avatar.avatarId,
+              lora: avatar.lora,
+              profile: avatar.profile,
+              crops: avatar.crops,
+              byteSize: avatar.byteSize,
+              width: avatar.width,
+              height: avatar.height,
+            })),
       uploads: allAssets.filter((asset) => asset.source === 'upload').map(assetItem),
       assets: allAssets
         .filter((asset) => asset.source === 'generated' || asset.source === 'studio')
         .map(assetItem),
       cobalt: allAssets.filter((asset) => asset.source === 'social').map(assetItem),
     }
-  }, [library.data])
-  const order: PickerTab[] = allowAvatars
-    ? ['avatars', 'uploads', 'assets', 'cobalt']
-    : ['uploads', 'assets', 'cobalt']
+  }, [library.data, kind])
+  const order: PickerTab[] =
+    kind === 'video'
+      ? ['uploads', 'assets', 'cobalt']
+      : allowAvatars
+        ? ['avatars', 'uploads', 'assets', 'cobalt']
+        : ['uploads', 'assets', 'cobalt']
   const defaultTab = order[0] ?? 'uploads'
   const preferred = selectedTab ?? defaultTab
   const tab =
@@ -265,11 +284,12 @@ export function ReferencePicker({
         if (!response.ok || !payload?.asset) {
           throw new Error(payload?.error ?? 'Upload failed')
         }
-        if (payload.asset.kind === 'image' && !pickedAssetIds.has(payload.asset.id)) {
+        if (payload.asset.kind === kind && !pickedAssetIds.has(payload.asset.id)) {
           next.push({
             id: payload.asset.id,
             name: `Upload · ${new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`,
             url: payload.asset.url,
+            kind,
             byteSize: payload.asset.byteSize,
             width: payload.asset.width,
             height: payload.asset.height,
@@ -308,6 +328,7 @@ export function ReferencePicker({
       } | null
       if (!response.ok) throw new Error(payload?.error ?? 'Import failed')
       const next = (payload?.assets ?? [])
+        .filter((asset) => asset.kind === kind)
         .map(assetItem)
         .filter((item) => !existing.has(item.id) && !pickedAssetIds.has(item.id) && !pickedIds.has(item.id))
       setPicked((current) => appendReferences(current, next, max))
@@ -518,14 +539,14 @@ export function ReferencePicker({
             <input
               ref={fileRef}
               type="file"
-              accept="image/*"
+              accept={kind === 'video' ? 'video/*' : 'image/*'}
               multiple
               className="hidden"
               onChange={(event) => void uploadFiles(event.target.files)}
             />
             <p className="text-ink/40 text-[10.5px]">
               {Number.isFinite(max)
-                ? `${picked.length} selected · ${pickedCount} of ${max} image slot${max === 1 ? '' : 's'} used`
+                ? `${picked.length} selected · ${pickedCount} of ${max} ${kind} slot${max === 1 ? '' : 's'} used`
                 : `${picked.length} selected`}
             </p>
             <div className="ml-auto flex items-center gap-2">

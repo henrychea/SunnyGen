@@ -6,6 +6,7 @@ limits. These are working notes, not marketing copy.
 
 | File                                                                                                         | Date       | Covers                                                                     |
 | ------------------------------------------------------------------------------------------------------------ | ---------- | -------------------------------------------------------------------------- |
+| [2026-11-23-video-edits.md](2026-11-23-video-edits.md)                                                       | 2026-11-23 | PR #18: reference-driven video edits, wall-first video tab                 |
 | [2026-11-22-avatar-profiles.md](2026-11-22-avatar-profiles.md)                                               | 2026-11-22 | PR #12: avatar profile schema, prompt builders, wizard, UI fixes           |
 | [2026-11-22-avatar-crops.md](2026-11-22-avatar-crops.md)                                                     | 2026-11-22 | PR #13: second face crop read the back view, plus the crop backfill script |
 | [2026-11-22-body-proportions-and-per-model-prompts.md](2026-11-22-body-proportions-and-per-model-prompts.md) | 2026-11-22 | PR #16: body transfer and per-model edit prompt profiles                   |

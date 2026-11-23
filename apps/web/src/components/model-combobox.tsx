@@ -16,6 +16,7 @@ export interface ModelOption {
   disabled?: boolean
   limitation?: string | null
   definition?: ModelDefinition
+  editOnly?: boolean
   providers?: Array<{ id: string; label: string }>
 }
 
