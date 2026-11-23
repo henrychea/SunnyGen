@@ -660,14 +660,15 @@ export function VideoComposer({
             </motion.div>
           </AnimatePresence>
 
-          <div
-            className={cn(
-              'flex min-h-0 flex-col px-3',
-              expanded ? 'flex-1 pb-2' : '',
-              mode === 'edit' || (generateSlots > 0 && videoMode !== 'text') ? 'pt-2' : 'pt-9',
-            )}
-          >
+          <div className={cn('flex min-h-0 flex-col px-3 pt-2', expanded ? 'flex-1 pb-2' : '')}>
+            <label
+              htmlFor="video-prompt"
+              className="text-ink/65 text-[9px] font-semibold tracking-[0.1em] uppercase"
+            >
+              Prompt
+            </label>
             <textarea
+              id="video-prompt"
               ref={textareaRef}
               value={prompt}
               onChange={(event) => {
@@ -689,7 +690,6 @@ export function VideoComposer({
                     : 'Describe the change, or leave blank to use the references…'
                   : 'Describe the shot you imagine…'
               }
-              aria-label="Prompt"
               disabled={busy}
               className={cn(
                 'text-ink placeholder:text-ink/65 w-full resize-none bg-transparent text-[14.5px] leading-[22px] tracking-[-0.01em] outline-none transition-[height] duration-150 ease-out disabled:opacity-60 motion-reduce:transition-none',
