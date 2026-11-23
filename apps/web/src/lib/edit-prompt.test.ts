@@ -162,7 +162,7 @@ test('a profiled avatar is described by roles and identity anchors', () => {
     assert.match(prompt, /\(full body\)/)
     assert.match(prompt, /soft oval face/)
     assert.match(prompt, /slender arched brows/)
-    assert.match(prompt, /pose, clothing, hair unless changed, background, lighting and camera/)
+    assert.match(prompt, /pose, clothing, background, lighting and camera/)
     assert.match(prompt, /with the avatar's: 168 cm, very slim and hourglass build/)
     assert.match(prompt, /from @?image ?3 \(full body\)/)
     assert.doesNotMatch(prompt, /Do not slim, widen or beautify/)
@@ -209,13 +209,23 @@ test('Qwen stays under 800 characters and the wider families keep more anchors',
   assert.match(nano, /shoulder width, chest, waist, hips and thigh width/)
 
   // The instruction is never cut: budget pressure trims the clause back to its shorter form instead.
-  const dense = buildEditPrompt('x'.repeat(400), CROP_REFS, editProfile('fal:fal-ai/qwen-image-edit-2509'), {
+  const dense = buildEditPrompt('x'.repeat(300), CROP_REFS, editProfile('fal:fal-ai/qwen-image-edit-2509'), {
     modelId: 'fal:fal-ai/qwen-image-edit-2509',
   })
-  assert.ok(dense.endsWith(`Additional instructions:\n${'x'.repeat(400)}`), `${dense.length}`)
+  assert.ok(dense.endsWith(`Additional instructions:\n${'x'.repeat(300)}`), `${dense.length}`)
   assert.ok(dense.length <= 800, `${dense.length}`)
   const clause = (prompt: string) => prompt.match(/same avatar: (.*)\.\n/)?.[1] ?? ''
   assert.ok(clause(dense).length < clause(qwen).length, clause(dense))
+})
+
+test('every family tells the model to swap the face and none asks it to keep the hair', () => {
+  const swap =
+    /Replace the person in @?image ?\d+ with the avatar: copy the face, facial features, skin tone and hair from /
+  for (const modelId of ['sunra:google/gemini-nano-banana-2.1', 'fal:fal-ai/qwen-image-edit-2509']) {
+    const prompt = buildEditPrompt('', CROP_REFS, editProfile(modelId), { modelId })
+    assert.match(prompt, swap, modelId)
+    assert.doesNotMatch(prompt, /hair unless changed/, modelId)
+  }
 })
 
 test('an avatar reference without a profile keeps the legacy prompt', () => {
@@ -318,8 +328,8 @@ for (const modelId of BODY_FAMILIES) {
     assert.doesNotMatch(prompt, /Do not slim, widen or beautify/, modelId)
     if (avatarModelFamily(modelId) === 'qwen') {
       assert.ok(prompt.length <= 800, `${modelId} ${prompt.length}`)
-      // A 400-character instruction still fits once the clause is down to its subject.
-      const typed = 'x'.repeat(400)
+      // A 300-character instruction still fits once the clause is down to its subject.
+      const typed = 'x'.repeat(300)
       const busy = buildEditPrompt(typed, references, profile, { modelId })
       assert.ok(busy.endsWith(typed), `${modelId} ${busy.length}`)
       assert.ok(busy.length <= 800, `${modelId} ${busy.length}`)
