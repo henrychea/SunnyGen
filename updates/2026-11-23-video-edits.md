@@ -1,7 +1,7 @@
 # Video edits, and a video tab that works like Home
 
 - Date: 2026-11-23
-- Status: open, PR pending
+- Status: merged, PR #18
 
 ## Summary
 
