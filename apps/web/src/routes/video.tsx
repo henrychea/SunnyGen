@@ -39,6 +39,7 @@ type WallEntry =
       title: string
       cards: WallCard[]
       outputs: WallOutput[]
+      folderId?: string
       sortRank: number
       createdAt: number
     }
@@ -71,7 +72,11 @@ export const Route = createFileRoute('/video')({
 function VideoPage() {
   const data = Route.useLoaderData()
   const [query, setQuery] = useState('')
-  const [groupModal, setGroupModal] = useState<{ title: string; cards: WallCard[] } | null>(null)
+  const [groupModal, setGroupModal] = useState<{
+    title: string
+    cards: WallCard[]
+    folderId?: string
+  } | null>(null)
   const [pickerOpen, setPickerOpen] = useState(false)
 
   const wall = useQuery({
@@ -112,7 +117,7 @@ function VideoPage() {
     }
   }
 
-  const addGroup = (items: GenerationWallItem[], title: string, id: string) => {
+  const addGroup = (items: GenerationWallItem[], title: string, id: string, folderId?: string) => {
     const cards = generationCards(items)
     if (cards.length === 0) return
     const outputs = items.flatMap((generation) => generation.outputs)
@@ -122,6 +127,7 @@ function VideoPage() {
       title,
       cards,
       outputs,
+      folderId,
       sortRank: Math.min(...items.map(statusRank)),
       createdAt: Math.max(...items.map((generation) => generation.createdAt)),
     })
@@ -131,7 +137,7 @@ function VideoPage() {
     const folder = folderById.get(folderId)
     if (!folder) continue
     if (items.length === 1) individual.push(items[0] as GenerationWallItem)
-    else addGroup(items, folder.name, `folder:${folderId}`)
+    else addGroup(items, folder.name, `folder:${folderId}`, folderId)
   }
 
   for (const generation of individual) {
@@ -273,7 +279,13 @@ function VideoPage() {
                                 ).length
                               }
                               outputs={entry.outputs}
-                              onOpen={() => setGroupModal({ title: entry.title, cards: entry.cards })}
+                              onOpen={() =>
+                                setGroupModal({
+                                  title: entry.title,
+                                  cards: entry.cards,
+                                  folderId: entry.folderId,
+                                })
+                              }
                             />
                           )
                         }
@@ -323,6 +335,7 @@ function VideoPage() {
             key="wall-modal"
             title={groupModal.title}
             cards={groupModal.cards}
+            folderId={groupModal.folderId}
             onClose={() => setGroupModal(null)}
           />
         ) : null}

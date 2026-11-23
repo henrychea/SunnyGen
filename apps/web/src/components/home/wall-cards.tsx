@@ -10,14 +10,15 @@ import {
   motionPop,
   motionSwap,
 } from '@sunnygen/ui'
-import { AlertCircle, Clock, FileAudio, Folder, Loader2 } from 'lucide-react'
+import { AlertCircle, Clock, FileAudio, Folder, Loader2, Trash2 } from 'lucide-react'
 import { useEffect, useState, type Ref } from 'react'
 import { FailureActions } from '~/components/failure-actions'
-import { MediaActionBar } from '~/components/media-action-bar'
+import { ACTION_CLASS, MediaActionBar } from '~/components/media-action-bar'
 import { MediaCard, MediaThumbStrip } from '~/components/media-preview'
 import { ReferencesModal } from '~/components/references-modal'
 import { thumbSrcSet, thumbUrl } from '~/lib/media-thumbs'
-import { deleteLibraryItemFn, type GenerationWallItem } from '~/server/library.functions'
+import { uniqueGenerationIds } from '~/lib/wall-delete'
+import { deleteFolderFn, deleteLibraryItemFn, type GenerationWallItem } from '~/server/library.functions'
 
 export const WALL_CARD_HEIGHT = 'h-[180px] md:h-[230px]'
 export const WALL_FIXED_WIDTH = 'w-[280px] md:w-[320px]'
@@ -268,10 +269,12 @@ export function GroupCard({
 export function WallModal({
   title,
   cards,
+  folderId,
   onClose,
 }: {
   title: string
   cards: WallCard[]
+  folderId?: string
   onClose: () => void
 }) {
   useEffect(() => {
@@ -299,7 +302,14 @@ export function WallModal({
       {cards.length === 1 && cards[0]?.type === 'output' ? (
         <OutputModal card={cards[0]} onClose={onClose} />
       ) : outputs.length > 0 ? (
-        <CollectionModal title={title} cards={outputs} jobs={jobs} onClose={onClose} />
+        <CollectionModal
+          title={title}
+          cards={outputs}
+          groupCards={cards}
+          jobs={jobs}
+          folderId={folderId}
+          onClose={onClose}
+        />
       ) : (
         <motion.div
           variants={motionPop}
@@ -313,11 +323,12 @@ export function WallModal({
                 {cards.length} {cards.length === 1 ? 'card' : 'cards'}
               </p>
             </div>
+            <DeleteAllButton cards={cards} folderId={folderId} onDeleted={onClose} className="ml-auto" />
             <button
               type="button"
               onClick={onClose}
               aria-label="Close folder"
-              className="text-ink/40 hover:bg-ink/5 hover:text-ink ml-auto grid size-8 place-items-center rounded-lg transition-[color,background-color,transform] active:scale-90"
+              className="text-ink/40 hover:bg-ink/5 hover:text-ink grid size-8 place-items-center rounded-lg transition-[color,background-color,transform] active:scale-90"
             >
               ×
             </button>
@@ -342,15 +353,77 @@ export function WallModal({
   )
 }
 
+function DeleteAllButton({
+  cards,
+  folderId,
+  onDeleted,
+  className,
+}: {
+  cards: WallCard[]
+  folderId?: string
+  onDeleted: () => void
+  className?: string
+}) {
+  const queryClient = useQueryClient()
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const ids = uniqueGenerationIds(cards)
+  if (ids.length === 0) return null
+
+  const removeAll = async () => {
+    if (!window.confirm(`Delete all ${ids.length} ${ids.length === 1 ? 'item' : 'items'} in this group?`)) {
+      return
+    }
+    setBusy(true)
+    setError(null)
+    try {
+      for (const id of ids) {
+        await deleteLibraryItemFn({ data: { type: 'generation', id } })
+      }
+      if (folderId) await deleteFolderFn({ data: { id: folderId } })
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['home-generations'] }),
+        queryClient.invalidateQueries({ queryKey: ['video-wall'] }),
+        queryClient.invalidateQueries({ queryKey: ['gallery'] }),
+        queryClient.invalidateQueries({ queryKey: ['folders'] }),
+      ])
+      onDeleted()
+    } catch {
+      setError('Could not delete everything in this group.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className={cn('flex shrink-0 items-center gap-2', className)}>
+      <button
+        type="button"
+        onClick={removeAll}
+        disabled={busy}
+        className={`${ACTION_CLASS} text-error/70 hover:border-error/30 hover:text-error`}
+      >
+        <Trash2 size={13} />
+        {busy ? 'Deleting…' : 'Delete all'}
+      </button>
+      {error ? <p className="text-error/80 text-[10.5px]">{error}</p> : null}
+    </div>
+  )
+}
+
 function CollectionModal({
   title,
   cards,
+  groupCards,
   jobs,
+  folderId,
   onClose,
 }: {
   title: string
   cards: Array<Extract<WallCard, { type: 'output' }>>
+  groupCards: WallCard[]
   jobs: number
+  folderId?: string
   onClose: () => void
 }) {
   const queryClient = useQueryClient()
@@ -397,11 +470,17 @@ function CollectionModal({
               {visible.length} {visible.length === 1 ? noun : `${noun}s`} · {safeIndex + 1} / {visible.length}
             </p>
           </div>
+          <DeleteAllButton
+            cards={groupCards.filter((card) => !hidden.has(card.generation.id))}
+            folderId={folderId}
+            onDeleted={onClose}
+            className="ml-auto"
+          />
           <button
             type="button"
             onClick={onClose}
             aria-label="Close folder"
-            className="text-ink/40 hover:bg-ink/5 hover:text-ink ml-auto grid size-8 shrink-0 place-items-center rounded-lg transition-[color,background-color,transform] active:scale-90"
+            className="text-ink/40 hover:bg-ink/5 hover:text-ink grid size-8 shrink-0 place-items-center rounded-lg transition-[color,background-color,transform] active:scale-90"
           >
             ×
           </button>
