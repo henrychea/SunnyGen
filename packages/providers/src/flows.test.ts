@@ -4,9 +4,10 @@ import {
   LORA_TRAINER_MODEL,
   getModel,
   type ImageModelDefinition,
+  type VideoModeCapability,
   type VideoModelDefinition,
 } from '@sunnygen/core'
-import { openApiFixture } from './fixtures'
+import { mockFal, mockSunra, openApiFixture, type OpenApiFixture } from './fixtures'
 import { getAdapter, getWebhook, providerFlows } from './registry'
 import { resetFalSchemaCache } from './fal/image'
 import { resetSunraSchemaCache } from './sunra/schema'
@@ -189,6 +190,147 @@ test('dispatches dynamic fal video requests through the video flow', async () =>
     prompt: 'hello',
     duration: 4,
     resolution: '720p',
+  })
+})
+
+function editCapability(endpoint: string, videoField: string | null): VideoModeCapability {
+  return {
+    endpoint,
+    videoField,
+    fields: ['reference_images'],
+    fieldsMode: 'array',
+    maxImages: 4,
+    durations: [],
+    resolutions: [],
+    ratios: [],
+    audio: false,
+  }
+}
+
+function videoEditFixture(path: string, required: string[] = ['prompt', 'video_url']): OpenApiFixture {
+  return {
+    info: { docs: `https://oapi.sunra.ai/main/${path.replace(/\//g, '-')}.json` },
+    paths: {
+      [`/${path}`]: {
+        post: {
+          requestBody: {
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    prompt: { type: 'string' },
+                    video_url: { type: 'string' },
+                    reference_images: { type: 'array', items: { type: 'string' }, maxItems: 4 },
+                  },
+                  required,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  }
+}
+
+function editVideoAssets(): Array<{ buffer: Buffer; mime: string; fileName: string }> {
+  return [
+    { buffer: Buffer.from('target-video'), mime: 'video/mp4', fileName: 'target-1.mp4' },
+    { buffer: Buffer.from('reference-two'), mime: 'image/png', fileName: 'reference-2.png' },
+    { buffer: Buffer.from('reference-three'), mime: 'image/png', fileName: 'reference-3.png' },
+  ]
+}
+
+test('Sunra puts the target video first and the references after it', async () => {
+  const mock = mockSunra([videoEditFixture('test/video/video-to-video')])
+  await getAdapter('sunra').submit(mock.context, {
+    kind: 'video',
+    model: {
+      ...dynamicVideo('sunra'),
+      videoModes: { edit: editCapability('test/video/video-to-video', 'video_url') },
+    },
+    prompt: 'make the jacket red',
+    params: { videoMode: 'edit', durationSeconds: 4, aspectRatio: '16:9', resolution: '720p' },
+    assets: editVideoAssets(),
+  })
+
+  const [queue] = mock.queueCalls()
+  assert.ok(queue, 'no Sunra queue call was made')
+  assert.equal(mock.queueCalls().length, 1)
+  assert.equal(new URL(queue.url).pathname, '/v1/queue/test/video/video-to-video')
+  assert.deepEqual(queue.body, {
+    prompt: 'make the jacket red',
+    video_url: 'https://cdn.test/sunra-1.png',
+    reference_images: ['https://cdn.test/sunra-2.png', 'https://cdn.test/sunra-3.png'],
+  })
+})
+
+test('Sunra keeps a capability without a video field off the video branch', async () => {
+  const mock = mockSunra([videoEditFixture('test/video/video-to-video', ['prompt'])])
+  await getAdapter('sunra').submit(mock.context, {
+    kind: 'video',
+    model: {
+      ...dynamicVideo('sunra'),
+      videoModes: { references: editCapability('test/video/video-to-video', null) },
+    },
+    prompt: 'make the jacket red',
+    params: { videoMode: 'references' },
+    assets: editVideoAssets(),
+  })
+
+  const [queue] = mock.queueCalls()
+  assert.ok(queue, 'no Sunra queue call was made')
+  assert.deepEqual(queue.body, {
+    prompt: 'make the jacket red',
+    reference_images: [
+      'https://cdn.test/sunra-1.png',
+      'https://cdn.test/sunra-2.png',
+      'https://cdn.test/sunra-3.png',
+    ],
+  })
+})
+
+test('fal puts the target video first and the references after it', async () => {
+  const mock = mockFal([videoEditFixture('test/video/edit')])
+  await getAdapter('fal').submit(mock.context, {
+    kind: 'video',
+    model: { ...dynamicVideo('fal'), videoModes: { edit: editCapability('test/video/edit', 'video_url') } },
+    prompt: 'make the jacket red',
+    params: { videoMode: 'edit', durationSeconds: 4, resolution: '720p' },
+    assets: editVideoAssets(),
+  })
+
+  const [queue] = mock.queueCalls()
+  assert.ok(queue, 'no fal queue call was made')
+  assert.equal(mock.queueCalls().length, 1)
+  assert.equal(queue.url, 'https://queue.fal.run/test/video/edit')
+  assert.deepEqual(queue.body, {
+    prompt: 'make the jacket red',
+    video_url: 'https://cdn.test/fal-1.png',
+    reference_images: ['https://cdn.test/fal-2.png', 'https://cdn.test/fal-3.png'],
+  })
+})
+
+test('fal keeps a capability without a video field off the video branch', async () => {
+  const mock = mockFal([videoEditFixture('test/video/edit', ['prompt'])])
+  await getAdapter('fal').submit(mock.context, {
+    kind: 'video',
+    model: { ...dynamicVideo('fal'), videoModes: { references: editCapability('test/video/edit', null) } },
+    prompt: 'make the jacket red',
+    params: { videoMode: 'references' },
+    assets: editVideoAssets(),
+  })
+
+  const [queue] = mock.queueCalls()
+  assert.ok(queue, 'no fal queue call was made')
+  assert.deepEqual(queue.body, {
+    prompt: 'make the jacket red',
+    reference_images: [
+      'https://cdn.test/fal-1.png',
+      'https://cdn.test/fal-2.png',
+      'https://cdn.test/fal-3.png',
+    ],
   })
 })
 

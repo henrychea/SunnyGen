@@ -1,6 +1,6 @@
 import type { ModelCatalogEntry } from './model-catalog.types'
 
-export const CATALOG_VERSION = 3
+export const CATALOG_VERSION = 4
 
 export interface StoredCatalogEntryShape {
   kind: ModelCatalogEntry['kind']

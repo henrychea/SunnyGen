@@ -1,4 +1,4 @@
-export const VIDEO_MODE_KEYS = ['text', 'image', 'frames', 'references'] as const
+export const VIDEO_MODE_KEYS = ['text', 'image', 'frames', 'references', 'edit'] as const
 
 export type VideoModeKey = (typeof VIDEO_MODE_KEYS)[number]
 
@@ -19,6 +19,7 @@ export interface VideoOperationInfo {
 
 export interface VideoModeCapability {
   endpoint: string
+  videoField: string | null
   fields: string[]
   fieldsMode: 'single' | 'array'
   maxImages: number
@@ -35,6 +36,7 @@ export const VIDEO_MODE_LABELS: Record<VideoModeKey, string> = {
   image: 'Start frame',
   frames: 'Start + end frame',
   references: 'Reference images',
+  edit: 'Video edit',
 }
 
 export const VIDEO_START_FIELDS = [
@@ -76,6 +78,8 @@ const RATIO_FIELDS = ['aspect_ratio', 'ratio'] as const
 const AUDIO_FIELDS = ['generate_audio', 'audio'] as const
 const PROMPT_FIELDS = ['prompt'] as const
 
+const EDIT_PARAMETER_FIELDS = [...DURATION_FIELDS, ...RESOLUTION_FIELDS, ...RATIO_FIELDS, ...AUDIO_FIELDS]
+
 export interface VideoModeOptions {
   maxImages?: number
   durations?: number[]
@@ -99,6 +103,15 @@ function stringList(values: string[]): string[] {
   return [...new Set(values.filter((value) => value.trim().length > 0))]
 }
 
+function editReference(
+  fields: Record<string, VideoFieldInfo>,
+): { name: string; fieldsMode: 'single' | 'array' } | null {
+  const array = namesOf(fields, VIDEO_REFERENCE_FIELDS).find((name) => fields[name]?.type === 'array')
+  if (array) return { name: array, fieldsMode: 'array' }
+  const single = namesOf(fields, VIDEO_REFERENCE_FIELDS).find((name) => fields[name]?.type === 'string')
+  return single ? { name: single, fieldsMode: 'single' } : null
+}
+
 function operationMode(name: string): VideoModeKey | null {
   if (/reference-to-video/.test(name)) return 'references'
   if (/first-last-frame|keyframes-to-video/.test(name)) return 'frames'
@@ -117,6 +130,12 @@ function modeCapability(
   const end = namesOf(fields, VIDEO_END_FIELDS).find((name) => fields[name]?.type === 'string')
   const keyframe = namesOf(fields, VIDEO_FRAME_FIELDS).find((name) => fields[name]?.type === 'array')
   const reference = namesOf(fields, VIDEO_REFERENCE_FIELDS).find((name) => fields[name]?.type === 'array')
+  const videoField =
+    mode === 'edit'
+      ? (namesOf(fields, VIDEO_INPUT_FIELDS).find(
+          (name) => fields[name]?.type === 'string' && operation.required.includes(name),
+        ) ?? null)
+      : null
 
   const durations = numberList(namesOf(fields, DURATION_FIELDS).flatMap((name) => fields[name]?.values ?? []))
   const resolutions = [
@@ -146,10 +165,18 @@ function modeCapability(
     modeFields = [reference]
     fieldsMode = 'array'
     maxImages = fields[reference]?.maxItems ?? options.maxImages ?? (reference === 'elements' ? 3 : 0)
+  } else if (mode === 'edit') {
+    const editRef = editReference(fields)
+    if (editRef) {
+      modeFields = [editRef.name]
+      fieldsMode = editRef.fieldsMode
+      maxImages = editRef.fieldsMode === 'array' ? (fields[editRef.name]?.maxItems ?? 1) : 1
+    }
   }
 
   return {
     endpoint: operation.path.replace(/^\/+/, ''),
+    videoField,
     fields: modeFields,
     fieldsMode,
     maxImages: mode === 'text' ? 0 : maxImages || options.maxImages || 1,
@@ -167,12 +194,16 @@ export function classifyVideoOperation(operation: VideoOperationInfo): VideoMode
 export function operationVideoModes(operation: VideoOperationInfo): VideoModeKey[] {
   const fields = operation.fields
   if (operation.name.includes('draft')) return []
-  if (
-    operation.required.some((name) =>
-      VIDEO_INPUT_FIELDS.includes(name as (typeof VIDEO_INPUT_FIELDS)[number]),
-    )
-  ) {
-    return []
+  const requiredVideoInputs = namesOf(fields, VIDEO_INPUT_FIELDS).filter((name) =>
+    operation.required.includes(name),
+  )
+  if (requiredVideoInputs.length > 0) {
+    const videoField = requiredVideoInputs.find((name) => fields[name]?.type === 'string')
+    const editRef = editReference(fields)
+    if (!videoField || !editRef || namesOf(fields, PROMPT_FIELDS).length === 0) return []
+    // A required field the adapter cannot send is a body the provider rejects, so it is not editable.
+    const fillable = [...PROMPT_FIELDS, ...EDIT_PARAMETER_FIELDS, videoField, editRef.name]
+    return operation.required.every((name) => fillable.includes(name)) ? ['edit'] : []
   }
   if (namesOf(fields, VIDEO_AUDIO_INPUT_FIELDS).some((name) => operation.required.includes(name))) {
     return []
@@ -225,5 +256,5 @@ export function videoModeKeys(modes: VideoModes | undefined | null): VideoModeKe
 }
 
 export function bestVideoMode(modes: VideoModes | undefined | null): VideoModeKey | null {
-  return videoModeKeys(modes)[0] ?? null
+  return videoModeKeys(modes).find((mode) => mode !== 'edit') ?? null
 }
