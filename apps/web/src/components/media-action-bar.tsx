@@ -3,7 +3,7 @@ import { Copy, Download, ExternalLink, Image as ImageIcon, Images, Trash2 } from
 import { motionFadeRise, motionFast, motionMountFade } from '@sunnygen/ui'
 import { useEffect, useState } from 'react'
 
-const ACTION_CLASS =
+export const ACTION_CLASS =
   'border-line bg-surface text-ink/65 hover:border-ink/25 hover:text-ink inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[11px] font-medium transition-[color,border-color,background-color,transform] active:scale-[0.97] disabled:opacity-50 motion-reduce:active:scale-100'
 
 async function clipboardPng(blob: Blob): Promise<Blob> {
@@ -90,6 +90,7 @@ export function MediaActionBar({
       await onDelete()
     } catch {
       setError('Could not delete this render.')
+    } finally {
       setBusy(null)
     }
   }
