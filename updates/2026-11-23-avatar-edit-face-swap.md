@@ -1,7 +1,7 @@
 # Avatar edits now ask for the face swap
 
 - Date: 2026-11-23
-- Status: open, PR pending
+- Status: open, PR #19
 
 ## Summary
 
