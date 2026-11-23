@@ -369,11 +369,14 @@ function CollectionModal({
 
   const { generation, output } = selected
   const image = output.kind === 'image'
+  const kinds = new Set(visible.map((card) => card.output.kind))
+  const noun = kinds.size === 1 ? (output.kind === 'image' ? 'image' : output.kind) : 'item'
 
   const remove = async () => {
     await deleteLibraryItemFn({ data: { type: 'generation', id: generation.id } })
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['home-generations'] }),
+      queryClient.invalidateQueries({ queryKey: ['video-wall'] }),
       queryClient.invalidateQueries({ queryKey: ['gallery'] }),
       queryClient.invalidateQueries({ queryKey: ['folders'] }),
     ])
@@ -390,9 +393,8 @@ function CollectionModal({
         <div className="flex items-center gap-3">
           <div className="min-w-0">
             <h2 className="font-display text-ink truncate text-[14px] font-semibold">{title}</h2>
-            <p className="text-ink/35 mt-0.5 text-[10.5px]">
-              {visible.length} {visible.length === 1 ? 'image' : 'images'} · {safeIndex + 1} /{' '}
-              {visible.length}
+            <p className="text-ink/65 mt-0.5 text-[10.5px]">
+              {visible.length} {visible.length === 1 ? noun : `${noun}s`} · {safeIndex + 1} / {visible.length}
             </p>
           </div>
           <button
@@ -445,7 +447,7 @@ function CollectionModal({
               }))}
               index={safeIndex}
               onSelect={setIndex}
-              label="Choose an image"
+              label="Choose a preview"
             />
           </div>
           <div className="min-w-0">
@@ -483,6 +485,7 @@ function OutputModal({
     await deleteLibraryItemFn({ data: { type: 'generation', id: generation.id } })
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['home-generations'] }),
+      queryClient.invalidateQueries({ queryKey: ['video-wall'] }),
       queryClient.invalidateQueries({ queryKey: ['gallery'] }),
       queryClient.invalidateQueries({ queryKey: ['folders'] }),
     ])

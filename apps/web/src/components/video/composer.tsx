@@ -116,8 +116,8 @@ function resolutionName(value: string): string {
 }
 
 function slotLabels(mode: VideoModeKey, slots: number): string[] {
-  const named = mode === 'image' ? ['Start frame'] : mode === 'frames' ? ['Start frame', 'End frame'] : []
-  return Array.from({ length: slots }, (_value, index) => named[index] ?? `Reference ${index + 1}`)
+  const named = mode === 'image' ? ['Start'] : mode === 'frames' ? ['Start', 'End'] : []
+  return Array.from({ length: slots }, (_value, index) => named[index] ?? `Ref ${index + 1}`)
 }
 
 export function VideoComposer({
@@ -428,10 +428,10 @@ export function VideoComposer({
         >
           <Sparkles size={13} className="text-accent/80" />
           Prompt
-          <span className="text-ink/35 hidden max-w-32 truncate text-[10.5px] sm:block">
+          <span className="text-ink/65 hidden max-w-32 truncate text-[10.5px] sm:block">
             {activeModel?.label ?? 'Video'}
           </span>
-          <ChevronUp size={13} className="text-ink/35" />
+          <ChevronUp size={13} className="text-ink/65" />
         </motion.button>
       </div>
     )
@@ -490,7 +490,7 @@ export function VideoComposer({
                     setNotice(null)
                   }}
                   aria-label="Clear prompt"
-                  className="text-ink/35 hover:bg-ink/[0.06] hover:text-ink grid size-7 place-items-center rounded-lg transition-[color,background-color,transform] active:scale-90"
+                  className="text-ink/65 hover:bg-ink/[0.06] hover:text-ink grid size-7 place-items-center rounded-lg transition-[color,background-color,transform] active:scale-90"
                 >
                   <X size={13} />
                 </motion.button>
@@ -507,7 +507,7 @@ export function VideoComposer({
                 }}
                 aria-label="Minimize prompt"
                 title="Minimize"
-                className="text-ink/40 hover:bg-ink/[0.06] hover:text-ink grid size-7 place-items-center rounded-lg transition-[color,background-color,transform] active:scale-90"
+                className="text-ink/65 hover:bg-ink/[0.06] hover:text-ink grid size-7 place-items-center rounded-lg transition-[color,background-color,transform] active:scale-90"
               >
                 <Minus size={13} />
               </motion.button>
@@ -518,7 +518,7 @@ export function VideoComposer({
               onClick={() => setExpanded((value) => !value)}
               aria-label={expanded ? 'Minimize prompt' : 'Expand prompt'}
               title={expanded ? 'Minimize' : 'Expand'}
-              className="text-ink/40 hover:bg-ink/[0.06] hover:text-ink relative grid size-7 place-items-center rounded-lg transition-[color,background-color,transform] active:scale-90"
+              className="text-ink/65 hover:bg-ink/[0.06] hover:text-ink relative grid size-7 place-items-center rounded-lg transition-[color,background-color,transform] active:scale-90"
             >
               <AnimatePresence initial={false} mode="popLayout">
                 <motion.span
@@ -544,7 +544,7 @@ export function VideoComposer({
               className={cn(
                 'relative flex h-8 items-center gap-1.5 rounded-lg px-3 text-[11.5px] font-medium transition-[color,background-color,transform]',
                 motionPress,
-                mode === 'generate' ? 'text-canvas' : 'text-ink/45 hover:bg-ink/[0.05] hover:text-ink',
+                mode === 'generate' ? 'text-canvas' : 'text-ink/65 hover:bg-ink/[0.05] hover:text-ink',
               )}
             >
               {mode === 'generate' ? (
@@ -566,7 +566,7 @@ export function VideoComposer({
               className={cn(
                 'relative flex h-8 items-center gap-1.5 rounded-lg px-3 text-[11.5px] font-medium transition-[color,background-color,transform]',
                 motionPress,
-                mode === 'edit' ? 'text-canvas' : 'text-ink/45 hover:bg-ink/[0.05] hover:text-ink',
+                mode === 'edit' ? 'text-canvas' : 'text-ink/65 hover:bg-ink/[0.05] hover:text-ink',
               )}
             >
               {mode === 'edit' ? (
@@ -597,7 +597,7 @@ export function VideoComposer({
                     motionPress,
                     videoMode === entry
                       ? 'border-accent/30 bg-accent/10 text-accent'
-                      : 'border-line bg-canvas/55 text-ink/50 hover:text-ink',
+                      : 'border-line bg-canvas/55 text-ink/65 hover:text-ink',
                   )}
                 >
                   {VIDEO_MODE_LABELS[entry]}
@@ -651,7 +651,7 @@ export function VideoComposer({
                       setEditReferences((current) => current.filter((entry) => entry.id !== id))
                     }
                   />
-                  <p className="text-ink/30 px-3 pt-1 text-[9px] leading-snug">
+                  <p className="text-ink/65 px-3 pt-1 text-[9px] leading-snug">
                     Each target video becomes its own edit. Avatars use their clean sheet and 4x4 panel for
                     face and body.
                   </p>
@@ -692,7 +692,7 @@ export function VideoComposer({
               aria-label="Prompt"
               disabled={busy}
               className={cn(
-                'text-ink placeholder:text-ink/30 w-full resize-none bg-transparent text-[14.5px] leading-[22px] tracking-[-0.01em] outline-none transition-[height] duration-150 ease-out disabled:opacity-60 motion-reduce:transition-none',
+                'text-ink placeholder:text-ink/65 w-full resize-none bg-transparent text-[14.5px] leading-[22px] tracking-[-0.01em] outline-none transition-[height] duration-150 ease-out disabled:opacity-60 motion-reduce:transition-none',
                 expanded ? 'min-h-0 flex-1' : 'max-h-[180px]',
               )}
               style={expanded ? undefined : { height: 22 }}
@@ -707,7 +707,7 @@ export function VideoComposer({
                 initial="hidden"
                 animate="visible"
                 exit="hidden"
-                className={cn('px-3 pt-1.5 text-[10.5px]', error ? 'text-error' : 'text-ink/40')}
+                className={cn('px-3 pt-1.5 text-[10.5px]', error ? 'text-error' : 'text-ink/65')}
               >
                 {error ?? notice}
               </motion.p>
@@ -784,7 +784,7 @@ export function VideoComposer({
                       motionPress,
                       videoParams.sound
                         ? 'border-accent/30 bg-accent/10 text-accent'
-                        : 'border-line bg-canvas/55 text-ink/55 hover:text-ink',
+                        : 'border-line bg-canvas/55 text-ink/65 hover:text-ink',
                     )}
                   >
                     {videoParams.sound ? <Volume2 size={13} /> : <VolumeX size={13} />}
@@ -793,14 +793,14 @@ export function VideoComposer({
                 ) : null}
               </>
             ) : (
-              <span className="text-ink/35 text-[10.5px]">No video model documents this mode.</span>
+              <span className="text-ink/65 text-[10.5px]">No video model documents this mode.</span>
             )}
 
             <div className="ml-auto flex items-center gap-2">
               <span
                 className={cn(
                   'text-[10px] tabular-nums transition-colors duration-300',
-                  overLimit ? 'text-error' : 'text-ink/30',
+                  overLimit ? 'text-error' : 'text-ink/65',
                 )}
               >
                 {prompt.length.toLocaleString()}/{PROMPT_LIMIT.toLocaleString()}
@@ -890,8 +890,8 @@ function SelectionBox({
   return (
     <div className="px-3 pt-2">
       <div className="flex items-center justify-between">
-        <span className="text-ink/35 text-[9px] font-semibold tracking-[0.1em] uppercase">{label}</span>
-        <span className="text-ink/25 text-[9px] tabular-nums">
+        <span className="text-ink/65 text-[9px] font-semibold tracking-[0.1em] uppercase">{label}</span>
+        <span className="text-ink/65 text-[9px] tabular-nums">
           {items.length}/{Number.isFinite(slots) ? slots : max}
         </span>
       </div>
@@ -990,7 +990,7 @@ function AddTile({
       animate="visible"
       exit="hidden"
       transition={motionFast}
-      className="border-line bg-canvas/50 text-ink/45 hover:border-accent/35 hover:text-accent flex size-12 flex-col items-center justify-center gap-0.5 rounded-lg border border-dashed px-0.5 text-center transition-[color,border-color,transform] active:scale-95 disabled:opacity-40"
+      className="border-line bg-canvas/50 text-ink/65 hover:border-accent/35 hover:text-accent flex size-12 flex-col items-center justify-center gap-0.5 rounded-lg border border-dashed px-0.5 text-center transition-[color,border-color,transform] active:scale-95 disabled:opacity-40"
     >
       <ImagePlus size={13} />
       <span className="text-[7px] leading-tight font-semibold tracking-[0.03em] uppercase">{label}</span>

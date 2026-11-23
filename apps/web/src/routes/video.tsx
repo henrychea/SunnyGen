@@ -174,21 +174,34 @@ function VideoPage() {
         <h1 className="sr-only">SunnyGen video</h1>
         <div className="border-line/70 bg-canvas/85 sticky top-0 z-20 border-b backdrop-blur-xl">
           <div className="flex flex-wrap items-center gap-2 px-3 py-2.5 md:px-6">
-            <div className="text-ink/35 hidden text-[10.5px] sm:block">
+            <div className="text-ink/65 hidden text-[10.5px] sm:block">
               {renderCount} {renderCount === 1 ? 'render' : 'renders'}
               {activeCount > 0 ? ` · ${activeCount} active` : ''}
             </div>
 
+            {wall.isRefetchError && (wall.data?.length ?? 0) > 0 ? (
+              <div role="status" className="text-error flex items-center gap-2 text-[10.5px]">
+                Could not refresh the wall.
+                <button
+                  type="button"
+                  onClick={() => void wall.refetch()}
+                  className="border-error/40 text-error hover:bg-error/[0.06] rounded-md border px-2 py-1 text-[10px] font-medium transition-colors"
+                >
+                  Retry
+                </button>
+              </div>
+            ) : null}
+
             <div className="ml-auto flex w-full items-center gap-2 sm:w-auto">
               <CleanupFailedButton count={failedCount} />
-              <label className="border-line bg-surface text-ink/45 focus-within:border-accent/40 flex h-9 w-full items-center gap-1.5 rounded-xl border px-2.5 transition-colors sm:w-[min(52vw,220px)]">
+              <label className="border-line bg-surface text-ink/65 focus-within:border-accent/40 flex h-9 w-full items-center gap-1.5 rounded-xl border px-2.5 transition-colors sm:w-[min(52vw,220px)]">
                 <Search size={13} className="shrink-0" />
                 <input
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder="Search videos"
                   aria-label="Search videos"
-                  className="text-ink placeholder:text-ink/30 min-w-0 flex-1 bg-transparent text-[11.5px] outline-none"
+                  className="text-ink placeholder:text-ink/65 min-w-0 flex-1 bg-transparent text-[11.5px] outline-none"
                 />
                 {query ? (
                   <AnimatePresence initial={false} mode="popLayout">
@@ -202,7 +215,7 @@ function VideoPage() {
                       transition={motionFast}
                       onClick={() => setQuery('')}
                       aria-label="Clear search"
-                      className="text-ink/35 hover:text-ink transition-[color,transform] active:scale-90"
+                      className="text-ink/65 hover:text-ink transition-[color,transform] active:scale-90"
                     >
                       <X size={12} />
                     </motion.button>
@@ -213,7 +226,7 @@ function VideoPage() {
           </div>
         </div>
 
-        <div className="px-3 pt-3 pb-64 md:px-6 md:pb-56">
+        <div className="px-3 pt-3 pb-[28rem] md:px-6 md:pb-56">
           <AnimatePresence initial={false} mode="popLayout">
             <motion.div
               key={wall.isPending ? 'loading' : 'ready'}
@@ -227,6 +240,11 @@ function VideoPage() {
               <motion.div animate={{ opacity: wall.isPlaceholderData ? 0.55 : 1 }} transition={motionFast}>
                 {wall.isPending ? (
                   <WallSkeleton />
+                ) : wall.isError ? (
+                  <EmptyWall
+                    title="The wall did not load."
+                    body="Reload the page. If it stays empty, check that the server is running."
+                  />
                 ) : entries.length > 0 ? (
                   <div className="relative flex flex-wrap content-start gap-3">
                     <AnimatePresence initial={false} mode="popLayout">
@@ -326,7 +344,7 @@ function EmptyWall({ title, body }: { title: string; body: string }) {
     >
       <p className="text-accent/75 text-[10px] font-semibold tracking-[0.16em] uppercase">Empty wall</p>
       <h2 className="font-display text-ink mt-2 text-[21px] font-semibold tracking-tight">{title}</h2>
-      <p className="text-ink/45 mt-2 text-[12.5px] leading-relaxed">{body}</p>
+      <p className="text-ink/70 mt-2 text-[12.5px] leading-relaxed">{body}</p>
     </div>
   )
 }
