@@ -1,7 +1,7 @@
 # Lightbox delete unsticks and gains Delete all
 
 - Date: 2026-11-24
-- Status: open, PR pending
+- Status: open, PR #20
 
 ## Summary
 
