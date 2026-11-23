@@ -351,7 +351,7 @@ export function VideoComposer({
           queryClient.invalidateQueries({ queryKey: ['folders'] }),
         ])
         setNotice(
-          `Queued ${ids.length} ${ids.length === 1 ? 'render' : 'renders'} — the wall updates as each finishes.`,
+          `Queued ${ids.length} ${ids.length === 1 ? 'render' : 'renders'}. The wall updates as each finishes.`,
         )
       }
       if (failures.length > 0) setError(failures[0] ?? 'Generation failed')
