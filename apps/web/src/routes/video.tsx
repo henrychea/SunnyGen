@@ -3,7 +3,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { Skeleton, cn, motionFast, motionMountRise, motionPop, motionSwap } from '@sunnygen/ui'
 import { Search, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { PageScroll } from '~/components/app-shell'
 import { CleanupFailedButton } from '~/components/cleanup-failed'
 import {
@@ -187,7 +187,7 @@ function VideoPage() {
                   onClick={() => void wall.refetch()}
                   className="border-error/40 text-error hover:bg-error/[0.06] rounded-md border px-2 py-1 text-[10px] font-medium transition-colors"
                 >
-                  Retry
+                  Try again
                 </button>
               </div>
             ) : null}
@@ -240,10 +240,19 @@ function VideoPage() {
               <motion.div animate={{ opacity: wall.isPlaceholderData ? 0.55 : 1 }} transition={motionFast}>
                 {wall.isPending ? (
                   <WallSkeleton />
-                ) : wall.isError ? (
+                ) : wall.isError && entries.length === 0 ? (
                   <EmptyWall
                     title="The wall did not load."
                     body="Reload the page. If it stays empty, check that the server is running."
+                    action={
+                      <button
+                        type="button"
+                        onClick={() => void wall.refetch()}
+                        className="border-line text-ink/65 hover:border-ink/25 hover:text-ink mt-4 rounded-lg border px-3 py-2 text-[11px] font-medium transition-colors"
+                      >
+                        Try again
+                      </button>
+                    }
                   />
                 ) : entries.length > 0 ? (
                   <div className="relative flex flex-wrap content-start gap-3">
@@ -334,7 +343,7 @@ function WallSkeleton() {
   )
 }
 
-function EmptyWall({ title, body }: { title: string; body: string }) {
+function EmptyWall({ title, body, action }: { title: string; body: string; action?: ReactNode }) {
   return (
     <div
       className={cn(
@@ -345,6 +354,7 @@ function EmptyWall({ title, body }: { title: string; body: string }) {
       <p className="text-accent/75 text-[10px] font-semibold tracking-[0.16em] uppercase">Empty wall</p>
       <h2 className="font-display text-ink mt-2 text-[21px] font-semibold tracking-tight">{title}</h2>
       <p className="text-ink/70 mt-2 text-[12.5px] leading-relaxed">{body}</p>
+      {action}
     </div>
   )
 }
