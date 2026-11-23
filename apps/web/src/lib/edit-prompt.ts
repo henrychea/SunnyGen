@@ -235,7 +235,9 @@ function buildKeywordEditPrompt(
       : identityAvatars.length === 1
         ? `${roles} is the avatar identity reference: ${clause}.`
         : `${roles} are identity references of the same avatar: ${clause}.`
-  const keep = `Keep ${ref(target.index)}'s pose, clothing, hair unless changed, background, lighting and camera.`
+  // Gemini keeps the target's face unless a swap is spelled out in the first lines.
+  const swap = `Replace the person in ${ref(target.index)} with the avatar: copy the face, facial features, skin tone and hair from ${identityAvatars.length === 0 ? 'the avatar description' : roles}.`
+  const keep = `Keep ${ref(target.index)}'s pose, clothing, background, lighting and camera.`
   const restate = `The result keeps ${ref(target.index)}'s pose and the avatar's body proportions.`
   const supportingIds = [...demoted, ...extras].map((slot) => ref(slot.index)).join(' ')
   const supporting = supportingIds
@@ -254,6 +256,7 @@ function buildKeywordEditPrompt(
     const head = [
       `${ref(target.index)} is the target photo.`,
       identity(clause),
+      swap,
       ...(promptProfile.bodyPlacement === 'early' ? [body, keep] : [keep, body]),
     ]
     const lines = [
