@@ -6,7 +6,8 @@ import {
   LIKENESS_KEEP_LABELS,
   LIKENESS_KEEP_TRAITS,
   SHEET_SECTIONS,
-  buildPanelSheetPrompt,
+  buildBodyPanelPrompt,
+  buildFacePanelPrompt,
   buildReferenceSheetPrompt,
   parseAvatarProfile,
   type AvatarProfile,
@@ -101,7 +102,8 @@ export function AvatarWizard({
   const [sheetChoice, setSheetChoice] = useState<SlotAsset | null | undefined>(undefined)
   const [panelChoice, setPanelChoice] = useState<SlotAsset | null | undefined>(undefined)
   const [sheetEdit, setSheetEdit] = useState<string | null>(null)
-  const [panelEdit, setPanelEdit] = useState<string | null>(null)
+  const [bodyPanelEdit, setBodyPanelEdit] = useState<string | null>(null)
+  const [facePanelEdit, setFacePanelEdit] = useState<string | null>(null)
   const [picker, setPicker] = useState<'sheet' | 'panel' | null>(null)
   const [pasteOpen, setPasteOpen] = useState(false)
   const [busy, setBusy] = useState<'save' | null>(null)
@@ -132,7 +134,8 @@ export function AvatarWizard({
         (item?.assetId ? { id: item.assetId, name: null, width: null, height: null } : null))
 
   const sheetPrompt = sheetEdit ?? buildReferenceSheetPrompt(profile)
-  const panelPrompt = panelEdit ?? buildPanelSheetPrompt(profile)
+  const bodyPanelPrompt = bodyPanelEdit ?? buildBodyPanelPrompt(profile)
+  const facePanelPrompt = facePanelEdit ?? buildFacePanelPrompt(profile)
 
   const patch = <K extends keyof AvatarProfile>(group: K, values: Partial<AvatarProfile[K]>) => {
     setProfile((current) => ({ ...current, [group]: { ...current[group], ...values } }))
@@ -692,40 +695,11 @@ export function AvatarWizard({
                         />
                       </div>
                       <div className="border-line rounded-xl border p-3">
-                        <p className="text-ink/75 text-[11px] font-medium">4×4 panel</p>
+                        <p className="text-ink/75 text-[11px] font-medium">Body and face panels</p>
                         <p className="text-ink/65 mt-1 text-[10.5px]">
-                          Each count becomes a phrase in the panel prompt.
+                          Two fixed 2 by 2 panels: the body panel carries the four body angles, the face panel
+                          the faces and the hands. Each view gets a 2048 px cell.
                         </p>
-                        <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                          <CountField
-                            label="Views"
-                            value={profile.panel.views}
-                            min={1}
-                            max={6}
-                            onChange={(value) => patch('panel', { views: value })}
-                          />
-                          <CountField
-                            label="Expressions"
-                            value={profile.panel.expressions}
-                            min={0}
-                            max={8}
-                            onChange={(value) => patch('panel', { expressions: value })}
-                          />
-                          <CountField
-                            label="Poses"
-                            value={profile.panel.poses}
-                            min={0}
-                            max={8}
-                            onChange={(value) => patch('panel', { poses: value })}
-                          />
-                          <CountField
-                            label="Detail crops"
-                            value={profile.panel.detailCrops}
-                            min={0}
-                            max={8}
-                            onChange={(value) => patch('panel', { detailCrops: value })}
-                          />
-                        </div>
                         <div className="mt-2 flex flex-wrap items-center gap-2">
                           <Field
                             label="Panel resolution"
@@ -758,8 +732,8 @@ export function AvatarWizard({
                   {step === 6 ? (
                     <div className="flex flex-col gap-4">
                       <p className="text-ink/65 text-[10.5px]">
-                        Copy each prompt into your image AI, then upload the two images here. Both prompts are
-                        saved with the profile.
+                        Copy each prompt into your image AI, then upload the three images here. The prompts
+                        are saved with the profile.
                       </p>
                       <PromptEditor
                         label="Reference sheet prompt"
@@ -768,10 +742,16 @@ export function AvatarWizard({
                         onCopy={() => void copy(sheetPrompt)}
                       />
                       <PromptEditor
-                        label="4×4 panel prompt"
-                        value={panelPrompt}
-                        onChange={setPanelEdit}
-                        onCopy={() => void copy(panelPrompt)}
+                        label="Body panel prompt"
+                        value={bodyPanelPrompt}
+                        onChange={setBodyPanelEdit}
+                        onCopy={() => void copy(bodyPanelPrompt)}
+                      />
+                      <PromptEditor
+                        label="Face panel prompt"
+                        value={facePanelPrompt}
+                        onChange={setFacePanelEdit}
+                        onCopy={() => void copy(facePanelPrompt)}
                       />
                       <AvatarSheetUploads
                         sheet={sheet}
@@ -942,35 +922,6 @@ function Field({
         />
       ) : null}
     </div>
-  )
-}
-
-function CountField({
-  label,
-  value,
-  min,
-  max,
-  onChange,
-}: {
-  label: string
-  value: number
-  min: number
-  max: number
-  onChange: (value: number) => void
-}) {
-  return (
-    <label className="flex flex-col gap-1">
-      <span className="text-ink/70 text-[10.5px]">{label}</span>
-      <Input
-        type="number"
-        min={min}
-        max={max}
-        value={value}
-        aria-label={label}
-        className="h-11 sm:h-9"
-        onChange={(event) => onChange(Math.min(max, Math.max(min, Number(event.target.value) || 0)))}
-      />
-    </label>
   )
 }
 

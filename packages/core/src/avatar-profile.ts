@@ -1,3 +1,4 @@
+import { PANEL_CANVAS, PANEL_QUADRANT, SHEET_CANVAS, SHEET_REGION_BOXES } from './avatar-regions'
 import type { EditPromptFamily } from './edit-prompt-profiles'
 
 export const SHEET_SECTION_IDS = [
@@ -591,16 +592,20 @@ function bansClause(profile: AvatarProfile): string {
   return bans.length > 0 ? `, ${bans.join(', ')}` : ''
 }
 
+// The crop regions read these boxes, so the sheet is a fixed grid: a section that is switched
+// off leaves its region empty white instead of moving its neighbours.
 function layoutLine(profile: AvatarProfile): string {
-  const background =
-    profile.sheet.background === 'white'
-      ? 'Plain white clean background'
-      : 'White to light beige clean background'
+  const background = profile.sheet.background === 'white' ? 'plain white' : 'white to light beige'
   const labels =
     profile.sheet.labels === 'section-names'
       ? 'English annotations: content section and section names only'
       : 'no text annotations'
-  return `Layout: ${background}, professional reference sheet, grid layout, ${labels}, clear and easy to read.`
+  const regions = SHEET_SECTION_IDS.map((id) => {
+    const box = SHEET_REGION_BOXES[id]
+    const empty = profile.sheet.sections[id] ? '' : ', leave this region empty white'
+    return `${id.replace(/-/g, ' ')}: x = ${box.x} to ${box.x + box.w - 1}, y = ${box.y} to ${box.y + box.h - 1}${empty}`
+  })
+  return `Layout: a canvas of exactly ${SHEET_CANVAS.width} x ${SHEET_CANVAS.height} px, ${background} background, split into fixed regions - ${regions.join('; ')}. Keep every region in its own box and the layout fixed whether a section is filled or empty, ${labels}, clear and easy to read.`
 }
 
 function sectionLines(profile: AvatarProfile): string[] {
@@ -681,53 +686,28 @@ export function buildReferenceSheetPrompt(profile: AvatarProfile): string {
   return lines.join('\n')
 }
 
-const NUMBER_WORDS = [
-  'zero',
-  'one',
-  'two',
-  'three',
-  'four',
-  'five',
-  'six',
-  'seven',
-  'eight',
-  'nine',
-  'ten',
-  'eleven',
-  'twelve',
-  'thirteen',
-  'fourteen',
-  'fifteen',
-  'sixteen',
-  'seventeen',
-  'eighteen',
-  'nineteen',
-  'twenty',
-] as const
+// The crop regions read these exact layouts, so the panels are fixed grids: a 2x2 panel is
+// four equal quadrants and nothing may cross a cell. Resolution is still honoured.
+const PANEL_MARGIN = 96
 
-export function numberWord(value: number): string {
-  return NUMBER_WORDS[value] ?? String(value)
-}
-
-function viewPhrase(views: number): string {
-  return views === 4 ? 'front, back, sides' : `${numberWord(views)} views`
-}
-
-export function buildPanelSheetPrompt(profile: AvatarProfile): string {
-  const panel = profile.panel
-  const panels = panel.views + panel.expressions + panel.poses + panel.detailCrops
-  const text =
-    panel.text && panel.borders
-      ? 'with text and borders'
-      : panel.text
-        ? 'with text, no borders'
-        : panel.borders
-          ? 'no text, with borders'
-          : 'no text and borders'
+export function buildBodyPanelPrompt(profile: AvatarProfile): string {
   return [
-    `Reference the sheet and make a 4 by 4 reference sheet, ${numberWord(panels)} panels of the same original character,`,
-    `${viewPhrase(panel.views)}, ${numberWord(panel.expressions)} expressions, ${numberWord(panel.poses)} poses, ${numberWord(panel.detailCrops)} detail crops,`,
-    `flat white background. ${panel.resolution} quality, ${text}.`,
+    `Reference the sheet and make a 2 by 2 body panel of the same original character on a canvas of exactly ${PANEL_CANVAS.width} x ${PANEL_CANVAS.height} px, flat pure white, split into 4 equal cells of ${PANEL_QUADRANT} x ${PANEL_QUADRANT} px.`,
+    `Each cell is ${PANEL_QUADRANT} px wide and ${PANEL_QUADRANT} px tall: the top-left cell spans x = 0 to ${PANEL_QUADRANT - 1} and y = 0 to ${PANEL_QUADRANT - 1}, and the four cells tile the canvas with no gaps.`,
+    `Every figure stays entirely inside its own cell with at least ${PANEL_MARGIN} px of white margin on all four sides; nothing (hair, hands, feet, shadows) crosses into a neighbouring cell.`,
+    'Top-left front full body, top-right right side profile full body, bottom-left back full body, bottom-right three-quarter full body.',
+    'Each figure is full body head to toe with the feet fully visible, centred and scaled to fill its cell.',
+    `The same person, outfit and lighting in every cell, photoreal, ${profile.panel.resolution} quality.`,
+  ].join(' ')
+}
+
+export function buildFacePanelPrompt(profile: AvatarProfile): string {
+  return [
+    `Reference the sheet and make a 2 by 2 face panel of the same original character on a canvas of exactly ${PANEL_CANVAS.width} x ${PANEL_CANVAS.height} px, flat pure white, split into 4 equal cells of ${PANEL_QUADRANT} x ${PANEL_QUADRANT} px.`,
+    `Each cell is ${PANEL_QUADRANT} px wide and ${PANEL_QUADRANT} px tall: the top-left cell spans x = 0 to ${PANEL_QUADRANT - 1} and y = 0 to ${PANEL_QUADRANT - 1}, and the four cells tile the canvas with no gaps.`,
+    `Every subject stays entirely inside its own cell with at least ${PANEL_MARGIN} px of white margin on all four sides; nothing crosses into a neighbouring cell.`,
+    'Top-left front face, head and shoulders cropped at the collarbone with the face centred; top-right three-quarter face; bottom-left side profile face; bottom-right both hands, front and back of the hand, skin texture visible.',
+    `The same person and lighting in every cell, photoreal, ${profile.panel.resolution} quality.`,
   ].join(' ')
 }
 
