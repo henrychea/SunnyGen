@@ -95,6 +95,9 @@ the curves from the side profile tile.
 
 ## Limits
 
+- The edit prompt is now one template per model family rather than one shared skeleton; the
+  per-vendor reasoning and sources are in [docs/edit-prompts.md](../../docs/edit-prompts.md).
+
 - Sunra documents no maximum size for the files it fetches from an input URL, so the send-time
   copy for Sunra is capped at 6 MB (6.2 MB and 7.6 MB boards fetched fine, an 18.1 MB board was
   rejected). Nothing on disk changes: the stored board stays a full-quality PNG and only the
