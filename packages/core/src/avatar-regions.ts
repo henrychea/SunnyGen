@@ -298,3 +298,56 @@ export function boardLayout(
     tiles,
   }
 }
+
+/**
+ * A freeform box for one role: clamped inside its source image and never thinner than
+ * REGION_MIN_SIDE. The owner may move a box across a quadrant line; only the image edge and the
+ * minimum stop it.
+ */
+export function clampCropRegion(region: CropRegion, size: { width: number; height: number }): CropRegion {
+  const width = Math.max(1, size.width)
+  const height = Math.max(1, size.height)
+  const w = Math.min(Math.max(Math.round(region.w), Math.min(REGION_MIN_SIDE, width)), width)
+  const h = Math.min(Math.max(Math.round(region.h), Math.min(REGION_MIN_SIDE, height)), height)
+  return {
+    source: region.source,
+    w,
+    h,
+    x: Math.min(Math.max(Math.round(region.x), 0), width - w),
+    y: Math.min(Math.max(Math.round(region.y), 0), height - h),
+  }
+}
+
+/** A role is adjusted when its box differs from the box the prompt layout draws. */
+export function isDefaultCropRegion(role: CropRegionRole, region: CropRegion): boolean {
+  const base = CROP_REGION_DEFAULTS[role]
+  return region.x === base.x && region.y === base.y && region.w === base.w && region.h === base.h
+}
+
+/** One tile cut from a region, labelled with the region role it was cut for. */
+export interface AvatarRegionTile {
+  role: CropRegionRole
+  assetId: string
+  width: number
+  height: number
+}
+
+export function parseRegionTiles(value: unknown): AvatarRegionTile[] | undefined {
+  if (value === undefined) return undefined
+  if (!Array.isArray(value)) return undefined
+  const tiles: AvatarRegionTile[] = []
+  for (const entry of value) {
+    if (!entry || typeof entry !== 'object') continue
+    const record = entry as Record<string, unknown>
+    const role = CROP_REGION_ROLES.find((candidate) => candidate === record.role)
+    const assetId = typeof record.assetId === 'string' ? record.assetId : ''
+    if (!role || !assetId) continue
+    tiles.push({
+      role,
+      assetId,
+      width: Number(record.width) || 0,
+      height: Number(record.height) || 0,
+    })
+  }
+  return tiles
+}

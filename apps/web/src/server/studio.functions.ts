@@ -15,7 +15,6 @@ import {
   identityKeywords,
   loraTrainingCost,
   panelSizeError,
-  parseAvatarCropCells,
   parseAvatarLora,
   parseAvatarProfile,
   parseCropRegions,
@@ -43,17 +42,16 @@ import { getGenerationView, submitGeneration } from './generation.functions'
 import { assetUrl, readAssetBuffer, storeBuffer } from './media.server'
 import {
   assertSheetSize,
-  avatarCropsDto,
   avatarRegionsDto,
+  clampRegions,
   dataForPanelChange,
-  saveAvatarCrops,
+  deleteDerivedAssets,
   saveAvatarRegions,
-  type AvatarCropsDto,
   type AvatarRegionsDto,
 } from './avatar-crops.server'
 import { extractAvatarFromPrompt } from './avatar-profile.server'
 
-export type { AvatarCropsDto, AvatarRegionsDto } from './avatar-crops.server'
+export type { AvatarRegionsDto } from './avatar-crops.server'
 
 export interface StudioItemDto {
   id: string
@@ -133,6 +131,8 @@ const saveSchema = z.object({
 export const saveStudioItemFn = createServerFn({ method: 'POST', strict: false })
   .validator(saveSchema)
   .handler(async ({ data }): Promise<StudioItemDto> => {
+    let previousItem: StudioItemRecord | null = null
+    let derivedDropped = false
     if (data.kind === 'avatar') {
       const characterSheet = data.data.characterSheetAssetId
       if (typeof characterSheet !== 'string' || !characterSheet) {
@@ -140,6 +140,7 @@ export const saveStudioItemFn = createServerFn({ method: 'POST', strict: false }
       }
       if (!data.assetId) throw new Error('Upload the 4x4 panel sheet first.')
       const previous = data.id ? getStudioItem(data.id) : null
+      previousItem = previous
       const panelChanged = !previous || previous.assetId !== data.assetId
       if (panelChanged) {
         const panel = getAsset(data.assetId)
@@ -170,6 +171,7 @@ export const saveStudioItemFn = createServerFn({ method: 'POST', strict: false }
         const sheet = getAsset(sheetId)
         assertSheetSize(sheet?.width ?? null, sheet?.height ?? null)
       }
+      derivedDropped = Boolean(previous) && (panelChanged || faceChanged)
       data.data = dataForPanelChange(data.data, panelChanged || faceChanged)
       if (data.data.avatarProfile !== undefined) {
         const profile = parseAvatarProfile(data.data.avatarProfile)
@@ -205,16 +207,12 @@ export const saveStudioItemFn = createServerFn({ method: 'POST', strict: false }
       cleanAssetId: data.cleanAssetId ?? null,
       data: data.data,
     })
-    if (saved.kind === 'avatar') return toDto(getStudioItem(saved.id) ?? saved)
+    if (saved.kind === 'avatar') {
+      // The images changed, so the crops and boards cut from the old ones are orphans now.
+      if (derivedDropped && previousItem) await deleteDerivedAssets(saved.id, previousItem.data)
+      return toDto(getStudioItem(saved.id) ?? saved)
+    }
     return toDto(saved)
-  })
-
-export const loadAvatarCropsFn = createServerFn({ method: 'GET' })
-  .validator(z.object({ avatarId: z.string().min(1) }))
-  .handler(({ data }): AvatarCropsDto => {
-    const item = getStudioItem(data.avatarId)
-    if (!item || item.kind !== 'avatar') throw new Error('Avatar not found')
-    return avatarCropsDto(item)
   })
 
 export const loadAvatarRegionsFn = createServerFn({ method: 'GET' })
@@ -230,21 +228,11 @@ export const saveAvatarRegionsFn = createServerFn({ method: 'POST', strict: fals
   .handler(async ({ data }): Promise<AvatarRegionsDto> => {
     const item = getStudioItem(data.avatarId)
     if (!item || item.kind !== 'avatar') throw new Error('Avatar not found')
-    const regions = parseCropRegions(data.regions)
-    if (!regions) {
+    const regions = clampRegions(data.regions)
+    if (!regions || !parseCropRegions(regions)) {
       throw new Error('Every crop region needs one box inside its own image, at least 256 px a side.')
     }
     return saveAvatarRegions(item, regions)
-  })
-
-export const saveAvatarCropsFn = createServerFn({ method: 'POST', strict: false })
-  .validator(z.object({ avatarId: z.string().min(1), cells: z.unknown() }))
-  .handler(async ({ data }): Promise<AvatarCropsDto> => {
-    const item = getStudioItem(data.avatarId)
-    if (!item || item.kind !== 'avatar') throw new Error('Avatar not found')
-    const cells = parseAvatarCropCells(data.cells)
-    if (!cells) throw new Error('Pick one cell for every crop role inside the 4x4 grid.')
-    return saveAvatarCrops(item, cells)
   })
 
 const OPENROUTER_KEY_SETTING = 'assistant.openrouter.key'

@@ -1,31 +1,36 @@
 import sharp from 'sharp'
 import {
-  AVATAR_CROP_ROLES,
   BOARD_GRID,
   BOARD_ROLES,
   BOARD_TILES,
   CROP_REGION_ROLES,
   boardLayout,
-  defaultAvatarCropCells,
+  clampCropRegion,
   defaultCropRegions,
-  panelCellSize,
   panelSizeError,
   parseAvatarBoards,
-  parseAvatarCropCells,
   parseAvatarCrops,
   parseCropRegions,
-  qualifyAvatarCrops,
+  parseRegionTiles,
+  regionSourceFor,
+  sourceSize,
   type AvatarBoard,
+  type AvatarRegionTile,
   type AvatarCrop,
-  type AvatarCropCell,
-  type AvatarCropRole,
   type BoardRole,
   type CropRegion,
   type CropRegionRole,
   type RegionSource,
 } from '@sunnygen/core'
-import { getAsset, saveStudioItem, type StudioItemRecord } from '@sunnygen/db'
-import { assetUrl, readAssetBuffer, storeBuffer } from './media.server'
+import {
+  deleteAsset,
+  getAsset,
+  listGenerations,
+  listStudioItems,
+  saveStudioItem,
+  type StudioItemRecord,
+} from '@sunnygen/db'
+import { assetUrl, readAssetBuffer, removeAssetFile, storeBuffer } from './media.server'
 
 export interface AvatarAssetInfo {
   assetId: string | null
@@ -35,11 +40,20 @@ export interface AvatarAssetInfo {
   height: number | null
 }
 
-export interface AvatarCropsDto {
-  crops: AvatarCrop[]
-  cropCells: Record<AvatarCropRole, AvatarCropCell> | null
-  panel: AvatarAssetInfo
+export interface AvatarRegionsDto {
+  regions: Record<CropRegionRole, CropRegion>
+  boards: AvatarBoard[]
   sheet: AvatarAssetInfo
+  bodyPanel: AvatarAssetInfo
+  facePanel: AvatarAssetInfo
+  tiles: AvatarRegionTile[]
+  crops: AvatarCrop[]
+  /** True for avatars saved before the two-panel split: one 4x4 panel, no face panel. */
+  legacy: boolean
+}
+
+function text(value: unknown): string | null {
+  return typeof value === 'string' && value.length > 0 ? value : null
 }
 
 function assetInfo(assetId: string | null): AvatarAssetInfo {
@@ -50,16 +64,6 @@ function assetInfo(assetId: string | null): AvatarAssetInfo {
     name: asset?.name ?? null,
     width: asset?.width ?? null,
     height: asset?.height ?? null,
-  }
-}
-
-export function avatarCropsDto(item: StudioItemRecord): AvatarCropsDto {
-  const sheetId = typeof item.data.characterSheetAssetId === 'string' ? item.data.characterSheetAssetId : null
-  return {
-    crops: parseAvatarCrops(item.data.crops) ?? [],
-    cropCells: parseAvatarCropCells(item.data.cropCells),
-    panel: assetInfo(item.assetId),
-    sheet: assetInfo(sheetId),
   }
 }
 
@@ -79,82 +83,10 @@ export function dataForPanelChange(
   const next = { ...data }
   delete next.crops
   delete next.cropCells
+  delete next.cropTiles
   delete next.cropRegions
   delete next.boards
   return next
-}
-
-async function cutCells(
-  panel: Buffer,
-  cells: Record<AvatarCropRole, AvatarCropCell>,
-  cellWidth: number,
-  cellHeight: number,
-): Promise<AvatarCrop[]> {
-  const crops: AvatarCrop[] = []
-  for (const role of AVATAR_CROP_ROLES) {
-    const cell = cells[role]
-    const buffer = await sharp(panel)
-      .extract({
-        left: cell.column * cellWidth,
-        top: cell.row * cellHeight,
-        width: cellWidth,
-        height: cellHeight,
-      })
-      .jpeg({ quality: 92, mozjpeg: true })
-      .toBuffer()
-    const asset = await storeBuffer({ buffer, mime: 'image/jpeg', kind: 'image', source: 'studio' })
-    crops.push({ role, assetId: asset.id, width: cellWidth, height: cellHeight })
-  }
-  return qualifyAvatarCrops(crops)
-}
-
-/**
- * Cuts the cells the owner picked and remembers the selection, so reopening the editor shows
- * the same cells. Nothing cuts crops on its own any more: an avatar without a selection keeps
- * the whole sheet and the whole panel as its references.
- */
-export async function saveAvatarCrops(
-  item: StudioItemRecord,
-  cells: Record<AvatarCropRole, AvatarCropCell>,
-): Promise<AvatarCropsDto> {
-  if (item.kind !== 'avatar') throw new Error('Avatar not found')
-  if (!item.assetId) throw new Error('This avatar has no 4x4 panel to crop.')
-  const panel = await readAssetBuffer(item.assetId)
-  if (!panel) throw new Error('The 4x4 panel image is missing from disk.')
-  const metadata = await sharp(panel.buffer).metadata()
-  assertCropPanelSize(metadata.width ?? null, metadata.height ?? null)
-  const cell = panelCellSize(metadata.width ?? null, metadata.height ?? null)
-
-  const crops = await cutCells(panel.buffer, cells, cell.cellWidth, cell.cellHeight)
-  saveStudioItem({
-    id: item.id,
-    kind: item.kind,
-    name: item.name,
-    assetId: item.assetId,
-    cleanAssetId: item.cleanAssetId,
-    data: { ...item.data, crops, cropCells: cells },
-  })
-  return avatarCropsDto({ ...item, data: { ...item.data, crops, cropCells: cells } })
-}
-
-/** The cells the editor opens with: the stored selection, or the panel prompt's own layout. */
-export function initialCropCells(item: StudioItemRecord): Record<AvatarCropRole, AvatarCropCell> {
-  return parseAvatarCropCells(item.data.cropCells) ?? defaultAvatarCropCells()
-}
-
-export interface AvatarRegionsDto {
-  regions: Record<CropRegionRole, CropRegion>
-  boards: AvatarBoard[]
-  sheet: AvatarAssetInfo
-  bodyPanel: AvatarAssetInfo
-  facePanel: AvatarAssetInfo
-  crops: AvatarCrop[]
-  /** True for avatars saved before the two-panel split: one 4x4 panel, no face panel. */
-  legacy: boolean
-}
-
-function text(value: unknown): string | null {
-  return typeof value === 'string' && value.length > 0 ? value : null
 }
 
 /**
@@ -172,6 +104,7 @@ export function avatarRegionsDto(item: StudioItemRecord): AvatarRegionsDto {
     sheet: assetInfo(text(item.data.characterSheetAssetId)),
     bodyPanel: assetInfo(item.assetId),
     facePanel: assetInfo(text(item.data.facePanelAssetId)),
+    tiles: parseRegionTiles(item.data.cropTiles) ?? [],
     crops: parseAvatarCrops(item.data.crops) ?? [],
     legacy: !avatarUsesTwoPanels(item.data),
   }
@@ -278,9 +211,18 @@ export async function saveAvatarRegions(
   }
 
   const cuts = new Map<CropRegionRole, Cut>()
+  const tiles: AvatarRegionTile[] = []
   for (const role of CROP_REGION_ROLES) {
     const region = regions[role]
-    cuts.set(role, await cutRegion(buffers[region.source], region))
+    const cut = await cutRegion(buffers[region.source], region)
+    cuts.set(role, cut)
+    const asset = await storeBuffer({
+      buffer: cut.buffer,
+      mime: 'image/png',
+      kind: 'image',
+      source: 'studio',
+    })
+    tiles.push({ role, assetId: asset.id, width: cut.width, height: cut.height })
   }
 
   const boards: AvatarBoard[] = []
@@ -289,7 +231,7 @@ export async function saveAvatarRegions(
     boards.push(await composeBoard(role, tiles))
   }
 
-  const data = { ...item.data, cropRegions: regions, boards }
+  const data = { ...item.data, cropRegions: regions, boards, cropTiles: tiles }
   saveStudioItem({
     id: item.id,
     kind: item.kind,
@@ -299,4 +241,66 @@ export async function saveAvatarRegions(
     data,
   })
   return avatarRegionsDto({ ...item, data })
+}
+
+/**
+ * Freeform boxes are clamped, not rejected: a box may cross a quadrant line or hang over the
+ * edge, and the image edge wins. Anything that is not a number per role is still an error.
+ */
+export function clampRegions(value: unknown): Record<CropRegionRole, CropRegion> | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const record = value as Record<string, unknown>
+  const regions = {} as Record<CropRegionRole, CropRegion>
+  for (const role of CROP_REGION_ROLES) {
+    const entry = record[role]
+    if (!entry || typeof entry !== 'object') return null
+    const candidate = entry as Record<string, unknown>
+    const source = regionSourceFor(role)
+    if (candidate.source !== source) return null
+    const numbers = [candidate.x, candidate.y, candidate.w, candidate.h].map(Number)
+    if (!numbers.every((value) => Number.isFinite(value))) return null
+    const [x, y, w, h] = numbers as [number, number, number, number]
+    regions[role] = clampCropRegion({ source, x, y, w, h }, sourceSize(source))
+  }
+  return regions
+}
+
+/** The assets this avatar cut for itself: its crop tiles and its composed boards. */
+export function derivedAssetIds(data: Record<string, unknown>): string[] {
+  const ids = new Set<string>()
+  for (const crop of parseAvatarCrops(data.crops) ?? []) ids.add(crop.assetId)
+  for (const tile of parseRegionTiles(data.cropTiles) ?? []) ids.add(tile.assetId)
+  for (const board of parseAvatarBoards(data.boards) ?? []) ids.add(board.assetId)
+  return [...ids]
+}
+
+/**
+ * Deletes the crop and board files an avatar made for itself once nothing references them.
+ * Only source 'studio' derived assets are candidates: a user's uploaded original ('upload') is
+ * never touched. A tile other items or a generation still point at stays.
+ */
+export async function deleteDerivedAssets(
+  itemId: string,
+  oldData: Record<string, unknown>,
+): Promise<string[]> {
+  const candidates = derivedAssetIds(oldData)
+  if (candidates.length === 0) return []
+  const otherItems = listStudioItems().filter((item) => item.id !== itemId)
+  const generations = listGenerations()
+  const referenced = (id: string) => {
+    if (otherItems.some((item) => JSON.stringify(item.data).includes(id))) return true
+    return generations.some(
+      (generation) => generation.inputAssetIds.includes(id) || generation.outputAssetIds.includes(id),
+    )
+  }
+
+  const deleted: string[] = []
+  for (const id of candidates) {
+    const asset = getAsset(id)
+    if (!asset || asset.source !== 'studio') continue
+    if (referenced(id)) continue
+    await removeAssetFile(id)
+    if (deleteAsset(id)) deleted.push(id)
+  }
+  return deleted
 }

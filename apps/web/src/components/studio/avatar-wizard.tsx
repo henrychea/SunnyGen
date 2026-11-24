@@ -31,6 +31,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Check, ClipboardCopy, ClipboardPaste, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { withoutDerived } from '~/lib/avatar-derived'
 import { AvatarCropsPanel } from '~/components/studio/avatar-crops-panel'
 import {
   AvatarSheetUploads,
@@ -38,12 +39,7 @@ import {
   type SlotAsset,
 } from '~/components/studio/avatar-sheet-uploads'
 import { PromptExtract } from '~/components/studio/avatar-prompt-extract'
-import {
-  loadAvatarCropsFn,
-  loadAvatarRegionsFn,
-  saveStudioItemFn,
-  type StudioItemDto,
-} from '~/server/studio.functions'
+import { loadAvatarRegionsFn, saveStudioItemFn, type StudioItemDto } from '~/server/studio.functions'
 
 type WizardStep = 1 | 2 | 3 | 4 | 5 | 6
 
@@ -119,15 +115,17 @@ export function AvatarWizard({
   const [busy, setBusy] = useState<'save' | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [savedId, setSavedId] = useState<string | null>(null)
+  // A new image in any slot makes every crop and board cut from the old ones stale.
+  const [slotsChanged, setSlotsChanged] = useState(false)
+  const chooseSlot =
+    <T,>(setter: (next: T) => void) =>
+    (next: T) => {
+      setter(next)
+      setSlotsChanged(true)
+    }
   const queryClient = useQueryClient()
   const activeId = item?.id ?? savedId
 
-  const cropsQuery = useQuery({
-    queryKey: ['avatar-crops', activeId],
-    queryFn: () => loadAvatarCropsFn({ data: { avatarId: activeId as string } }),
-    enabled: Boolean(activeId),
-  })
-  const cropsDto = cropsQuery.data
   const regionsQuery = useQuery({
     queryKey: ['avatar-regions', activeId],
     queryFn: () => loadAvatarRegionsFn({ data: { avatarId: activeId as string } }),
@@ -145,13 +143,13 @@ export function AvatarWizard({
   const sheet =
     sheetChoice !== undefined
       ? sheetChoice
-      : (dtoSlot(cropsDto?.sheet) ??
+      : (dtoSlot(regionsDto?.sheet) ??
         initial?.sheet ??
         (baseSheet ? { id: baseSheet, name: null, width: null, height: null } : null))
   const panel =
     panelChoice !== undefined
       ? panelChoice
-      : (dtoSlot(cropsDto?.panel) ??
+      : (dtoSlot(regionsDto?.bodyPanel) ??
         initial?.panel ??
         (item?.assetId ? { id: item.assetId, name: null, width: null, height: null } : null))
 
@@ -189,7 +187,7 @@ export function AvatarWizard({
           assetId: profileOnly ? (item?.assetId ?? null) : (panel?.id ?? null),
           cleanAssetId: item?.cleanAssetId ?? null,
           data: {
-            ...item?.data,
+            ...(slotsChanged ? withoutDerived(item?.data) : item?.data),
             style: item?.data.style ?? 'photoreal',
             characterSheetAssetId: sheet?.id ?? null,
             facePanelAssetId: profileOnly ? (item?.data.facePanelAssetId ?? null) : (face?.id ?? null),
@@ -209,6 +207,7 @@ export function AvatarWizard({
         queryClient.invalidateQueries({ queryKey: ['avatar-crops', saved.id] }),
         queryClient.invalidateQueries({ queryKey: ['avatar-regions', saved.id] }),
       ])
+      setSlotsChanged(false)
       onSaved()
       if (panelsChanged) {
         setSavedId(saved.id)
@@ -790,14 +789,14 @@ export function AvatarWizard({
                         sheet={sheet}
                         panel={panel}
                         face={face}
-                        onSheet={setSheetChoice}
-                        onPanel={setPanelChoice}
-                        onFace={setFaceChoice}
+                        onSheet={chooseSlot(setSheetChoice)}
+                        onPanel={chooseSlot(setPanelChoice)}
+                        onFace={chooseSlot(setFaceChoice)}
                         picker={picker}
                         onPicker={setPicker}
                         onSwapPanels={() => {
-                          setPanelChoice(face)
-                          setFaceChoice(panel)
+                          chooseSlot(setPanelChoice)(face)
+                          chooseSlot(setFaceChoice)(panel)
                         }}
                         onCopy={(kind) =>
                           void copy(
@@ -812,20 +811,14 @@ export function AvatarWizard({
                       {activeId ? (
                         <AvatarCropsPanel
                           avatarId={activeId}
-                          crops={cropsDto?.crops ?? []}
-                          cropCells={cropsDto?.cropCells ?? null}
-                          panel={cropsDto?.panel ?? null}
-                          pending={cropsQuery.isPending}
+                          pending={regionsQuery.isPending}
                           regions={regionsDto ?? null}
-                          hasFacePanel={Boolean(face?.id)}
-                          onRegionsSaved={(dto) =>
+                          derivedCleared={slotsChanged}
+                          onRegionsSaved={(dto) => {
                             queryClient.setQueryData(['avatar-regions', activeId], dto)
-                          }
-                          onReplacePanel={() => setPicker('body-panel')}
-                          onSaved={(dto) => {
-                            queryClient.setQueryData(['avatar-crops', activeId], dto)
                             onSaved()
                           }}
+                          onReplacePanel={() => setPicker('body-panel')}
                         />
                       ) : null}
                     </div>

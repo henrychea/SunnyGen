@@ -8,7 +8,9 @@ import {
   BOARD_GRID,
   boardAssetIds,
   boardLayout,
+  clampCropRegion,
   defaultCropRegions,
+  isDefaultCropRegion,
   parseAvatarBoards,
   parseCropRegions,
   plannedBoardAssets,
@@ -230,4 +232,38 @@ test('an empty board has no tiles and nothing is ever enlarged', () => {
   })
   const small = boardLayout(['hands'], { hands: { width: 300, height: 200 } }, BOARD_GRID.face)
   assert.deepEqual([small.tiles[0]?.w, small.tiles[0]?.h], [300, 200])
+})
+
+test('a freeform box may leave its quadrant, clamped to the image and the 256 px minimum', () => {
+  const size = { width: 4096, height: 4096 }
+  const across = clampCropRegion({ source: 'face-panel', x: 1500, y: 60, w: 2200, h: 1900 }, size)
+  // Spans the quadrant line: this is allowed, only the edges clamp.
+  assert.deepEqual(across, { source: 'face-panel', x: 1500, y: 60, w: 2200, h: 1900 })
+
+  assert.deepEqual(clampCropRegion({ source: 'face-panel', x: -80, y: -80, w: 2048, h: 2048 }, size), {
+    source: 'face-panel',
+    x: 0,
+    y: 0,
+    w: 2048,
+    h: 2048,
+  })
+  assert.deepEqual(clampCropRegion({ source: 'face-panel', x: 4000, y: 4000, w: 2048, h: 2048 }, size), {
+    source: 'face-panel',
+    x: 2048,
+    y: 2048,
+    w: 2048,
+    h: 2048,
+  })
+  assert.deepEqual(clampCropRegion({ source: 'face-panel', x: 10, y: 10, w: 40, h: 40 }, size), {
+    source: 'face-panel',
+    x: 10,
+    y: 10,
+    w: 256,
+    h: 256,
+  })
+})
+
+test('a role knows when it is back on the default box', () => {
+  assert.equal(isDefaultCropRegion('body-side', CROP_REGION_DEFAULTS['body-side']), true)
+  assert.equal(isDefaultCropRegion('body-side', { ...CROP_REGION_DEFAULTS['body-side'], y: 64 }), false)
 })

@@ -6,11 +6,12 @@
 ## Summary
 
 An avatar now has three images instead of one 4x4 panel: a reference sheet, a body panel and a
-face panel. Each view gets a 2048 px cell instead of 1024, and the owner cuts the crop regions
-by hand on the images themselves. On Save regions the server cuts every box from the original
-file and composes three boards — face and body as 4096 x 4096 2x2 grids, details as a 4095 x 2738
-3x2 grid — which are what a model receives, in that order, with each board's tiles named by cell
-position in the prompt ("top-left front, top-right three-quarter, …").
+face panel. Each view gets a 2048 px cell instead of 1024. One button cuts every crop from the
+default boxes — 2x2 quadrants on both panels, the fixed region boxes on the sheet — and composes
+three boards: face and body as 4096 x 4096 2x2 grids, details as a 4095 x 2738 3x2 grid. Those
+boards are what a model receives, in that order, with each board's tiles named by cell position
+("top-left front, top-right three-quarter, …"). A tile that cuts something off is fixed by
+Adjust, which gives that one role a freeform box anywhere in the image.
 
 ## Why
 
@@ -46,10 +47,18 @@ that only name two or three avatar references from dropping the body.
   `import-avatar-dialog.tsx`: three upload slots — reference sheet, body panel, face panel — each
   with its own Copy prompt, and the Review step asks for all three. The Sheet step drops the
   view/expression/pose/detail counts; resolution stays.
-- `apps/web/src/components/studio/avatar-region-editor.tsx` (new): the three images with their
-  region boxes. Drag to move, drag the corner to resize, Save regions. Boxes live in source
-  pixels; the server rejects anything outside the image or under 256 px. The composed boards are
-  shown under the boxes with their size and tile order.
+- `apps/web/src/components/studio/avatar-crops-panel.tsx`: one line of copy, a Generate crops
+  button (Regenerate once tiles exist) that is disabled with the reason until the sheet and both
+  panels are 4K, the tile grid with role and pixel size, and the three boards underneath. Each
+  tile has Adjust, and Reset once its box has moved off the default.
+- `apps/web/src/components/studio/avatar-crop-adjuster.tsx` (new): one freeform box for one role
+  on the image it came from. It moves and resizes anywhere inside the image, across cell lines,
+  clamped to the edges and 256 px, and saving re-cuts that tile and rebuilds the boards.
+- Any new image in a slot (including Swap panels) clears the derived data: `cropTiles`,
+  `cropRegions`, `boards` and the legacy cells leave the form through
+  `withoutDerived`/`dataForPanelChange`, and the server then deletes the tile and board files
+  that avatar cut (`deleteDerivedAssets`) once no generation or other item references them.
+  Uploaded originals (`source: 'upload'`) are never deleted.
 - `apps/web/src/lib/avatar-references.ts`: references prefer boards — face, then body, then
   details, each slot naming its tiles ("face board: front, three-quarter, side profile,
   expressions"). A family that names fewer references takes the earlier boards, so qwen gets the
@@ -78,9 +87,9 @@ SUNNYGEN_DATA_DIR=<copy-of-demo-db-dir> PORT=8979 NITRO_PORT=8979 \
 ```
 
 Import an avatar with the sheet, the body panel and the face panel: the picker rejects a panel
-under 4096 and a sheet under 4096 on its long side. Open Crops: three images, each with its
-boxes. Drag the body-side box up so the feet are inside it, Save regions, and the body board
-rebuilds with the corrected tile. Submit an edit with nano-banana and read the prompt: the face,
+under 4096 and a sheet under 4096 on its long side. Open Crops and press Generate crops: 13 tiles
+appear with their sizes and the three boards below. Press Adjust on Side body, move the box up so
+the feet are inside it, save, and the body board rebuilds with the corrected tile. Submit an edit with nano-banana and read the prompt: the face,
 body and details boards are named in that order with their tiles, and the body sentence asks for
 the curves from the side profile tile.
 
