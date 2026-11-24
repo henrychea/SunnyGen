@@ -28,17 +28,46 @@ export function errorMessage(value: unknown, fallback = 'Generation failed'): st
 }
 
 export async function responseError(response: Response, fallback: string): Promise<string> {
+  return (await responseFailure(response, fallback)).message
+}
+
+export interface ResponseFailure {
+  message: string
+  declined: boolean
+}
+
+/** fal and Sunra answer a refusal with the model's own words, not a machine fault. */
+const DECLINE = /^Could not generate images with the given prompts and images\b/i
+
+function declines(value: unknown): boolean {
+  if (typeof value === 'string') return DECLINE.test(value)
+  if (!value || typeof value !== 'object') return false
+  const record = value as Record<string, unknown>
+  if (typeof record.type === 'string' && record.type !== 'invalid_request') return false
+  const text = typeof record.msg === 'string' ? record.msg : record.message
+  return typeof text === 'string' && DECLINE.test(text)
+}
+
+function declinedBody(body: Record<string, unknown>): boolean {
+  return ['error', 'message', 'detail'].some((field) => {
+    const value = body[field]
+    return Array.isArray(value) ? value.some(declines) : declines(value)
+  })
+}
+
+export async function responseFailure(response: Response, fallback: string): Promise<ResponseFailure> {
   const text = await response.text().catch(() => '')
-  if (!text) return fallback
+  if (!text) return { message: fallback, declined: false }
+  let parsed: unknown = null
   try {
-    const parsed = JSON.parse(text) as Record<string, unknown>
-    if (parsed.error) return errorMessage(parsed.error, fallback)
-    if (parsed.message) return errorMessage(parsed.message, fallback)
-    if (parsed.detail) return errorMessage(parsed.detail, fallback)
+    parsed = JSON.parse(text)
   } catch {
     // Use the raw body.
   }
-  return text.slice(0, 500)
+  if (!parsed || typeof parsed !== 'object') return { message: text.slice(0, 500), declined: false }
+  const body = parsed as Record<string, unknown>
+  const detail = body.error ?? body.message ?? body.detail
+  return { message: errorMessage(detail, fallback), declined: declinedBody(body) }
 }
 
 export async function downloadOutput(url: string): Promise<ProviderOutput> {

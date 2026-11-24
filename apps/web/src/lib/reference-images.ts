@@ -6,6 +6,7 @@ export interface ReferenceItem {
   url: string
   kind?: 'image' | 'video'
   assetIds?: string[]
+  sheetAssetId?: string | null
   avatar?: boolean
   avatarId?: string
   lora?: AvatarLora | null

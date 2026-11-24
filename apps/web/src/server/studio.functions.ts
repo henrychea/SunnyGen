@@ -42,6 +42,7 @@ import { assetUrl, readAssetBuffer, storeBuffer } from './media.server'
 import {
   avatarCropsDto,
   ensureAvatarCrops,
+  dataForPanelChange,
   regenerateAvatarCrops,
   type AvatarCropsDto,
 } from './avatar-crops.server'
@@ -132,11 +133,13 @@ export const saveStudioItemFn = createServerFn({ method: 'POST', strict: false }
       }
       if (!data.assetId) throw new Error('Upload the 4x4 panel sheet first.')
       const previous = data.id ? getStudioItem(data.id) : null
-      if (!previous || previous.assetId !== data.assetId) {
+      const panelChanged = !previous || previous.assetId !== data.assetId
+      if (panelChanged) {
         const panel = getAsset(data.assetId)
         const panelError = panelSizeError(panel?.width ?? null, panel?.height ?? null)
         if (panelError) throw new Error(panelError)
       }
+      data.data = dataForPanelChange(data.data, panelChanged)
       if (data.data.avatarProfile !== undefined) {
         const profile = parseAvatarProfile(data.data.avatarProfile)
         if (!profile) throw new Error('Avatar profiles must describe an adult aged 18 or older.')

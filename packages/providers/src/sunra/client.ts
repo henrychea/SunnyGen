@@ -1,7 +1,9 @@
 import type { GenerationKind } from '@sunnygen/core'
-import { downloadOutput, errorMessage, responseError } from '../http'
+import { downloadOutput, errorMessage, responseError, responseFailure } from '../http'
 import { normalizeAsset } from '../normalize'
 import {
+  DECLINED_ERROR,
+  DECLINED_FAILURE,
   ProviderError,
   type AdapterContext,
   type ProviderAsset,
@@ -116,9 +118,15 @@ export async function submitSunraQueue(
   })
 
   if (!response.ok) {
-    const detail = await responseError(response, `Sunra error ${response.status}`)
-    const message = response.status === 401 ? `Sunra rejected the request (401): ${detail}` : detail
-    const error = new ProviderError('sunra', message, response.status)
+    const failure = await responseFailure(response, `Sunra error ${response.status}`)
+    const rejected =
+      response.status === 401 ? `Sunra rejected the request (401): ${failure.message}` : failure.message
+    const error = new ProviderError(
+      'sunra',
+      failure.declined ? DECLINED_ERROR : rejected,
+      response.status,
+      failure.declined ? DECLINED_FAILURE : null,
+    )
     if (isUrlRejection(error)) await forgetUploads(context, 'sunra', assets)
     throw error
   }

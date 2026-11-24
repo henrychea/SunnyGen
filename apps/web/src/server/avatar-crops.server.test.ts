@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import type { StudioItemRecord } from '@sunnygen/db'
-import { assertCropPanelSize, existingCrops } from './avatar-crops.server'
+import { assertCropPanelSize, dataForPanelChange, existingCrops } from './avatar-crops.server'
 
 function item(data: Record<string, unknown>): StudioItemRecord {
   return {
@@ -32,5 +32,14 @@ test('stored crops are kept unless the rebuild is forced', () => {
   assert.deepEqual(existingCrops(item({ crops: CROPS }), false), CROPS)
   assert.equal(existingCrops(item({ crops: CROPS }), true), undefined)
   assert.equal(existingCrops(item({}), false), undefined)
-  assert.equal(existingCrops(item({ crops: [] }), false)?.length, 0)
+})
+
+test('an empty crop list counts as uncropped, so the panel is cropped again', () => {
+  assert.equal(existingCrops(item({ crops: [] }), false), undefined)
+})
+
+test('a save onto a different panel drops the crops cut from the old one', () => {
+  assert.deepEqual(dataForPanelChange({ crops: CROPS, style: 'photoreal' }, true), { style: 'photoreal' })
+  assert.deepEqual(dataForPanelChange({ crops: CROPS }, true).crops, undefined)
+  assert.deepEqual(dataForPanelChange({ crops: CROPS }, false), { crops: CROPS })
 })

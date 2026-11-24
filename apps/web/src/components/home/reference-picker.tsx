@@ -192,6 +192,7 @@ export function ReferencePicker({
               name: avatar.name,
               url: avatar.url,
               assetIds: avatar.assetIds,
+              sheetAssetId: avatar.sheetAssetId,
               avatar: true,
               avatarId: avatar.avatarId,
               lora: avatar.lora,

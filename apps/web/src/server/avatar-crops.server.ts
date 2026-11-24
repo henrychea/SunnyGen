@@ -48,10 +48,24 @@ export function avatarCropsDto(item: StudioItemRecord): AvatarCropsDto {
   }
 }
 
-// A forced rebuild ignores the stored crops; otherwise an avatar that already has them keeps
-// them.
+// A forced rebuild ignores the stored crops. An empty list means the panel was never cropped,
+// so it has to be rebuilt too rather than treated as done.
 export function existingCrops(item: StudioItemRecord, force: boolean): AvatarCrop[] | undefined {
-  return force ? undefined : parseAvatarCrops(item.data.crops)
+  if (force) return undefined
+  const crops = parseAvatarCrops(item.data.crops)
+  return crops && crops.length > 0 ? crops : undefined
+}
+
+// Crops are cut from the panel, so a save that seals a different panel must not inherit the
+// crops taken from the old one.
+export function dataForPanelChange(
+  data: Record<string, unknown>,
+  panelChanged: boolean,
+): Record<string, unknown> {
+  if (!panelChanged) return data
+  const next = { ...data }
+  delete next.crops
+  return next
 }
 
 export function assertCropPanelSize(width: number | null, height: number | null): void {

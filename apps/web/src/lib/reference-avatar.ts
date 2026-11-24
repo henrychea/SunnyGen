@@ -12,6 +12,7 @@ export interface AvatarReference {
   avatarId: string
   name: string
   assetIds: string[]
+  sheetAssetId: string | null
   lora: AvatarLora | null
   profile: AvatarProfile | null
   crops: AvatarCrop[] | undefined
@@ -47,6 +48,7 @@ export function referenceAvatar(source: AvatarSource): AvatarReference | null {
     avatarId: source.id,
     name: source.name,
     assetIds,
+    sheetAssetId: cleanSheet,
     lora: parseAvatarLora(source.data.lora),
     profile: parseAvatarProfile(source.data.avatarProfile),
     crops: parseAvatarCrops(source.data.crops),
