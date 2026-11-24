@@ -38,7 +38,12 @@ import {
   type SlotAsset,
 } from '~/components/studio/avatar-sheet-uploads'
 import { PromptExtract } from '~/components/studio/avatar-prompt-extract'
-import { loadAvatarCropsFn, saveStudioItemFn, type StudioItemDto } from '~/server/studio.functions'
+import {
+  loadAvatarCropsFn,
+  loadAvatarRegionsFn,
+  saveStudioItemFn,
+  type StudioItemDto,
+} from '~/server/studio.functions'
 
 type WizardStep = 1 | 2 | 3 | 4 | 5 | 6
 
@@ -123,6 +128,12 @@ export function AvatarWizard({
     enabled: Boolean(activeId),
   })
   const cropsDto = cropsQuery.data
+  const regionsQuery = useQuery({
+    queryKey: ['avatar-regions', activeId],
+    queryFn: () => loadAvatarRegionsFn({ data: { avatarId: activeId as string } }),
+    enabled: Boolean(activeId),
+  })
+  const regionsDto = regionsQuery.data
 
   const baseFace = stringData(item, 'facePanelAssetId')
   const face =
@@ -791,6 +802,10 @@ export function AvatarWizard({
                           cropCells={cropsDto?.cropCells ?? null}
                           panel={cropsDto?.panel ?? null}
                           pending={cropsQuery.isPending}
+                          regions={regionsDto ?? null}
+                          onRegionsSaved={(dto) =>
+                            queryClient.setQueryData(['avatar-regions', activeId], dto)
+                          }
                           onReplacePanel={() => setPicker('body-panel')}
                           onSaved={(dto) => {
                             queryClient.setQueryData(['avatar-crops', activeId], dto)

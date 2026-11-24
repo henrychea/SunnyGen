@@ -9,8 +9,9 @@ import {
 } from '@sunnygen/core'
 import { Button, FadeImage, Label } from '@sunnygen/ui'
 import { CROP_ROLE_LABELS } from '~/lib/avatar-references'
-import type { AvatarCropsDto } from '~/server/studio.functions'
+import type { AvatarCropsDto, AvatarRegionsDto } from '~/server/studio.functions'
 import { AvatarCropSelector } from './avatar-crop-selector'
+import { AvatarRegionEditor } from './avatar-region-editor'
 
 export interface CropsPanelInfo {
   assetId: string | null
@@ -26,16 +27,20 @@ export function AvatarCropsPanel({
   cropCells,
   panel,
   pending,
+  regions,
   onReplacePanel,
   onSaved,
+  onRegionsSaved,
 }: {
   avatarId: string
   crops: AvatarCrop[]
   cropCells: Record<AvatarCropRole, AvatarCropCell> | null
   panel: CropsPanelInfo | null
   pending: boolean
+  regions?: AvatarRegionsDto | null
   onReplacePanel?: () => void
   onSaved: (dto: AvatarCropsDto) => void
+  onRegionsSaved?: (dto: AvatarRegionsDto) => void
 }) {
   const sizeError = panel ? panelSizeError(panel.width, panel.height) : null
   const chosen = cropCells ?? defaultAvatarCropCells()
@@ -84,8 +89,40 @@ export function AvatarCropsPanel({
             </Button>
           ) : null}
         </div>
+      ) : regions && !regions.legacy ? (
+        <div className="mt-3 flex flex-col gap-4">
+          <AvatarRegionEditor
+            avatarId={avatarId}
+            regions={regions.regions}
+            boards={regions.boards}
+            sources={{
+              sheet: regions.sheet.url ? { url: regions.sheet.url, width: 4096, height: 3072 } : undefined,
+              'body-panel': regions.bodyPanel.url
+                ? { url: regions.bodyPanel.url, width: 4096, height: 4096 }
+                : undefined,
+              'face-panel': regions.facePanel.url
+                ? { url: regions.facePanel.url, width: 4096, height: 4096 }
+                : undefined,
+            }}
+            onSaved={(dto) => {
+              onRegionsSaved?.(dto)
+              onSaved({
+                crops: dto.crops,
+                cropCells: null,
+                panel: dto.bodyPanel,
+                sheet: dto.sheet,
+              })
+            }}
+          />
+        </div>
       ) : (
         <div className="mt-3 flex flex-col gap-4">
+          {regions?.legacy ? (
+            <p className="text-ink/55 text-[10.5px]">
+              This avatar uses the old single 4x4 panel. Upload a face panel to switch it to the two-panel
+              layout; until then the cell crops below still work.
+            </p>
+          ) : null}
           <AvatarCropSelector
             avatarId={avatarId}
             panelUrl={panel.url ?? `/api/media/${panel.assetId}`}
