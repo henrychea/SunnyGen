@@ -15,6 +15,7 @@ import {
   identityKeywords,
   loraTrainingCost,
   panelSizeError,
+  parseAvatarCropCells,
   parseAvatarLora,
   parseAvatarProfile,
   parseGarmentViews,
@@ -41,12 +42,13 @@ import { getGenerationView, submitGeneration } from './generation.functions'
 import { assetUrl, readAssetBuffer, storeBuffer } from './media.server'
 import {
   avatarCropsDto,
-  ensureAvatarCrops,
   dataForPanelChange,
-  regenerateAvatarCrops,
+  saveAvatarCrops,
   type AvatarCropsDto,
 } from './avatar-crops.server'
 import { extractAvatarFromPrompt } from './avatar-profile.server'
+
+export type { AvatarCropsDto } from './avatar-crops.server'
 
 export interface StudioItemDto {
   id: string
@@ -174,10 +176,7 @@ export const saveStudioItemFn = createServerFn({ method: 'POST', strict: false }
       cleanAssetId: data.cleanAssetId ?? null,
       data: data.data,
     })
-    if (saved.kind === 'avatar') {
-      await ensureAvatarCrops(saved)
-      return toDto(getStudioItem(saved.id) ?? saved)
-    }
+    if (saved.kind === 'avatar') return toDto(getStudioItem(saved.id) ?? saved)
     return toDto(saved)
   })
 
@@ -189,12 +188,14 @@ export const loadAvatarCropsFn = createServerFn({ method: 'GET' })
     return avatarCropsDto(item)
   })
 
-export const regenerateAvatarCropsFn = createServerFn({ method: 'POST', strict: false })
-  .validator(z.object({ avatarId: z.string().min(1) }))
+export const saveAvatarCropsFn = createServerFn({ method: 'POST', strict: false })
+  .validator(z.object({ avatarId: z.string().min(1), cells: z.unknown() }))
   .handler(async ({ data }): Promise<AvatarCropsDto> => {
     const item = getStudioItem(data.avatarId)
     if (!item || item.kind !== 'avatar') throw new Error('Avatar not found')
-    return regenerateAvatarCrops(item)
+    const cells = parseAvatarCropCells(data.cells)
+    if (!cells) throw new Error('Pick one cell for every crop role inside the 4x4 grid.')
+    return saveAvatarCrops(item, cells)
   })
 
 const OPENROUTER_KEY_SETTING = 'assistant.openrouter.key'

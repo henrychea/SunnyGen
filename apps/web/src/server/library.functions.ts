@@ -8,7 +8,6 @@ import {
   deleteFailedGenerations,
   deleteGeneration,
   getAssetsByIds,
-  getStudioItem,
   listAssets,
   listFolders,
   listGenerations,
@@ -27,7 +26,6 @@ import {
 } from './media.server'
 import { assetMediaKind, generationMediaKind } from '~/lib/media-kind'
 import { referenceAvatar, type ReferenceAvatar } from '~/lib/reference-avatar'
-import { ensureAvatarCrops } from './avatar-crops.server'
 
 export interface GalleryItem {
   id: string
@@ -284,23 +282,18 @@ export const loadReferenceLibrary = createServerFn({ method: 'GET', strict: fals
     const avatars =
       kind === 'video'
         ? []
-        : (
-            await Promise.all(
-              listStudioItems('avatar').map(async (item) => {
-                await ensureAvatarCrops(item)
-                return referenceAvatar(getStudioItem(item.id) ?? item)
-              }),
-            )
-          ).flatMap((reference) => {
-            if (!reference) return []
-            return [
-              {
-                ...reference,
-                url: assetUrl(reference.id),
-                ...largestImage(getAssetsByIds(reference.assetIds)),
-              },
-            ]
-          })
+        : listStudioItems('avatar')
+            .map((item) => referenceAvatar(item))
+            .flatMap((reference) => {
+              if (!reference) return []
+              return [
+                {
+                  ...reference,
+                  url: assetUrl(reference.id),
+                  ...largestImage(getAssetsByIds(reference.assetIds)),
+                },
+              ]
+            })
     return {
       avatars,
       assets: listAssets({

@@ -1,23 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import type { StudioItemRecord } from '@sunnygen/db'
-import { assertCropPanelSize, dataForPanelChange, existingCrops } from './avatar-crops.server'
-
-function item(data: Record<string, unknown>): StudioItemRecord {
-  return {
-    id: 'avatar-1',
-    kind: 'avatar',
-    name: 'Ava',
-    assetId: 'panel',
-    cleanAssetId: null,
-    data,
-    builtin: false,
-    createdAt: 0,
-    updatedAt: 0,
-  }
-}
-
-const CROPS = [{ role: 'face-front' as const, assetId: 'crop', width: 1024, height: 1024 }]
+import { assertCropPanelSize, dataForPanelChange } from './avatar-crops.server'
 
 test('a panel under 4096 px is refused with the exact message', () => {
   assert.throws(() => assertCropPanelSize(1254, 1254), {
@@ -28,18 +11,21 @@ test('a panel under 4096 px is refused with the exact message', () => {
   assert.doesNotThrow(() => assertCropPanelSize(4096, 4096))
 })
 
-test('stored crops are kept unless the rebuild is forced', () => {
-  assert.deepEqual(existingCrops(item({ crops: CROPS }), false), CROPS)
-  assert.equal(existingCrops(item({ crops: CROPS }), true), undefined)
-  assert.equal(existingCrops(item({}), false), undefined)
-})
+const CROPS = [{ role: 'face-front' as const, assetId: 'crop', width: 1024, height: 1024 }]
+const CELLS = {
+  'face-front': { row: 1, column: 0 },
+  'face-three-quarter': { row: 1, column: 1 },
+  'body-front': { row: 0, column: 0 },
+  'body-side': { row: 0, column: 1 },
+}
 
-test('an empty crop list counts as uncropped, so the panel is cropped again', () => {
-  assert.equal(existingCrops(item({ crops: [] }), false), undefined)
-})
-
-test('a save onto a different panel drops the crops cut from the old one', () => {
-  assert.deepEqual(dataForPanelChange({ crops: CROPS, style: 'photoreal' }, true), { style: 'photoreal' })
-  assert.deepEqual(dataForPanelChange({ crops: CROPS }, true).crops, undefined)
-  assert.deepEqual(dataForPanelChange({ crops: CROPS }, false), { crops: CROPS })
+test('a save onto a different panel drops the crops and the cells chosen on the old one', () => {
+  const data = { crops: CROPS, cropCells: CELLS, style: 'photoreal' }
+  const next = dataForPanelChange(data, true)
+  assert.equal(next.crops, undefined)
+  assert.equal(next.cropCells, undefined)
+  assert.equal(next.style, 'photoreal')
+  // Same panel keeps the selection, so saving a profile does not lose the crops.
+  assert.deepEqual(dataForPanelChange(data, false), data)
+  assert.deepEqual(dataForPanelChange({ ...data, crops: [] }, false), { ...data, crops: [] })
 })

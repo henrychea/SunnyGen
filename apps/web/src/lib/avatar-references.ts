@@ -12,6 +12,7 @@ export const CROP_ROLE_LABELS: Record<AvatarCropRole, string> = {
   'face-front': 'front face',
   'face-three-quarter': 'three-quarter face',
   'body-front': 'full body',
+  'body-side': 'side profile',
 }
 
 export interface AvatarReferenceInfo {
