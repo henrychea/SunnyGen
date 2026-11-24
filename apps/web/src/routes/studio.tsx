@@ -22,12 +22,16 @@ import { StudioItemDialog } from '~/components/studio/item-dialog'
 import { StudioLibraryGrid } from '~/components/studio/library-grid'
 import { StudioLookBuilder } from '~/components/studio/look-builder'
 import { StudioModelsTab } from '~/components/studio/models-tab'
+import { StudioPreviewDialog } from '~/components/studio/preview-dialog'
 import { StudioTrainDialog } from '~/components/studio/train-dialog'
+import { StudioWall } from '~/components/studio/wall'
+import { loadFolders, loadGenerationWall } from '~/server/library.functions'
 import {
   deleteStudioItemFn,
   loadLoraRuns,
   loadStudioLibrary,
   prepareGarmentFn,
+  prepareSceneFn,
   trainAvatarLora,
   type LoraRunDto,
   type StudioItemDto,
@@ -53,7 +57,14 @@ const TAB_KIND: Record<Exclude<Tab, 'look' | 'models'>, StudioKind> = {
 }
 
 export const Route = createFileRoute('/studio')({
-  loader: () => loadStudioLibrary(),
+  loader: async () => {
+    const [library, wall, folders] = await Promise.all([
+      loadStudioLibrary(),
+      loadGenerationWall({ data: { origin: 'studio' } }),
+      loadFolders(),
+    ])
+    return { library, wall, folders }
+  },
   component: StudioPage,
 })
 
@@ -96,7 +107,8 @@ function StudioSkeleton({ look }: { look: boolean }) {
 }
 
 function StudioPage() {
-  const initial = Route.useLoaderData()
+  const loaderData = Route.useLoaderData()
+  const initial = loaderData.library
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [tab, setTab] = useState<Tab>('look')
@@ -105,10 +117,27 @@ function StudioPage() {
   const [importOpen, setImportOpen] = useState(false)
   const [packOpen, setPackOpen] = useState(false)
   const [preparingId, setPreparingId] = useState<string | null>(null)
+  const [previewId, setPreviewId] = useState<string | null>(null)
   const [trainAvatar, setTrainAvatar] = useState<StudioItemDto | null>(null)
   const [retryingId, setRetryingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [dir, setDir] = useState(0)
+
+  const wall = useQuery({
+    queryKey: ['studio-wall'],
+    queryFn: () => loadGenerationWall({ data: { origin: 'studio' } }),
+    initialData: loaderData.wall,
+    refetchInterval: (query) =>
+      (query.state.data ?? []).some((item) => item.status === 'queued' || item.status === 'running')
+        ? 3_000
+        : false,
+  })
+
+  const folders = useQuery({
+    queryKey: ['folders'],
+    queryFn: () => loadFolders(),
+    initialData: loaderData.folders,
+  })
 
   const runs = useQuery({
     queryKey: ['lora-runs'],
@@ -138,14 +167,15 @@ function StudioPage() {
   })
 
   const prepare = useMutation({
-    mutationFn: (item: StudioItemDto) => prepareGarmentFn({ data: { id: item.id } }),
-    onMutate: (item) => {
-      setPreparingId(item.id)
-      setError(null)
-    },
-    onSuccess: async () => {
-      toast('Views prepared', { tone: 'info' })
-      await queryClient.invalidateQueries({ queryKey: ['studio'] })
+    mutationFn: (item: StudioItemDto) =>
+      item.kind === 'scene'
+        ? prepareSceneFn({ data: { id: item.id } })
+        : prepareGarmentFn({ data: { id: item.id } }),
+    onMutate: (item) => setPreparingId(item.id),
+    onSuccess: (saved) => {
+      toast(saved.kind === 'scene' ? 'Scene prepared.' : 'Garment prepared.')
+      void queryClient.invalidateQueries({ queryKey: ['studio'] })
+      void queryClient.invalidateQueries({ queryKey: ['studio-wall'] })
     },
     onError: (prepareError) => {
       const message = prepareError instanceof Error ? prepareError.message : 'Prep failed'
@@ -189,6 +219,9 @@ function StudioPage() {
   })
 
   const data = library.data ?? initial
+  const previewItem = previewId
+    ? ([...data.garments, ...data.scenes].find((item) => item.id === previewId) ?? null)
+    : null
   const runList = runs.data ?? []
   const counts: Record<Tab, number> = {
     look: 0,
@@ -323,6 +356,8 @@ function StudioPage() {
           ) : null}
         </AnimatePresence>
 
+        <StudioWall generations={wall.data ?? []} folders={folders.data ?? []} />
+
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={`${tab}:${loading ? 'loading' : 'ready'}`}
@@ -374,7 +409,10 @@ function StudioPage() {
                     tab === 'avatars' ? setWizard({ item }) : setDialog({ kind: TAB_KIND[tab], item })
                   }
                   onDelete={(item) => remove.mutate(item.id)}
-                  onPrepare={tab === 'wardrobe' ? (item) => prepare.mutate(item) : undefined}
+                  onPrepare={
+                    tab === 'wardrobe' || tab === 'scenes' ? (item) => prepare.mutate(item) : undefined
+                  }
+                  onPreview={(item) => setPreviewId(item.id)}
                   preparingId={preparingId}
                 />
               )}
@@ -448,6 +486,19 @@ function StudioPage() {
             void queryClient.invalidateQueries({ queryKey: ['lora-runs'] })
             void queryClient.invalidateQueries({ queryKey: ['studio'] })
           }}
+        />
+      ) : null}
+
+      {previewItem ? (
+        <StudioPreviewDialog
+          key={previewItem.id}
+          open
+          onOpenChange={(open) => {
+            if (!open) setPreviewId(null)
+          }}
+          item={previewItem}
+          preparing={preparingId === previewItem.id}
+          onPrepare={() => prepare.mutate(previewItem)}
         />
       ) : null}
 

@@ -270,3 +270,15 @@ export function garmentPrepPrompt(
     `Garment: ${name}. Slot: ${slot}.${details}`,
   ].join(' ')
 }
+
+export function scenePrepPrompt(name: string, notes?: string): string {
+  const details = notes?.trim() ? ` Details to keep: ${notes.trim()}` : ''
+  return [
+    'Clean background plate of the location in image 1.',
+    'Remove every person, mannequin, and temporary clutter such as props, boxes, cables, and loose signage.',
+    'Keep the location, architecture, surfaces, lighting, shadows, perspective, and camera angle exactly unchanged.',
+    'Do not add, move, restyle, or remove any fixed object. No text, borders, or watermarks.',
+    'Photoreal, sharp focus, even exposure, as if the empty room was photographed from the same spot.',
+    `Scene: ${name}.${details}`,
+  ].join(' ')
+}

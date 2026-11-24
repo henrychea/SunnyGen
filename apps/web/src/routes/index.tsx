@@ -25,10 +25,10 @@ import {
   WALL_CARD_HEIGHT,
   WALL_FIXED_WIDTH,
   type WallCard,
-  type WallOutput,
 } from '~/components/home/wall-cards'
 import { PageScroll } from '~/components/app-shell'
 import { thumbSrcSet, thumbUrl } from '~/lib/media-thumbs'
+import { buildWallEntries } from '~/lib/wall-groups'
 import { formatBytes } from '~/lib/format'
 import { loadDashboard } from '~/server/dashboard.functions'
 import {
@@ -37,7 +37,6 @@ import {
   loadGenerationWall,
   loadReferenceLibrary,
   type FolderNode,
-  type GenerationWallItem,
 } from '~/server/library.functions'
 import type { PublicAsset } from '~/server/media.server'
 
@@ -46,43 +45,9 @@ type Preview =
   | { type: 'asset'; item: PublicAsset }
   | { type: 'folder'; folder: FolderNode; assets: PublicAsset[] }
 
-type WallEntry =
-  | {
-      type: 'output'
-      generation: GenerationWallItem
-      output: WallOutput
-      sortRank: number
-      createdAt: number
-    }
-  | { type: 'job'; generation: GenerationWallItem; sortRank: number; createdAt: number }
-  | {
-      type: 'group'
-      id: string
-      title: string
-      cards: WallCard[]
-      outputs: WallOutput[]
-      folderId?: string
-      sortRank: number
-      createdAt: number
-    }
-
 type UploadEntry =
   | { type: 'asset'; asset: PublicAsset; createdAt: number }
   | { type: 'folder'; folder: FolderNode; assets: PublicAsset[]; createdAt: number }
-
-function statusRank(item: GenerationWallItem): number {
-  if (item.status === 'running') return 0
-  if (item.status === 'queued') return 1
-  if (item.status === 'failed') return 2
-  return 3
-}
-
-function generationCards(items: GenerationWallItem[]): WallCard[] {
-  return items.flatMap((generation): WallCard[] => {
-    if (generation.status !== 'succeeded') return [{ type: 'job', generation }]
-    return generation.outputs.map((output) => ({ type: 'output', generation, output }))
-  })
-}
 
 export const Route = createFileRoute('/')({
   validateSearch: (search: Record<string, unknown>): { avatar?: string } => ({
@@ -150,69 +115,9 @@ function HomePage() {
       : `${item.prompt} ${item.model} ${item.provider}`.toLowerCase().includes(needle),
   )
   const files = uploads.data ?? []
-  const folderById = new Map((folders.data ?? []).map((folder) => [folder.id, folder]))
-  const entries: WallEntry[] = []
-  const generationFolders = new Map<string, GenerationWallItem[]>()
-  const individual: GenerationWallItem[] = []
-
-  for (const generation of generations) {
-    if (generation.folderId && folderById.has(generation.folderId)) {
-      const current = generationFolders.get(generation.folderId) ?? []
-      current.push(generation)
-      generationFolders.set(generation.folderId, current)
-    } else {
-      individual.push(generation)
-    }
-  }
-
-  const addGroup = (items: GenerationWallItem[], title: string, id: string, folderId?: string) => {
-    const cards = generationCards(items)
-    if (cards.length === 0) return
-    const outputs = items.flatMap((generation) => generation.outputs)
-    entries.push({
-      type: 'group',
-      id,
-      title,
-      cards,
-      outputs,
-      folderId,
-      sortRank: Math.min(...items.map(statusRank)),
-      createdAt: Math.max(...items.map((generation) => generation.createdAt)),
-    })
-  }
-
-  for (const [folderId, items] of generationFolders) {
-    const folder = folderById.get(folderId)
-    if (!folder) continue
-    if (items.length === 1) individual.push(items[0] as GenerationWallItem)
-    else addGroup(items, folder.name, `folder:${folderId}`, folderId)
-  }
-
-  for (const generation of individual) {
-    if (generation.status !== 'succeeded') {
-      entries.push({
-        type: 'job',
-        generation,
-        sortRank: statusRank(generation),
-        createdAt: generation.createdAt,
-      })
-      continue
-    }
-    if (generation.outputs.length === 0) continue
-    if (generation.outputs.length === 1) {
-      entries.push({
-        type: 'output',
-        generation,
-        output: generation.outputs[0] as WallOutput,
-        sortRank: statusRank(generation),
-        createdAt: generation.createdAt,
-      })
-    } else {
-      addGroup([generation], generation.prompt || generation.model, `generation:${generation.id}`)
-    }
-  }
-
-  entries.sort((left, right) => left.sortRank - right.sortRank || right.createdAt - left.createdAt)
+  const foldersById = folders.data ?? []
+  const folderById = new Map(foldersById.map((folder) => [folder.id, folder]))
+  const entries = buildWallEntries(generations, foldersById)
 
   const uploadEntries: UploadEntry[] = []
   const uploadFolders = new Map<string, PublicAsset[]>()
