@@ -139,9 +139,8 @@ export function AvatarWizard({
   const face =
     faceChoice !== undefined
       ? faceChoice
-      : baseFace
-        ? { id: baseFace, name: null, width: null, height: null }
-        : null
+      : (dtoSlot(regionsDto?.facePanel) ??
+        (baseFace ? { id: baseFace, name: null, width: null, height: null } : null))
   const baseSheet = stringData(item, 'characterSheetAssetId')
   const sheet =
     sheetChoice !== undefined
@@ -244,8 +243,8 @@ export function AvatarWizard({
                   {item ? `Edit profile · ${item.name}` : 'New avatar'}
                 </Dialog.Title>
                 <p className="text-ink/65 mt-0.5 text-[11px]">
-                  Fill in the profile, run the two prompts in your image AI, then upload the sheet and the 4×4
-                  panel.
+                  Fill in the profile, run the three prompts in your image AI, then upload the sheet, the body
+                  panel and the face panel.
                 </p>
               </div>
               <button
