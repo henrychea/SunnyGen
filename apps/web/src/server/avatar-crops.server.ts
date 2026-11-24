@@ -1,6 +1,7 @@
 import sharp from 'sharp'
 import {
   AVATAR_CROP_ROLES,
+  BOARD_GRID,
   BOARD_ROLES,
   BOARD_TILES,
   CROP_REGION_ROLES,
@@ -199,7 +200,7 @@ async function composeBoard(
 ): Promise<AvatarBoard> {
   const sized: Partial<Record<CropRegionRole, { width: number; height: number }>> = {}
   for (const tile of tiles) sized[tile.role] = { width: tile.width, height: tile.height }
-  const layout = boardLayout(BOARD_TILES[role], sized)
+  const layout = boardLayout(BOARD_TILES[role], sized, BOARD_GRID[role])
   if (layout.tiles.length === 0) throw new Error(`The ${role} board has no tiles to compose.`)
   const composites = await Promise.all(
     layout.tiles.map(async (slot) => {

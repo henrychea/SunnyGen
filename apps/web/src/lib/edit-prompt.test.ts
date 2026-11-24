@@ -354,9 +354,18 @@ test('board references name their tiles and the body board supplies the curves s
     { modelId: 'fal:fal-ai/nano-banana-pro' },
   )
 
-  assert.match(prompt, /\(face board: front, three-quarter, side profile, expressions\)/)
-  assert.match(prompt, /\(body board: front, side profile, back, three-quarter\)/)
-  assert.match(prompt, /\(details board: hands, skin, hair, facial features, body details\)/)
+  assert.match(
+    prompt,
+    /\(face board: top-left front, top-right three-quarter, bottom-left side profile, bottom-right expressions\)/,
+  )
+  assert.match(
+    prompt,
+    /\(body board: top-left front, top-right side profile, bottom-left back, bottom-right three-quarter\)/,
+  )
+  assert.match(
+    prompt,
+    /\(details board: top row hands, skin, hair; bottom row facial features, body details\)/,
+  )
   assert.match(prompt, /bust, waist, hip, buttock and leg curves/)
   assert.match(prompt, /body board\)\)?/)
 })

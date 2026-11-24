@@ -243,8 +243,11 @@ function buildKeywordEditPrompt(
       : identityAvatars.length === 1
         ? `${roles} is the avatar identity reference: ${clause}.`
         : `${roles} are identity references of the same avatar: ${clause}.`
-  // Gemini keeps the target's face unless a swap is spelled out in the first lines.
-  const swap = `Replace the person in ${ref(target.index)} with the avatar: copy the face, facial features, skin tone and hair from ${identityAvatars.length === 0 ? 'the avatar description' : roles}.`
+  // Gemini keeps the target's face unless a swap is spelled out in the first lines. The tokens
+  // alone: the identity line above already names what each one holds, and repeating the role
+  // text here doubles the prompt.
+  const identityTokens = identityAvatars.map((slot) => ref(slot.index)).join(', ')
+  const swap = `Replace the person in ${ref(target.index)} with the avatar: copy the face, facial features, skin tone and hair from ${identityAvatars.length === 0 ? 'the avatar description' : identityTokens}.`
   const keep = `Keep ${ref(target.index)}'s pose, clothing, background, lighting and camera.`
   const restate = `The result keeps ${ref(target.index)}'s pose and the avatar's body proportions.`
   const supportingIds = [...demoted, ...extras].map((slot) => ref(slot.index)).join(' ')

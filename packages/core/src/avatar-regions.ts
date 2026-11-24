@@ -230,6 +230,13 @@ export function plannedBoardAssets(boards: AvatarBoard[], limit: number): string
 export const BOARD_MAX_SIDE = 4096
 export const BOARD_GUTTER = 24
 
+/** Face and body read as four quadrants; the details board is a 3 by 2 contacts sheet. */
+export const BOARD_GRID: Record<BoardRole, { rows: number; columns: number }> = {
+  face: { rows: 2, columns: 2 },
+  body: { rows: 2, columns: 2 },
+  details: { rows: 2, columns: 3 },
+}
+
 export interface BoardTile {
   role: CropRegionRole
   x: number
@@ -245,39 +252,49 @@ export interface BoardLayout {
 }
 
 /**
- * One row of tiles at a common height on white, inside a board at most BOARD_MAX_SIDE on the
- * long side. Each tile keeps its own aspect, so every tile is scaled to fit its slot and
- * nothing is cropped. Tiles never enlarge past their source size.
+ * A grid of equal square cells on white, inside BOARD_MAX_SIDE. Each tile is fitted inside its
+ * cell without enlarging or cropping it, and centred. Tile order fills the grid row by row, so
+ * the first tile is the top-left cell and the prompt can name that position.
  */
 export function boardLayout(
   roles: readonly CropRegionRole[],
   sizes: Partial<Record<CropRegionRole, { width: number; height: number }>>,
+  grid: { rows: number; columns: number } = { rows: 1, columns: Math.max(1, roles.length) },
   options: { maxSide?: number; gutter?: number } = {},
 ): BoardLayout {
   const gutter = options.gutter ?? BOARD_GUTTER
   const maxSide = options.maxSide ?? BOARD_MAX_SIDE
+  const rows = Math.max(1, grid.rows)
+  const columns = Math.max(1, grid.columns)
   const present = roles.filter((role) => {
     const size = sizes[role]
     return Boolean(size && size.width > 0 && size.height > 0)
   })
   if (present.length === 0) return { width: 0, height: 0, tiles: [] }
 
-  const ratios = present.map((role) => {
-    const size = sizes[role] as { width: number; height: number }
-    return size.width / size.height
-  })
-  const tallest = Math.max(
-    ...present.map((role) => (sizes[role] as { width: number; height: number }).height),
+  const cell = Math.max(
+    1,
+    Math.min(
+      Math.floor((maxSide - gutter * (columns + 1)) / columns),
+      Math.floor((maxSide - gutter * (rows + 1)) / rows),
+    ),
   )
-  const widest = Math.floor((maxSide - gutter * (present.length + 1)) / ratios.reduce((a, b) => a + b, 0))
-  const height = Math.max(1, Math.min(tallest, widest))
 
-  const tiles: BoardTile[] = []
-  let x = gutter
-  for (const [index, role] of present.entries()) {
-    const w = Math.max(1, Math.round((ratios[index] as number) * height))
-    tiles.push({ role, x, y: gutter, w, h: height })
-    x += w + gutter
+  const tiles: BoardTile[] = present.slice(0, rows * columns).map((role, index) => {
+    const size = sizes[role] as { width: number; height: number }
+    const scale = Math.min(1, cell / Math.max(size.width, size.height))
+    const w = Math.max(1, Math.round(size.width * scale))
+    const h = Math.max(1, Math.round(size.height * scale))
+    const column = index % columns
+    const row = Math.floor(index / columns)
+    const cellX = gutter + column * (cell + gutter)
+    const cellY = gutter + row * (cell + gutter)
+    return { role, x: cellX + Math.floor((cell - w) / 2), y: cellY + Math.floor((cell - h) / 2), w, h }
+  })
+
+  return {
+    width: columns * cell + gutter * (columns + 1),
+    height: rows * cell + gutter * (rows + 1),
+    tiles,
   }
-  return { width: Math.min(maxSide, x), height: height + gutter * 2, tiles }
 }

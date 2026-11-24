@@ -116,14 +116,29 @@ const BOARDS = [
 test('boards replace crops and reach the model identity first, each naming its tiles', () => {
   const withBoards = { ...PROFILED, boards: BOARDS }
   assert.deepEqual(avatarAssetSlots(withBoards, 'fal:fal-ai/nano-banana-pro'), [
-    { id: 'face-board', role: 'face board: front, three-quarter, side profile, expressions' },
-    { id: 'body-board', role: 'body board: front, side profile, back, three-quarter' },
-    { id: 'details-board', role: 'details board: hands, skin, hair, facial features, body details' },
+    {
+      id: 'face-board',
+      role: 'face board: top-left front, top-right three-quarter, bottom-left side profile, bottom-right expressions',
+    },
+    {
+      id: 'body-board',
+      role: 'body board: top-left front, top-right side profile, bottom-left back, bottom-right three-quarter',
+    },
+    {
+      id: 'details-board',
+      role: 'details board: top row hands, skin, hair; bottom row facial features, body details',
+    },
   ])
   // qwen names two avatar references, so it gets the face board and the body board only.
   assert.deepEqual(avatarAssetSlots(withBoards, 'fal:fal-ai/qwen-image-edit-2509'), [
-    { id: 'face-board', role: 'face board: front, three-quarter, side profile, expressions' },
-    { id: 'body-board', role: 'body board: front, side profile, back, three-quarter' },
+    {
+      id: 'face-board',
+      role: 'face board: top-left front, top-right three-quarter, bottom-left side profile, bottom-right expressions',
+    },
+    {
+      id: 'body-board',
+      role: 'body board: top-left front, top-right side profile, bottom-left back, bottom-right three-quarter',
+    },
   ])
   assert.deepEqual(flattenReferenceAssets([withBoards], 'fal:fal-ai/flux-2-pro'), [
     'face-board',

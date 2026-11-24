@@ -21,9 +21,9 @@ export const CROP_ROLE_LABELS: Record<AvatarCropRole, string> = {
 
 // The role text rides into the edit prompt verbatim, so each board names its tiles.
 export const BOARD_SLOT_ROLES: Record<BoardRole, string> = {
-  face: 'face board: front, three-quarter, side profile, expressions',
-  body: 'body board: front, side profile, back, three-quarter',
-  details: 'details board: hands, skin, hair, facial features, body details',
+  face: 'face board: top-left front, top-right three-quarter, bottom-left side profile, bottom-right expressions',
+  body: 'body board: top-left front, top-right side profile, bottom-left back, bottom-right three-quarter',
+  details: 'details board: top row hands, skin, hair; bottom row facial features, body details',
 }
 
 export interface AvatarReferenceInfo {

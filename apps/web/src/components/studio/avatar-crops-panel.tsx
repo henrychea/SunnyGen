@@ -50,8 +50,8 @@ export function AvatarCropsPanel({
       <div>
         <Label>Crops</Label>
         <p className="text-ink/65 mt-1 text-[10.5px]">
-          Pick which cells of the panel feed each crop. Nothing is cut until you save them, and a panel with
-          no crops uses the whole sheet and the whole panel instead.
+          Drag these boxes to choose what each region cuts from your images. Saving rebuilds the face, body
+          and details boards that generation sends.
         </p>
       </div>
 

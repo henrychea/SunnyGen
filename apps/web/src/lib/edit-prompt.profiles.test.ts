@@ -181,7 +181,7 @@ const SNAPSHOTS: Record<AvatarModelFamily, string> = {
   'nano-banana': [
     'image 1 is the target photo.',
     'image 2 (front face), image 3 (full body), image 4 (three-quarter face) are identity references of the same avatar: 24yo East Asian woman, soft oval face, slender jaw, petite chin, slim bridge, dainty tip, full lips, large almond eyes, visible crease, slender arched brows, fair skin, dark brown near-black long hair, slightly wavy, natural center-parted fringe.',
-    'Replace the person in image 1 with the avatar: copy the face, facial features, skin tone and hair from image 2 (front face), image 3 (full body), image 4 (three-quarter face).',
+    'Replace the person in image 1 with the avatar: copy the face, facial features, skin tone and hair from image 2, image 3, image 4.',
     "Replace image 1's body with the avatar's: 165 cm, 49 kg, slim build, slight bust, long legs. Take shoulder width, chest, waist, hips and thigh width from image 3 (full body). The body, proportions and figure belong to the avatar; the pose, clothing, framing, lighting and camera belong to image 1.",
     "Keep image 1's pose, clothing, background, lighting and camera.",
     "The result keeps image 1's pose and the avatar's body proportions.",
@@ -191,8 +191,8 @@ const SNAPSHOTS: Record<AvatarModelFamily, string> = {
   ].join('\n'),
   qwen: [
     'image 1 is the target photo.',
-    'image 2 (front face), image 3 (full body) are identity references of the same avatar: 24yo East Asian woman, soft oval face, slender jaw, petite chin, slim bridge, dainty tip, full lips, large almond eyes, visible crease, slender arched brows, fair skin, dark brown near-black long hair, slightly wavy.',
-    'Replace the person in image 1 with the avatar: copy the face, facial features, skin tone and hair from image 2 (front face), image 3 (full body).',
+    'image 2 (front face), image 3 (full body) are identity references of the same avatar: 24yo East Asian woman, soft oval face, slender jaw, petite chin, slim bridge, dainty tip, full lips, large almond eyes, visible crease, slender arched brows, fair skin, dark brown near-black long hair, slightly wavy, natural center-parted fringe.',
+    'Replace the person in image 1 with the avatar: copy the face, facial features, skin tone and hair from image 2, image 3.',
     "Replace image 1's body with the avatar's: 165 cm, 49 kg, slim build, slight bust, long legs. Take the body proportions from image 3 (full body).",
     "Keep image 1's pose, clothing, background, lighting and camera.",
     '',
@@ -202,7 +202,7 @@ const SNAPSHOTS: Record<AvatarModelFamily, string> = {
   flux: [
     'image 1 is the target photo.',
     'image 2 (front face), image 3 (full body), image 4 (three-quarter face) are identity references of the same avatar: 24yo East Asian woman, soft oval face, slender jaw, petite chin, slim bridge, dainty tip, full lips, large almond eyes, visible crease, slender arched brows, fair skin, dark brown near-black long hair, slightly wavy, natural center-parted fringe.',
-    'Replace the person in image 1 with the avatar: copy the face, facial features, skin tone and hair from image 2 (front face), image 3 (full body), image 4 (three-quarter face).',
+    'Replace the person in image 1 with the avatar: copy the face, facial features, skin tone and hair from image 2, image 3, image 4.',
     "Keep image 1's pose, clothing, background, lighting and camera.",
     "Replace image 1's body with the avatar's: 165 cm, 49 kg, slim build, slight bust, long legs. Take shoulder width, chest, waist, hips and thigh width from image 3 (full body). image 1's own hips, thighs and waist must not survive.",
     '',
@@ -212,7 +212,7 @@ const SNAPSHOTS: Record<AvatarModelFamily, string> = {
   seedream: [
     'image 1 is the target photo.',
     'image 2 (front face), image 3 (full body), image 4 (three-quarter face) are identity references of the same avatar: 24yo East Asian woman, soft oval face, slender jaw, petite chin, slim bridge, dainty tip, full lips, large almond eyes, visible crease, slender arched brows, fair skin, dark brown near-black long hair, slightly wavy, natural center-parted fringe.',
-    'Replace the person in image 1 with the avatar: copy the face, facial features, skin tone and hair from image 2 (front face), image 3 (full body), image 4 (three-quarter face).',
+    'Replace the person in image 1 with the avatar: copy the face, facial features, skin tone and hair from image 2, image 3, image 4.',
     "Keep image 1's pose, clothing, background, lighting and camera.",
     "Replace image 1's body with the avatar's: 165 cm, 49 kg, slim build, slight bust, long legs. Take shoulder width, chest, waist, hips and thigh width from image 3 (full body). image 1's own hips, thighs and waist must not survive.",
     '',
@@ -222,7 +222,7 @@ const SNAPSHOTS: Record<AvatarModelFamily, string> = {
   'gpt-image': [
     'image 1 is the target photo.',
     'image 2 (front face), image 3 (full body), image 4 (three-quarter face) are identity references of the same avatar: 24yo East Asian woman, soft oval face, slender jaw, petite chin, slim bridge, dainty tip, full lips, large almond eyes, visible crease, slender arched brows, fair skin, dark brown near-black long hair, slightly wavy, natural center-parted fringe.',
-    'Replace the person in image 1 with the avatar: copy the face, facial features, skin tone and hair from image 2 (front face), image 3 (full body), image 4 (three-quarter face).',
+    'Replace the person in image 1 with the avatar: copy the face, facial features, skin tone and hair from image 2, image 3, image 4.',
     "Keep image 1's pose, clothing, background, lighting and camera.",
     "Replace image 1's body with the avatar's: 165 cm, 49 kg, slim build, slight bust, long legs. Take the body proportions from image 3 (full body).",
     '',
@@ -232,7 +232,7 @@ const SNAPSHOTS: Record<AvatarModelFamily, string> = {
   grok: [
     'image 1 is the target photo.',
     'image 2 (front face), image 3 (full body) are identity references of the same avatar: 24yo East Asian woman, soft oval face, slender jaw, petite chin, slim bridge, dainty tip, full lips, large almond eyes, visible crease, slender arched brows, fair skin, dark brown near-black long hair, slightly wavy, natural center-parted fringe.',
-    'Replace the person in image 1 with the avatar: copy the face, facial features, skin tone and hair from image 2 (front face), image 3 (full body).',
+    'Replace the person in image 1 with the avatar: copy the face, facial features, skin tone and hair from image 2, image 3.',
     "Replace image 1's body with the avatar's: 165 cm, 49 kg, slim build, slight bust, long legs. Take the body proportions from image 3 (full body).",
     "Keep image 1's pose, clothing, background, lighting and camera.",
     'image 4 is a supporting reference only.',
@@ -243,7 +243,7 @@ const SNAPSHOTS: Record<AvatarModelFamily, string> = {
   generic: [
     'image 4 is the target photo.',
     'image 1 (front face), image 2 (full body), image 3 (three-quarter face) are identity references of the same avatar: 24yo East Asian woman, soft oval face, slender jaw, petite chin, slim bridge, dainty tip, full lips, large almond eyes, visible crease, slender arched brows, fair skin, dark brown near-black long hair, slightly wavy, natural center-parted fringe.',
-    'Replace the person in image 4 with the avatar: copy the face, facial features, skin tone and hair from image 1 (front face), image 2 (full body), image 3 (three-quarter face).',
+    'Replace the person in image 4 with the avatar: copy the face, facial features, skin tone and hair from image 1, image 2, image 3.',
     "Keep image 4's pose, clothing, background, lighting and camera.",
     "Replace image 4's body with the avatar's: 165 cm, 49 kg, slim build, slight bust, long legs. Take shoulder width, chest, waist, hips and thigh width from image 2 (full body). image 4's own hips, thighs and waist must not survive.",
     '',

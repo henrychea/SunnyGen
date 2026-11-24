@@ -8,8 +8,9 @@
 An avatar now has three images instead of one 4x4 panel: a reference sheet, a body panel and a
 face panel. Each view gets a 2048 px cell instead of 1024, and the owner cuts the crop regions
 by hand on the images themselves. On Save regions the server cuts every box from the original
-file and composes three boards — face, body, details — which are what a model receives, in that
-order, with each board's tiles named in the prompt.
+file and composes three boards — face and body as 4096 x 4096 2x2 grids, details as a 4095 x 2738
+3x2 grid — which are what a model receives, in that order, with each board's tiles named by cell
+position in the prompt ("top-left front, top-right three-quarter, …").
 
 ## Why
 
@@ -30,8 +31,9 @@ that only name two or three avatar references from dropping the body.
   white instead of moving its neighbours.
 - `packages/core/src/avatar-regions.ts` (from PR #24, now used): region roles and their three
   sources, default boxes, `parseCropRegions` validation (inside the image, at least 256 px a
-  side), `boardLayout` (one row of tiles at a common height on white, gutters, at most 4096 on
-  the long side, never enlarged), board tile order and `plannedBoardAssets`.
+  side), `boardLayout` (grids on white: 2x2 for the face and body boards, 3x2 for details, 24 px
+  gutters, inside 4096, tiles fitted into their cell and never enlarged), board tile order and
+  `plannedBoardAssets`.
 - `apps/web/src/server/avatar-crops.server.ts`: `saveAvatarRegions` validates the three images,
   cuts every region from the original with sharp without upscaling, composes the face, body and
   details boards, and stores `data.cropRegions` plus `data.boards`. `avatarRegionsDto` reports

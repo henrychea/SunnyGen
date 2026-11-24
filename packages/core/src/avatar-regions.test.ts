@@ -5,6 +5,7 @@ import {
   CROP_REGION_DEFAULTS,
   CROP_REGION_ROLES,
   SHEET_REGION_BOXES,
+  BOARD_GRID,
   boardAssetIds,
   boardLayout,
   defaultCropRegions,
@@ -14,7 +15,6 @@ import {
   regionsForSource,
   resetRegionsForSource,
   type AvatarBoard,
-  type BoardTile,
 } from './avatar-regions'
 
 test('the default boxes are the quadrants and named regions the prompts draw', () => {
@@ -149,45 +149,85 @@ test('every role belongs to exactly one source', () => {
   assert.deepEqual(covered.sort(), [...CROP_REGION_ROLES].sort())
 })
 
-test('a board is one row of tiles at a common height, inside 4096 and never enlarged', () => {
+test('the face board is a 2x2 grid: 4096 square, ~2012 px tiles, four cells', () => {
   const sizes = {
     'face-front': { width: 2048, height: 2048 },
     'face-three-quarter': { width: 2048, height: 2048 },
     'face-side': { width: 2048, height: 2048 },
     expressions: { width: 1024, height: 1024 },
   }
-  const layout = boardLayout(BOARD_TILES.face, sizes)
+  const layout = boardLayout(BOARD_TILES.face, sizes, BOARD_GRID.face)
+
   assert.deepEqual(
     layout.tiles.map((tile) => tile.role),
     ['face-front', 'face-three-quarter', 'face-side', 'expressions'],
   )
-  // Three square 2048 tiles plus one 1024 tile at the same height would overflow, so the common
-  // height shrinks until the row fits 4096.
-  assert.ok(layout.width <= 4096)
-  assert.ok(layout.height <= 4096)
-  const heights = new Set(layout.tiles.map((tile) => tile.h))
-  assert.equal(heights.size, 1)
-  for (const tile of layout.tiles) {
-    assert.ok(tile.x >= 24 && tile.x + tile.w <= 4096)
-    assert.ok(tile.h <= 2048)
-  }
-  // Tiles sit side by side in order, with a gutter between them.
-  for (let index = 1; index < layout.tiles.length; index += 1) {
-    const previous = layout.tiles[index - 1] as BoardTile
-    const current = layout.tiles[index] as BoardTile
-    assert.equal(current.x, previous.x + previous.w + 24)
-  }
+  assert.equal(layout.width, 4096)
+  assert.equal(layout.height, 4096)
+  // Top-left, top-right, bottom-left and bottom-right cells at the 24 px gutter. The smaller
+  // expressions tile is centred in its cell, so its origin is inset by (2012 - 1024) / 2.
+  assert.deepEqual(
+    layout.tiles.map((tile) => [tile.x, tile.y]),
+    [
+      [24, 24],
+      [2060, 24],
+      [24, 2060],
+      [2554, 2554],
+    ],
+  )
+  // A 2048 crop fills its 2012 cell; a 1024 sheet tile is never enlarged and sits centred.
+  assert.deepEqual([layout.tiles[0]?.w, layout.tiles[0]?.h], [2012, 2012])
+  assert.deepEqual([layout.tiles[3]?.w, layout.tiles[3]?.h], [1024, 1024])
+  assert.deepEqual([layout.tiles[3]?.x, layout.tiles[3]?.y], [2554, 2554])
 })
 
-test('a narrow board keeps the tiles at their source height and widens by their aspect', () => {
-  const layout = boardLayout(
-    ['body-front', 'body-side'],
-    { 'body-front': { width: 2048, height: 2048 }, 'body-side': { width: 1024, height: 2048 } },
-    { gutter: 0 },
+test('the body board uses the same 2x2 grid and keeps front, side, back, three-quarter', () => {
+  const sizes = Object.fromEntries(BOARD_TILES.body.map((role) => [role, { width: 2048, height: 1536 }]))
+  const layout = boardLayout(BOARD_TILES.body, sizes, BOARD_GRID.body)
+
+  assert.equal(layout.width, 4096)
+  assert.equal(layout.height, 4096)
+  assert.deepEqual(
+    layout.tiles.map((tile) => tile.role),
+    ['body-front', 'body-side', 'body-back', 'body-three-quarter'],
   )
-  assert.deepEqual(layout.tiles, [
-    { role: 'body-front', x: 0, y: 0, w: 2048, h: 2048 },
-    { role: 'body-side', x: 2048, y: 0, w: 1024, h: 2048 },
-  ])
-  assert.deepEqual(boardLayout(BOARD_TILES.details, {}), { width: 0, height: 0, tiles: [] })
+  // 4:3 tiles keep their aspect inside the square cell and are centred by height.
+  assert.deepEqual([layout.tiles[0]?.w, layout.tiles[0]?.h], [2012, 1509])
+  assert.deepEqual([layout.tiles[0]?.x, layout.tiles[0]?.y], [24, 275])
+})
+
+test('the details board is a 3 by 2 grid inside 4096 on the long side', () => {
+  const sizes = Object.fromEntries(BOARD_TILES.details.map((role) => [role, { width: 1024, height: 1024 }]))
+  const layout = boardLayout(BOARD_TILES.details, sizes, BOARD_GRID.details)
+
+  assert.equal(layout.tiles.length, 5)
+  assert.deepEqual(
+    layout.tiles.map((tile) => tile.role),
+    ['hands', 'skin-texture', 'hair-details', 'facial-features', 'body-details'],
+  )
+  assert.equal(layout.width, 4095)
+  assert.equal(layout.height, 2738)
+  assert.ok(layout.width <= 4096 && layout.height <= 4096)
+  // Row-major: three tiles on the top row, two on the bottom. A 1024 tile sits centred in its
+  // 1333 px cell, so its origin is inset by (1333 - 1024) / 2.
+  assert.deepEqual(
+    layout.tiles.map((tile) => [tile.x, tile.y]),
+    [
+      [178, 178],
+      [1535, 178],
+      [2892, 178],
+      [178, 1535],
+      [1535, 1535],
+    ],
+  )
+})
+
+test('an empty board has no tiles and nothing is ever enlarged', () => {
+  assert.deepEqual(boardLayout(BOARD_TILES.details, {}, BOARD_GRID.details), {
+    width: 0,
+    height: 0,
+    tiles: [],
+  })
+  const small = boardLayout(['hands'], { hands: { width: 300, height: 200 } }, BOARD_GRID.face)
+  assert.deepEqual([small.tiles[0]?.w, small.tiles[0]?.h], [300, 200])
 })
