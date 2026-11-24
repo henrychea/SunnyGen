@@ -122,6 +122,10 @@ export function ImportAvatarDialog({
             onFace={setFace}
             picker={picker}
             onPicker={setPicker}
+            onSwapPanels={() => {
+              setPanel(face)
+              setFace(panel)
+            }}
           />
         </div>
 

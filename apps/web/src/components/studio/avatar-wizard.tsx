@@ -197,9 +197,20 @@ export function AvatarWizard({
           },
         },
       })
-      const panelChanged = !item || item.assetId !== (profileOnly ? item.assetId : (panel?.id ?? null))
+      const savedBody = profileOnly ? (item?.assetId ?? null) : (panel?.id ?? null)
+      const savedFace = profileOnly ? (item?.data.facePanelAssetId ?? null) : (face?.id ?? null)
+      const panelsChanged =
+        !item ||
+        item.assetId !== savedBody ||
+        (typeof item.data.facePanelAssetId === 'string' ? item.data.facePanelAssetId : null) !== savedFace
+      // A fresh face panel flips the avatar to the two-panel layout, so the DTOs must be refetched
+      // instead of showing the legacy cell selector over the new images.
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['avatar-crops', saved.id] }),
+        queryClient.invalidateQueries({ queryKey: ['avatar-regions', saved.id] }),
+      ])
       onSaved()
-      if (panelChanged) {
+      if (panelsChanged) {
         setSavedId(saved.id)
         setStep(6)
         toast('Panel saved. Pick the crop regions below.', { tone: 'info' })
@@ -784,6 +795,10 @@ export function AvatarWizard({
                         onFace={setFaceChoice}
                         picker={picker}
                         onPicker={setPicker}
+                        onSwapPanels={() => {
+                          setPanelChoice(face)
+                          setFaceChoice(panel)
+                        }}
                         onCopy={(kind) =>
                           void copy(
                             kind === 'sheet'
@@ -802,6 +817,7 @@ export function AvatarWizard({
                           panel={cropsDto?.panel ?? null}
                           pending={cropsQuery.isPending}
                           regions={regionsDto ?? null}
+                          hasFacePanel={Boolean(face?.id)}
                           onRegionsSaved={(dto) =>
                             queryClient.setQueryData(['avatar-regions', activeId], dto)
                           }

@@ -28,6 +28,7 @@ export function AvatarCropsPanel({
   panel,
   pending,
   regions,
+  hasFacePanel,
   onReplacePanel,
   onSaved,
   onRegionsSaved,
@@ -38,12 +39,16 @@ export function AvatarCropsPanel({
   panel: CropsPanelInfo | null
   pending: boolean
   regions?: AvatarRegionsDto | null
+  hasFacePanel?: boolean
   onReplacePanel?: () => void
   onSaved: (dto: AvatarCropsDto) => void
   onRegionsSaved?: (dto: AvatarRegionsDto) => void
 }) {
   const sizeError = panel ? panelSizeError(panel.width, panel.height) : null
   const chosen = cropCells ?? defaultAvatarCropCells()
+  // A face panel means the two-panel layout, whether it was just picked in the form or already
+  // saved. The legacy cell selector only ever appears for an avatar that has no face panel.
+  const twoPanel = Boolean(hasFacePanel) || Boolean(regions && !regions.legacy)
 
   return (
     <div className="border-line rounded-xl border p-3">
@@ -89,32 +94,36 @@ export function AvatarCropsPanel({
             </Button>
           ) : null}
         </div>
-      ) : regions && !regions.legacy ? (
-        <div className="mt-3 flex flex-col gap-4">
-          <AvatarRegionEditor
-            avatarId={avatarId}
-            regions={regions.regions}
-            boards={regions.boards}
-            sources={{
-              sheet: regions.sheet.url ? { url: regions.sheet.url, width: 4096, height: 3072 } : undefined,
-              'body-panel': regions.bodyPanel.url
-                ? { url: regions.bodyPanel.url, width: 4096, height: 4096 }
-                : undefined,
-              'face-panel': regions.facePanel.url
-                ? { url: regions.facePanel.url, width: 4096, height: 4096 }
-                : undefined,
-            }}
-            onSaved={(dto) => {
-              onRegionsSaved?.(dto)
-              onSaved({
-                crops: dto.crops,
-                cropCells: null,
-                panel: dto.bodyPanel,
-                sheet: dto.sheet,
-              })
-            }}
-          />
-        </div>
+      ) : twoPanel ? (
+        regions && !regions.legacy ? (
+          <div className="mt-3 flex flex-col gap-4">
+            <AvatarRegionEditor
+              avatarId={avatarId}
+              regions={regions.regions}
+              boards={regions.boards}
+              sources={{
+                sheet: regions.sheet.url ? { url: regions.sheet.url, width: 4096, height: 3072 } : undefined,
+                'body-panel': regions.bodyPanel.url
+                  ? { url: regions.bodyPanel.url, width: 4096, height: 4096 }
+                  : undefined,
+                'face-panel': regions.facePanel.url
+                  ? { url: regions.facePanel.url, width: 4096, height: 4096 }
+                  : undefined,
+              }}
+              onSaved={(dto) => {
+                onRegionsSaved?.(dto)
+                onSaved({
+                  crops: dto.crops,
+                  cropCells: null,
+                  panel: dto.bodyPanel,
+                  sheet: dto.sheet,
+                })
+              }}
+            />
+          </div>
+        ) : (
+          <p className="text-ink/65 mt-3 text-[11px]">Loading crop regions…</p>
+        )
       ) : (
         <div className="mt-3 flex flex-col gap-4">
           {regions?.legacy ? (

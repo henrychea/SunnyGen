@@ -17,7 +17,8 @@ process.env.SUNNYGEN_MEDIA_DIR = join(dataDir, 'media')
 
 const { closeDb, getStudioItem, saveStudioItem } = await import('@sunnygen/db')
 const { storeBuffer } = await import('./media.server')
-const { avatarCropsDto, dataForPanelChange, saveAvatarCrops } = await import('./avatar-crops.server')
+const { avatarCropsDto, avatarRegionsDto, dataForPanelChange, saveAvatarCrops, saveAvatarRegions } =
+  await import('./avatar-crops.server')
 
 after(() => {
   closeDb()
@@ -88,4 +89,42 @@ test('a changed panel starts again with no crops until the owner picks cells', a
 
   assert.deepEqual(avatarCropsDto(resaved).crops, [])
   assert.equal(resaved.data.cropCells, undefined)
+})
+
+test('swapping the two panels keeps both images and drops the stale regions and boards', async () => {
+  const sheetId = await timelineAsset(4096, 3072)
+  const bodyId = await timelineAsset(4096, 4096)
+  const faceId = await timelineAsset(4096, 4096)
+  const created = saveStudioItem({
+    kind: 'avatar',
+    name: 'Swapped',
+    assetId: bodyId,
+    data: {
+      avatarProfile: DEFAULT_AVATAR_PROFILE,
+      characterSheetAssetId: sheetId,
+      facePanelAssetId: faceId,
+    },
+  })
+  const withBoards = await saveAvatarRegions(created, avatarRegionsDto(created).regions)
+  assert.equal(withBoards.boards.length, 3)
+  assert.equal(getStudioItem(created.id)?.data.cropRegions === undefined, false)
+
+  // The owner put the files in the wrong slots: exchange item.assetId and data.facePanelAssetId,
+  // and treat it as a panel change, which is what saveStudioItemFn does.
+  const swapped = saveStudioItem({
+    id: created.id,
+    kind: 'avatar',
+    name: created.name,
+    assetId: faceId,
+    data: dataForPanelChange({ ...getStudioItem(created.id)?.data, facePanelAssetId: bodyId }, true),
+  })
+
+  assert.equal(swapped.assetId, faceId)
+  assert.equal(swapped.data.facePanelAssetId, bodyId)
+  assert.equal(swapped.data.cropRegions, undefined)
+  assert.equal(swapped.data.boards, undefined)
+  assert.equal(swapped.data.crops, undefined)
+  assert.equal(swapped.data.cropCells, undefined)
+  // It is still a two-panel avatar, not a legacy one.
+  assert.equal(avatarRegionsDto(swapped).legacy, false)
 })

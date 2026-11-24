@@ -149,6 +149,9 @@ export const saveStudioItemFn = createServerFn({ method: 'POST', strict: false }
       const facePanelId = typeof data.data.facePanelAssetId === 'string' ? data.data.facePanelAssetId : null
       const previousFace =
         previous && typeof previous.data.facePanelAssetId === 'string' ? previous.data.facePanelAssetId : null
+      // Swapping the two panels changes both ids, and either change invalidates the crops, boxes
+      // and boards cut from the old images.
+      const faceChanged = !previous || (facePanelId ?? null) !== (previousFace ?? null)
       if (facePanelId && facePanelId !== previousFace) {
         const facePanel = getAsset(facePanelId)
         if (panelSizeError(facePanel?.width ?? null, facePanel?.height ?? null)) {
@@ -167,7 +170,7 @@ export const saveStudioItemFn = createServerFn({ method: 'POST', strict: false }
         const sheet = getAsset(sheetId)
         assertSheetSize(sheet?.width ?? null, sheet?.height ?? null)
       }
-      data.data = dataForPanelChange(data.data, panelChanged)
+      data.data = dataForPanelChange(data.data, panelChanged || faceChanged)
       if (data.data.avatarProfile !== undefined) {
         const profile = parseAvatarProfile(data.data.avatarProfile)
         if (!profile) throw new Error('Avatar profiles must describe an adult aged 18 or older.')

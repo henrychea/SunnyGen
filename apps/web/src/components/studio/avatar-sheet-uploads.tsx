@@ -26,6 +26,7 @@ function UploadSlot({
   onPick,
   onClear,
   onCopy,
+  copyLabel,
 }: {
   label: string
   asset: SlotAsset | null
@@ -34,6 +35,7 @@ function UploadSlot({
   onPick: () => void
   onClear: () => void
   onCopy?: () => void
+  copyLabel?: string
 }) {
   return (
     <div className="flex flex-col gap-1.5">
@@ -90,7 +92,7 @@ function UploadSlot({
             className="min-h-11 text-[11px] sm:h-7 sm:min-h-0 sm:text-[10.5px]"
             onClick={onCopy}
           >
-            Copy prompt
+            {copyLabel ?? 'Copy prompt'}
           </Button>
         ) : null}
       </div>
@@ -110,6 +112,7 @@ export function AvatarSheetUploads({
   picker,
   onPicker,
   onCopy,
+  onSwapPanels,
 }: {
   sheet: SlotAsset | null
   panel: SlotAsset | null
@@ -120,6 +123,7 @@ export function AvatarSheetUploads({
   picker: AvatarSlotKind | null
   onPicker: (next: AvatarSlotKind | null) => void
   onCopy?: (kind: AvatarSlotKind) => void
+  onSwapPanels?: () => void
 }) {
   const [rejectedPanelError, setRejectedPanelError] = useState<string | null>(null)
 
@@ -168,6 +172,7 @@ export function AvatarSheetUploads({
           onPick={() => open('sheet')}
           onClear={() => onSheet(null)}
           onCopy={onCopy ? () => onCopy('sheet') : undefined}
+          copyLabel="Copy sheet prompt"
         />
         <UploadSlot
           label="Body panel"
@@ -180,6 +185,7 @@ export function AvatarSheetUploads({
             onPanel(null)
           }}
           onCopy={onCopy ? () => onCopy('body-panel') : undefined}
+          copyLabel="Copy body panel prompt"
         />
         <UploadSlot
           label="Face panel"
@@ -192,8 +198,22 @@ export function AvatarSheetUploads({
             onFace(null)
           }}
           onCopy={onCopy ? () => onCopy('face-panel') : undefined}
+          copyLabel="Copy face panel prompt"
         />
       </div>
+      {onSwapPanels ? (
+        <div className="mt-1 flex justify-center">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onSwapPanels}
+            className="min-h-9 text-[10.5px]"
+            title="Swap the body and face panel images"
+          >
+            Swap panels
+          </Button>
+        </div>
+      ) : null}
       {picker
         ? createPortal(
             <ReferencePicker

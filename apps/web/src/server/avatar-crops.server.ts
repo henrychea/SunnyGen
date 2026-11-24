@@ -68,16 +68,19 @@ export function assertCropPanelSize(width: number | null, height: number | null)
   if (message) throw new Error(message)
 }
 
-// Crops are cut from the panel, so a save that seals a different panel must not inherit the
-// crops, or the cell selection, taken from the old one. Manual selection then rebuilds them.
+// Crops and regions are cut from the panels, so a save that seals a different panel must not
+// inherit anything taken from the old one: the cell crops, the boxes and the composed boards all
+// describe images that are no longer there.
 export function dataForPanelChange(
   data: Record<string, unknown>,
-  panelChanged: boolean,
+  panelsChanged: boolean,
 ): Record<string, unknown> {
-  if (!panelChanged) return data
+  if (!panelsChanged) return data
   const next = { ...data }
   delete next.crops
   delete next.cropCells
+  delete next.cropRegions
+  delete next.boards
   return next
 }
 
@@ -154,6 +157,14 @@ function text(value: unknown): string | null {
   return typeof value === 'string' && value.length > 0 ? value : null
 }
 
+/**
+ * An avatar is on the two-panel layout as soon as it has a face panel. Nothing else decides
+ * this: a stored crop list or a missing cropRegions must never send it back to the 4x4 cells.
+ */
+export function avatarUsesTwoPanels(data: Record<string, unknown>): boolean {
+  return typeof data.facePanelAssetId === 'string' && data.facePanelAssetId.length > 0
+}
+
 export function avatarRegionsDto(item: StudioItemRecord): AvatarRegionsDto {
   return {
     regions: parseCropRegions(item.data.cropRegions) ?? defaultCropRegions(),
@@ -162,7 +173,7 @@ export function avatarRegionsDto(item: StudioItemRecord): AvatarRegionsDto {
     bodyPanel: assetInfo(item.assetId),
     facePanel: assetInfo(text(item.data.facePanelAssetId)),
     crops: parseAvatarCrops(item.data.crops) ?? [],
-    legacy: text(item.data.facePanelAssetId) === null,
+    legacy: !avatarUsesTwoPanels(item.data),
   }
 }
 
