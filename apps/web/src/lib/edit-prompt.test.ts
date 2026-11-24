@@ -336,3 +336,50 @@ for (const modelId of BODY_FAMILIES) {
     }
   })
 }
+
+test('board references name their tiles and the body board supplies the curves sentence', () => {
+  const boards = [
+    { role: 'face' as const, assetId: 'face-board', width: 4096, height: 4096 },
+    { role: 'body' as const, assetId: 'body-board', width: 4096, height: 4096 },
+    { role: 'details' as const, assetId: 'details-board', width: 4096, height: 1200 },
+  ]
+  const avatar = editReferencePlan(
+    [{ id: 'face-board', assetIds: [], avatar: true, profile: DEFAULT_AVATAR_PROFILE, boards }],
+    'fal:fal-ai/nano-banana-pro',
+  )
+  const prompt = buildEditPrompt(
+    '',
+    [{ id: 'target', assetIds: ['target'], avatar: false, role: 'target photo' }, ...avatar],
+    editProfile('fal:fal-ai/nano-banana-pro'),
+    { modelId: 'fal:fal-ai/nano-banana-pro' },
+  )
+
+  assert.match(prompt, /\(face board: front, three-quarter, side profile, expressions\)/)
+  assert.match(prompt, /\(body board: front, side profile, back, three-quarter\)/)
+  assert.match(prompt, /\(details board: hands, skin, hair, facial features, body details\)/)
+  assert.match(prompt, /bust, waist, hip, buttock and leg curves/)
+  assert.match(prompt, /body board\)\)?/)
+})
+
+test('qwen names the face and body boards and drops the details board', () => {
+  const boards = [
+    { role: 'face' as const, assetId: 'face-board', width: 4096, height: 4096 },
+    { role: 'body' as const, assetId: 'body-board', width: 4096, height: 4096 },
+    { role: 'details' as const, assetId: 'details-board', width: 4096, height: 1200 },
+  ]
+  const avatar = editReferencePlan(
+    [{ id: 'face-board', assetIds: [], avatar: true, profile: DEFAULT_AVATAR_PROFILE, boards }],
+    'fal:fal-ai/qwen-image-edit-2509',
+  )
+  const prompt = buildEditPrompt(
+    '',
+    [{ id: 'target', assetIds: ['target'], avatar: false, role: 'target photo' }, ...avatar],
+    editProfile('fal:fal-ai/qwen-image-edit-2509'),
+    { modelId: 'fal:fal-ai/qwen-image-edit-2509' },
+  )
+
+  assert.match(prompt, /face board/)
+  assert.match(prompt, /body board/)
+  assert.doesNotMatch(prompt, /details board/)
+  assert.ok(prompt.length <= 800, `qwen prompt is ${prompt.length} chars`)
+})

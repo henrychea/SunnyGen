@@ -226,3 +226,58 @@ export function boardAssetIds(boards: AvatarBoard[]): string[] {
 export function plannedBoardAssets(boards: AvatarBoard[], limit: number): string[] {
   return boardAssetIds(boards).slice(0, Math.max(0, limit))
 }
+
+export const BOARD_MAX_SIDE = 4096
+export const BOARD_GUTTER = 24
+
+export interface BoardTile {
+  role: CropRegionRole
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
+export interface BoardLayout {
+  width: number
+  height: number
+  tiles: BoardTile[]
+}
+
+/**
+ * One row of tiles at a common height on white, inside a board at most BOARD_MAX_SIDE on the
+ * long side. Each tile keeps its own aspect, so every tile is scaled to fit its slot and
+ * nothing is cropped. Tiles never enlarge past their source size.
+ */
+export function boardLayout(
+  roles: readonly CropRegionRole[],
+  sizes: Partial<Record<CropRegionRole, { width: number; height: number }>>,
+  options: { maxSide?: number; gutter?: number } = {},
+): BoardLayout {
+  const gutter = options.gutter ?? BOARD_GUTTER
+  const maxSide = options.maxSide ?? BOARD_MAX_SIDE
+  const present = roles.filter((role) => {
+    const size = sizes[role]
+    return Boolean(size && size.width > 0 && size.height > 0)
+  })
+  if (present.length === 0) return { width: 0, height: 0, tiles: [] }
+
+  const ratios = present.map((role) => {
+    const size = sizes[role] as { width: number; height: number }
+    return size.width / size.height
+  })
+  const tallest = Math.max(
+    ...present.map((role) => (sizes[role] as { width: number; height: number }).height),
+  )
+  const widest = Math.floor((maxSide - gutter * (present.length + 1)) / ratios.reduce((a, b) => a + b, 0))
+  const height = Math.max(1, Math.min(tallest, widest))
+
+  const tiles: BoardTile[] = []
+  let x = gutter
+  for (const [index, role] of present.entries()) {
+    const w = Math.max(1, Math.round((ratios[index] as number) * height))
+    tiles.push({ role, x, y: gutter, w, h: height })
+    x += w + gutter
+  }
+  return { width: Math.min(maxSide, x), height: height + gutter * 2, tiles }
+}

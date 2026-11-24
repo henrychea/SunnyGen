@@ -19,6 +19,7 @@ test('avatar references send both the clean sheet and the 4x4 panel', () => {
       lora: null,
       profile: null,
       crops: undefined,
+      boards: undefined,
     },
   )
 })
@@ -40,6 +41,7 @@ test('avatar references dedupe the sheet and panel when they are the same asset'
       lora: null,
       profile: null,
       crops: undefined,
+      boards: undefined,
     },
   )
 })
@@ -61,6 +63,7 @@ test('avatar references fall back to the uploaded asset id', () => {
       lora: null,
       profile: null,
       crops: undefined,
+      boards: undefined,
     },
   )
 })

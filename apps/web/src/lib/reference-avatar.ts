@@ -1,7 +1,9 @@
 import {
+  parseAvatarBoards,
   parseAvatarCrops,
   parseAvatarLora,
   parseAvatarProfile,
+  type AvatarBoard,
   type AvatarCrop,
   type AvatarLora,
   type AvatarProfile,
@@ -16,6 +18,7 @@ export interface AvatarReference {
   lora: AvatarLora | null
   profile: AvatarProfile | null
   crops: AvatarCrop[] | undefined
+  boards: AvatarBoard[] | undefined
 }
 
 export interface ReferenceAvatar extends AvatarReference {
@@ -52,5 +55,6 @@ export function referenceAvatar(source: AvatarSource): AvatarReference | null {
     lora: parseAvatarLora(source.data.lora),
     profile: parseAvatarProfile(source.data.avatarProfile),
     crops: parseAvatarCrops(source.data.crops),
+    boards: parseAvatarBoards(source.data.boards),
   }
 }

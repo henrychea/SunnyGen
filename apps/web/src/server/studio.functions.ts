@@ -18,6 +18,7 @@ import {
   parseAvatarCropCells,
   parseAvatarLora,
   parseAvatarProfile,
+  parseCropRegions,
   parseGarmentViews,
   scenePrepPrompt,
   type GarmentSlot,
@@ -42,13 +43,16 @@ import { getGenerationView, submitGeneration } from './generation.functions'
 import { assetUrl, readAssetBuffer, storeBuffer } from './media.server'
 import {
   avatarCropsDto,
+  avatarRegionsDto,
   dataForPanelChange,
   saveAvatarCrops,
+  saveAvatarRegions,
   type AvatarCropsDto,
+  type AvatarRegionsDto,
 } from './avatar-crops.server'
 import { extractAvatarFromPrompt } from './avatar-profile.server'
 
-export type { AvatarCropsDto } from './avatar-crops.server'
+export type { AvatarCropsDto, AvatarRegionsDto } from './avatar-crops.server'
 
 export interface StudioItemDto {
   id: string
@@ -186,6 +190,26 @@ export const loadAvatarCropsFn = createServerFn({ method: 'GET' })
     const item = getStudioItem(data.avatarId)
     if (!item || item.kind !== 'avatar') throw new Error('Avatar not found')
     return avatarCropsDto(item)
+  })
+
+export const loadAvatarRegionsFn = createServerFn({ method: 'GET' })
+  .validator(z.object({ avatarId: z.string().min(1) }))
+  .handler(({ data }): AvatarRegionsDto => {
+    const item = getStudioItem(data.avatarId)
+    if (!item || item.kind !== 'avatar') throw new Error('Avatar not found')
+    return avatarRegionsDto(item)
+  })
+
+export const saveAvatarRegionsFn = createServerFn({ method: 'POST', strict: false })
+  .validator(z.object({ avatarId: z.string().min(1), regions: z.unknown() }))
+  .handler(async ({ data }): Promise<AvatarRegionsDto> => {
+    const item = getStudioItem(data.avatarId)
+    if (!item || item.kind !== 'avatar') throw new Error('Avatar not found')
+    const regions = parseCropRegions(data.regions)
+    if (!regions) {
+      throw new Error('Every crop region needs one box inside its own image, at least 256 px a side.')
+    }
+    return saveAvatarRegions(item, regions)
   })
 
 export const saveAvatarCropsFn = createServerFn({ method: 'POST', strict: false })

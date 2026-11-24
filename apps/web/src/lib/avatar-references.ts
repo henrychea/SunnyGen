@@ -1,10 +1,14 @@
 import {
+  BOARD_ROLES,
   avatarCropPlan,
   avatarModelFamily,
+  avatarReferenceLimit,
   identityClause,
+  type AvatarBoard,
   type AvatarCrop,
   type AvatarCropRole,
   type AvatarProfile,
+  type BoardRole,
 } from '@sunnygen/core'
 import type { EditReference } from './edit-prompt'
 
@@ -15,10 +19,18 @@ export const CROP_ROLE_LABELS: Record<AvatarCropRole, string> = {
   'body-side': 'side profile',
 }
 
+// The role text rides into the edit prompt verbatim, so each board names its tiles.
+export const BOARD_SLOT_ROLES: Record<BoardRole, string> = {
+  face: 'face board: front, three-quarter, side profile, expressions',
+  body: 'body board: front, side profile, back, three-quarter',
+  details: 'details board: hands, skin, hair, facial features, body details',
+}
+
 export interface AvatarReferenceInfo {
   id: string
   assetIds?: string[]
   sheetAssetId?: string | null
+  boards?: AvatarBoard[]
   avatar?: boolean
   profile?: AvatarProfile | null
   crops?: AvatarCrop[]
@@ -32,6 +44,15 @@ export interface AvatarAssetSlot {
 
 export function avatarAssetSlots(reference: AvatarReferenceInfo, modelId: string): AvatarAssetSlot[] {
   const assets = reference.assetIds && reference.assetIds.length > 0 ? reference.assetIds : [reference.id]
+  const boards = reference.boards ?? []
+  if (boards.length > 0) {
+    // Identity first: face, then body, then details. A family that names fewer references
+    // gets the earlier boards only, so it never loses the face.
+    return [...boards]
+      .sort((left, right) => BOARD_ROLES.indexOf(left.role) - BOARD_ROLES.indexOf(right.role))
+      .slice(0, avatarReferenceLimit(avatarModelFamily(modelId)))
+      .map((board) => ({ id: board.assetId, role: BOARD_SLOT_ROLES[board.role] }))
+  }
   const crops = reference.crops ?? []
   if (crops.length === 0) {
     // The sheet drives face and identity, the panel body proportions: naming both

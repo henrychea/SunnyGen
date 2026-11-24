@@ -192,20 +192,26 @@ function bodyDirective(
   avatarProfile: AvatarProfile,
   targetIndex: number,
   bodyIndex: number | undefined,
+  bodyIsBoard: boolean,
   detail: BodyDetail,
   negatives: EditPromptProfile['negatives'],
   ref: (index: number) => string,
 ): string {
   const base = `Replace ${ref(targetIndex)}'s body with the avatar's: ${bodyFacts(avatarProfile)}.`
   if (detail === 'facts') return base
-  const source = bodyIndex ? `${ref(bodyIndex)} (full body)` : 'the avatar reference images'
-  if (detail === 'compact') return `${base} Take the body proportions from ${source}.`
+  const source = bodyIndex
+    ? `${ref(bodyIndex)} (${bodyIsBoard ? 'body board' : 'full body'})`
+    : 'the avatar reference images'
+  const curves = bodyIsBoard
+    ? ` Take the bust, waist, hip, buttock and leg curves from the same side profile tile.`
+    : ''
+  if (detail === 'compact') return `${base} Take the body proportions from ${source}.${curves}`
   const features = `Take shoulder width, chest, waist, hips and thigh width from ${source}.`
   // Gemini reads "the body belongs to the avatar" better than "the target's hips must not survive".
   if (negatives === 'avoid') {
-    return `${base} ${features} The body, proportions and figure belong to the avatar; the pose, clothing, framing, lighting and camera belong to ${ref(targetIndex)}.`
+    return `${base} ${features}${curves} The body, proportions and figure belong to the avatar; the pose, clothing, framing, lighting and camera belong to ${ref(targetIndex)}.`
   }
-  return `${base} ${features} ${ref(targetIndex)}'s own hips, thighs and waist must not survive.`
+  return `${base} ${features}${curves} ${ref(targetIndex)}'s own hips, thighs and waist must not survive.`
 }
 
 function buildKeywordEditPrompt(
@@ -224,9 +230,11 @@ function buildKeywordEditPrompt(
   const extras = slots.filter((slot) => !slot.avatar && slot !== target)
   const identityAvatars = avatars.slice(0, promptProfile.maxRefs)
   const demoted = avatars.slice(promptProfile.maxRefs)
-  const bodyIndex = (identityAvatars.length > 0 ? identityAvatars : avatars).find(
-    (slot) => slot.role === 'full body',
-  )?.index
+  const bodySlot = (identityAvatars.length > 0 ? identityAvatars : avatars).find(
+    (slot) => slot.role === 'full body' || Boolean(slot.role?.startsWith('body board')),
+  )
+  const bodyIndex = bodySlot?.index
+  const bodyIsBoard = Boolean(bodySlot?.role?.startsWith('body board'))
 
   const roles = identityAvatars.map((slot) => `${ref(slot.index)} (${slot.role})`).join(', ')
   const identity = (clause: string) =>
@@ -249,6 +257,7 @@ function buildKeywordEditPrompt(
       avatarProfile,
       target.index,
       bodyIndex,
+      bodyIsBoard,
       tier.bodyDetail,
       promptProfile.negatives,
       ref,

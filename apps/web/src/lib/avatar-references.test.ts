@@ -106,3 +106,36 @@ test('identity clauses respect the model family and never touch a bare prompt', 
     'A coffee shop portrait.',
   )
 })
+
+const BOARDS = [
+  { role: 'details' as const, assetId: 'details-board', width: 4096, height: 1100 },
+  { role: 'body' as const, assetId: 'body-board', width: 4096, height: 4096 },
+  { role: 'face' as const, assetId: 'face-board', width: 4096, height: 4096 },
+]
+
+test('boards replace crops and reach the model identity first, each naming its tiles', () => {
+  const withBoards = { ...PROFILED, boards: BOARDS }
+  assert.deepEqual(avatarAssetSlots(withBoards, 'fal:fal-ai/nano-banana-pro'), [
+    { id: 'face-board', role: 'face board: front, three-quarter, side profile, expressions' },
+    { id: 'body-board', role: 'body board: front, side profile, back, three-quarter' },
+    { id: 'details-board', role: 'details board: hands, skin, hair, facial features, body details' },
+  ])
+  // qwen names two avatar references, so it gets the face board and the body board only.
+  assert.deepEqual(avatarAssetSlots(withBoards, 'fal:fal-ai/qwen-image-edit-2509'), [
+    { id: 'face-board', role: 'face board: front, three-quarter, side profile, expressions' },
+    { id: 'body-board', role: 'body board: front, side profile, back, three-quarter' },
+  ])
+  assert.deepEqual(flattenReferenceAssets([withBoards], 'fal:fal-ai/flux-2-pro'), [
+    'face-board',
+    'body-board',
+    'details-board',
+  ])
+})
+
+test('stored crops still drive avatars that have no boards', () => {
+  assert.deepEqual(avatarAssetSlots({ ...PROFILED, boards: [] }, 'fal:fal-ai/nano-banana-pro'), [
+    { id: 'face-front', role: 'front face' },
+    { id: 'body', role: 'full body' },
+    { id: 'face-3q', role: 'three-quarter face' },
+  ])
+})

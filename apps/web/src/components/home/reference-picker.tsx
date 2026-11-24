@@ -198,6 +198,7 @@ export function ReferencePicker({
               lora: avatar.lora,
               profile: avatar.profile,
               crops: avatar.crops,
+              boards: avatar.boards,
               byteSize: avatar.byteSize,
               width: avatar.width,
               height: avatar.height,

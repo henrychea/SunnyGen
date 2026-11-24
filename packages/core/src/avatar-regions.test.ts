@@ -6,6 +6,7 @@ import {
   CROP_REGION_ROLES,
   SHEET_REGION_BOXES,
   boardAssetIds,
+  boardLayout,
   defaultCropRegions,
   parseAvatarBoards,
   parseCropRegions,
@@ -13,6 +14,7 @@ import {
   regionsForSource,
   resetRegionsForSource,
   type AvatarBoard,
+  type BoardTile,
 } from './avatar-regions'
 
 test('the default boxes are the quadrants and named regions the prompts draw', () => {
@@ -145,4 +147,47 @@ test('every role belongs to exactly one source', () => {
     ...regionsForSource('face-panel'),
   ]
   assert.deepEqual(covered.sort(), [...CROP_REGION_ROLES].sort())
+})
+
+test('a board is one row of tiles at a common height, inside 4096 and never enlarged', () => {
+  const sizes = {
+    'face-front': { width: 2048, height: 2048 },
+    'face-three-quarter': { width: 2048, height: 2048 },
+    'face-side': { width: 2048, height: 2048 },
+    expressions: { width: 1024, height: 1024 },
+  }
+  const layout = boardLayout(BOARD_TILES.face, sizes)
+  assert.deepEqual(
+    layout.tiles.map((tile) => tile.role),
+    ['face-front', 'face-three-quarter', 'face-side', 'expressions'],
+  )
+  // Three square 2048 tiles plus one 1024 tile at the same height would overflow, so the common
+  // height shrinks until the row fits 4096.
+  assert.ok(layout.width <= 4096)
+  assert.ok(layout.height <= 4096)
+  const heights = new Set(layout.tiles.map((tile) => tile.h))
+  assert.equal(heights.size, 1)
+  for (const tile of layout.tiles) {
+    assert.ok(tile.x >= 24 && tile.x + tile.w <= 4096)
+    assert.ok(tile.h <= 2048)
+  }
+  // Tiles sit side by side in order, with a gutter between them.
+  for (let index = 1; index < layout.tiles.length; index += 1) {
+    const previous = layout.tiles[index - 1] as BoardTile
+    const current = layout.tiles[index] as BoardTile
+    assert.equal(current.x, previous.x + previous.w + 24)
+  }
+})
+
+test('a narrow board keeps the tiles at their source height and widens by their aspect', () => {
+  const layout = boardLayout(
+    ['body-front', 'body-side'],
+    { 'body-front': { width: 2048, height: 2048 }, 'body-side': { width: 1024, height: 2048 } },
+    { gutter: 0 },
+  )
+  assert.deepEqual(layout.tiles, [
+    { role: 'body-front', x: 0, y: 0, w: 2048, h: 2048 },
+    { role: 'body-side', x: 2048, y: 0, w: 1024, h: 2048 },
+  ])
+  assert.deepEqual(boardLayout(BOARD_TILES.details, {}), { width: 0, height: 0, tiles: [] })
 })
