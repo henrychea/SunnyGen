@@ -11,6 +11,7 @@ import {
   motionPop,
   motionPress,
   motionSpring,
+  toast,
 } from '@sunnygen/ui'
 import { Check, ImageIcon, Loader2, Upload, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
@@ -31,6 +32,7 @@ const TAB_LABELS: Record<PickerTab, string> = {
 }
 
 function assetLabel(asset: PublicAsset): string {
+  if (asset.name) return asset.name
   const date = new Date(asset.createdAt).toLocaleDateString(undefined, {
     month: 'short',
     day: 'numeric',
@@ -284,10 +286,14 @@ export function ReferencePicker({
         if (!response.ok || !payload?.asset) {
           throw new Error(payload?.error ?? 'Upload failed')
         }
+        const uploadedName = payload.asset.name ?? file.name
+        toast(uploadedName === file.name ? `Uploaded ${uploadedName}` : `Uploaded as ${uploadedName}`, {
+          tone: 'info',
+        })
         if (payload.asset.kind === kind && !pickedAssetIds.has(payload.asset.id)) {
           next.push({
             id: payload.asset.id,
-            name: `Upload · ${new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`,
+            name: uploadedName,
             url: payload.asset.url,
             kind,
             byteSize: payload.asset.byteSize,
@@ -300,7 +306,9 @@ export function ReferencePicker({
       await library.refetch()
       setSelectedTab('uploads')
     } catch (error) {
-      setUploadError(error instanceof Error ? error.message : 'Upload failed')
+      const message = error instanceof Error ? error.message : 'Upload failed'
+      setUploadError(message)
+      toast(message, { tone: 'error' })
     } finally {
       setUploading(false)
       if (fileRef.current) fileRef.current.value = ''
@@ -341,8 +349,12 @@ export function ReferencePicker({
       if (payload?.errors?.length) {
         setImportError(payload.errors[0]?.error ?? 'Some links failed to import.')
       }
+      const imported = (payload?.assets ?? []).filter((asset) => asset.kind === kind).length
+      if (imported > 0) toast(`Imported ${imported} ${imported === 1 ? 'file' : 'files'}`, { tone: 'info' })
     } catch (error) {
-      setImportError(error instanceof Error ? error.message : 'Import failed')
+      const message = error instanceof Error ? error.message : 'Import failed'
+      setImportError(message)
+      toast(message, { tone: 'error' })
     } finally {
       setImporting(false)
     }

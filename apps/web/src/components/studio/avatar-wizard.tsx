@@ -16,7 +16,6 @@ import {
   Button,
   Dialog,
   DialogSurface,
-  FadeImage,
   Input,
   Label,
   Selector,
@@ -27,17 +26,12 @@ import {
   motionSwap,
   toast,
 } from '@sunnygen/ui'
-import { Check, Circle, ClipboardCopy, ImagePlus, ScanFace, X } from 'lucide-react'
+import { Check, ClipboardCopy, ClipboardPaste, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ReferencePicker } from '~/components/home/reference-picker'
-import { ModelCombobox, type ModelOption } from '~/components/model-combobox'
-import { sortModelChoices } from '~/lib/model-choices'
-import { reconcileParams } from '~/lib/model-params'
-import type { ReferenceItem } from '~/lib/reference-images'
-import { useModelChoices } from '~/lib/use-model-choices'
-import { getGenerationView, submitGeneration } from '~/server/generation.functions'
-import { extractAvatarProfileFn, saveStudioItemFn, type StudioItemDto } from '~/server/studio.functions'
+import { AvatarSheetUploads } from '~/components/studio/avatar-sheet-uploads'
+import { PromptExtract } from '~/components/studio/avatar-prompt-extract'
+import { saveStudioItemFn, type StudioItemDto } from '~/server/studio.functions'
 
 type WizardStep = 1 | 2 | 3 | 4 | 5 | 6
 
@@ -85,44 +79,33 @@ function stringData(item: StudioItemDto | null | undefined, key: string): string
   return typeof value === 'string' && value.length > 0 ? value : null
 }
 
-function wait(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
-
 export function AvatarWizard({
   open,
   onOpenChange,
   item,
+  initial,
   onSaved,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   item?: StudioItemDto | null
+  initial?: { profile: AvatarProfile; sheetId: string | null; panelId: string | null; name?: string } | null
   onSaved: () => void
 }) {
   const stored = useMemo(() => parseAvatarProfile(item?.data.avatarProfile), [item])
   const [step, setStep] = useState<WizardStep>(1)
-  const [name, setName] = useState(item?.name ?? '')
-  const [profile, setProfile] = useState<AvatarProfile>(stored ?? DEFAULT_AVATAR_PROFILE)
-  const [sheetId, setSheetId] = useState<string | null>(stringData(item, 'characterSheetAssetId'))
-  const [panelId, setPanelId] = useState<string | null>(item?.assetId ?? null)
+  const [name, setName] = useState(item?.name ?? initial?.name ?? '')
+  const [profile, setProfile] = useState<AvatarProfile>(stored ?? initial?.profile ?? DEFAULT_AVATAR_PROFILE)
+  const [sheetId, setSheetId] = useState<string | null>(
+    stringData(item, 'characterSheetAssetId') ?? initial?.sheetId ?? null,
+  )
+  const [panelId, setPanelId] = useState<string | null>(item?.assetId ?? initial?.panelId ?? null)
   const [sheetEdit, setSheetEdit] = useState<string | null>(null)
   const [panelEdit, setPanelEdit] = useState<string | null>(null)
   const [pickerOpen, setPickerOpen] = useState(false)
-  const [modelId, setModelId] = useState('nano-banana-2')
-  const [busy, setBusy] = useState<'sheet' | 'panel' | 'save' | 'extract' | null>(null)
+  const [pasteOpen, setPasteOpen] = useState(false)
+  const [busy, setBusy] = useState<'save' | null>(null)
   const [error, setError] = useState<string | null>(null)
-
-  const { choices, catalogOnly } = useModelChoices()
-  const modelOptions = useMemo(
-    () =>
-      sortModelChoices(choices, catalogOnly).filter(
-        (entry) => entry.kind === 'image' && !entry.disabled && Boolean(entry.definition?.supportsImages),
-      ),
-    [choices, catalogOnly],
-  )
-  const model =
-    modelOptions.find((entry) => entry.modelId === modelId)?.definition ?? modelOptions[0]?.definition ?? null
 
   const sheetPrompt = sheetEdit ?? buildReferenceSheetPrompt(profile)
   const panelPrompt = panelEdit ?? buildPanelSheetPrompt(profile)
@@ -136,90 +119,6 @@ export function AvatarWizard({
   useEffect(() => {
     stepTop.current?.scrollTo({ top: 0 })
   }, [step])
-
-  const portraitId = profile.source.portraitAssetId ?? null
-
-  const runGeneration = async (kind: 'sheet' | 'panel') => {
-    if (!model) {
-      setError('Pick an image model first.')
-      return
-    }
-    const prompt = kind === 'sheet' ? sheetPrompt.trim() : panelPrompt.trim()
-    if (prompt.length === 0) {
-      setError('The prompt is empty.')
-      return
-    }
-    if (kind === 'panel' && !sheetId) {
-      setError('Generate or pick a reference sheet first.')
-      return
-    }
-    const wanted = kind === 'sheet' ? profile.sheet.resolution : profile.panel.resolution
-    const { params, changes } = reconcileParams(
-      {
-        aspectRatio: kind === 'sheet' ? profile.sheet.ratio : '1:1',
-        quality: wanted.toLowerCase(),
-        duration: 0,
-        resolution: '',
-        count: 1,
-      },
-      model,
-    )
-    for (const change of changes) toast(change.message, { tone: 'warning' })
-    setBusy(kind)
-    setError(null)
-    try {
-      const submitted = await submitGeneration({
-        data: {
-          kind: 'image',
-          model: model.id,
-          prompt,
-          assetIds: kind === 'sheet' ? (portraitId ? [portraitId] : []) : [sheetId as string],
-          params: { aspectRatio: params.aspectRatio, quality: params.quality },
-        },
-      })
-      if (submitted.generation.status === 'failed') {
-        throw new Error(submitted.generation.error ?? 'Generation failed')
-      }
-      let view = submitted
-      for (let attempt = 0; attempt < 300 && view.generation.status !== 'succeeded'; attempt += 1) {
-        await wait(2_000)
-        const next = await getGenerationView({ data: { id: submitted.generation.id } })
-        if (!next) throw new Error('The generation disappeared.')
-        if (next.generation.status === 'failed') {
-          throw new Error(next.generation.error ?? 'Generation failed')
-        }
-        if (next.generation.status === 'cancelled') throw new Error('Generation canceled.')
-        view = next
-      }
-      const outputId = view.generation.outputAssetIds[0]
-      if (!outputId) throw new Error('No image came back.')
-      if (kind === 'sheet') setSheetId(outputId)
-      else setPanelId(outputId)
-      toast(kind === 'sheet' ? 'Reference sheet ready.' : '4×4 panel ready.', { tone: 'info' })
-    } catch (generateError) {
-      setError(generateError instanceof Error ? generateError.message : 'Generation failed')
-    } finally {
-      setBusy(null)
-    }
-  }
-
-  const extract = async () => {
-    if (!item) return
-    setBusy('extract')
-    setError(null)
-    try {
-      const extracted = await extractAvatarProfileFn({ data: { avatarId: item.id } })
-      setProfile((current) => ({
-        ...extracted,
-        source: { ...extracted.source, portraitAssetId: current.source.portraitAssetId },
-      }))
-      toast('Keywords extracted. Review them before saving.', { tone: 'info' })
-    } catch (extractError) {
-      setError(extractError instanceof Error ? extractError.message : 'Could not extract keywords')
-    } finally {
-      setBusy(null)
-    }
-  }
 
   const save = async (profileOnly: boolean) => {
     if (!name.trim()) {
@@ -250,8 +149,11 @@ export function AvatarWizard({
       })
       onSaved()
       onOpenChange(false)
+      toast(profileOnly ? 'Profile saved' : 'Avatar saved', { tone: 'info' })
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : 'Could not save')
+      const message = saveError instanceof Error ? saveError.message : 'Could not save'
+      setError(message)
+      toast(message, { tone: 'error' })
     } finally {
       setBusy(null)
     }
@@ -271,7 +173,7 @@ export function AvatarWizard({
 
   return (
     <>
-      <Dialog.Root open={open} onOpenChange={onOpenChange} disablePointerDismissal={pickerOpen}>
+      <Dialog.Root open={open} onOpenChange={onOpenChange} disablePointerDismissal={pickerOpen || pasteOpen}>
         <DialogSurface className="h-[calc(100dvh-2rem)] w-[min(96vw,720px)]">
           <div className="flex h-full min-h-0 flex-col">
             <div className="flex items-start justify-between gap-3">
@@ -280,7 +182,8 @@ export function AvatarWizard({
                   {item ? `Edit profile · ${item.name}` : 'New avatar'}
                 </Dialog.Title>
                 <p className="text-ink/65 mt-0.5 text-[11px]">
-                  Build the reference sheet and 4×4 panel, then save the identity keywords.
+                  Fill in the profile, run the two prompts in your image AI, then upload the sheet and the 4×4
+                  panel.
                 </p>
               </div>
               <button
@@ -346,77 +249,34 @@ export function AvatarWizard({
 
                   {step === 1 ? (
                     <div className="flex flex-col gap-4">
-                      <div className="grid gap-2 sm:grid-cols-[160px_1fr]">
-                        <button
-                          type="button"
-                          onClick={() => setPickerOpen(true)}
-                          className="border-line bg-canvas/40 text-ink/65 hover:border-accent/40 hover:text-accent focus-visible:ring-accent/50 relative grid h-28 place-items-center overflow-hidden rounded-xl border border-dashed transition-[color,border-color,background-color] duration-200 ease-out focus-visible:ring-2 focus-visible:outline-none"
-                        >
-                          {portraitId ? (
-                            <FadeImage
-                              shimmer
-                              src={`/api/media/${portraitId}`}
-                              alt="Likeness portrait"
-                              className="size-full object-contain"
-                            />
-                          ) : (
-                            <span className="flex flex-col items-center gap-1 text-[10.5px]">
-                              <ImagePlus size={16} aria-hidden="true" />
-                              Pick a portrait
-                            </span>
-                          )}
-                        </button>
-                        <div className="flex flex-col gap-3">
-                          <label className="flex flex-col gap-1.5">
-                            <Label>Likeness · {profile.source.likenessPercent}%</Label>
-                            <input
-                              type="range"
-                              min={20}
-                              max={95}
-                              step={5}
-                              value={profile.source.likenessPercent}
-                              onChange={(event) =>
-                                patch('source', { likenessPercent: Number(event.target.value) })
-                              }
-                              disabled={!portraitId}
-                              className="accent-accent h-2 w-full disabled:opacity-40"
-                            />
-                            <span className="text-ink/65 text-[10.5px]">
-                              The percentage is written into the likeness rule.
-                            </span>
-                          </label>
-                          <div className="flex flex-wrap gap-1.5">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="min-h-11 text-[11px] sm:h-7 sm:min-h-0 sm:text-[10.5px]"
-                              onClick={() => patch('source', { portraitAssetId: undefined })}
-                              disabled={!portraitId}
-                            >
-                              Clear portrait
-                            </Button>
-                            {item ? (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="min-h-11 text-[11px] sm:h-7 sm:min-h-0 sm:text-[10.5px]"
-                                onClick={() => void extract()}
-                                loading={busy === 'extract'}
-                                disabled={busy !== null}
-                              >
-                                <ScanFace size={12} aria-hidden="true" /> Extract keywords from sheet
-                              </Button>
-                            ) : null}
-                          </div>
-                        </div>
-                      </div>
-
-                      {item ? (
-                        <p className="text-ink/65 text-[10.5px]">
-                          Extract reads the saved sheet once with the OpenRouter model from Settings. Nothing
-                          is saved until you press Save.
-                        </p>
-                      ) : null}
+                      <ChipGroup
+                        label="Portrait"
+                        options={[{ key: 'portrait', label: 'Attach a portrait in your AI' }]}
+                        selected={profile.source.usePortrait ? ['portrait'] : []}
+                        onToggle={() => patch('source', { usePortrait: !profile.source.usePortrait })}
+                      />
+                      <p className="text-ink/65 text-[10.5px]">
+                        {profile.source.usePortrait
+                          ? 'The likeness rule goes into the sheet prompt. Attach your portrait in your image AI when you run that prompt.'
+                          : 'Without the portrait the likeness rule stays out of the sheet prompt and the fields below carry the look.'}
+                      </p>
+                      <label className="flex flex-col gap-1.5">
+                        <Label>Likeness · {profile.source.likenessPercent}%</Label>
+                        <input
+                          type="range"
+                          min={20}
+                          max={95}
+                          step={5}
+                          value={profile.source.likenessPercent}
+                          onChange={(event) =>
+                            patch('source', { likenessPercent: Number(event.target.value) })
+                          }
+                          className="accent-accent h-2 w-full"
+                        />
+                        <span className="text-ink/65 text-[10.5px]">
+                          The percentage is written into the likeness rule.
+                        </span>
+                      </label>
                       <p className="text-ink/65 text-[10.5px]">
                         Chip lists are written into the likeness rule as traits to keep or change.
                       </p>
@@ -454,12 +314,21 @@ export function AvatarWizard({
                           }
                         />
                       </div>
-                      {!portraitId ? (
+                      <div className="flex flex-col gap-1.5">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="min-h-11 self-start text-[11px] sm:h-7 sm:min-h-0 sm:text-[10.5px]"
+                          onClick={() => setPasteOpen(true)}
+                          disabled={busy !== null}
+                        >
+                          <ClipboardPaste size={12} aria-hidden="true" /> Paste prompt
+                        </Button>
                         <p className="text-ink/65 text-[10.5px]">
-                          Without a portrait the likeness rule is left out and the sheet uses the fields
-                          below.
+                          Paste the image prompt to fill the fields it states. Anything it does not state is
+                          listed as missing so you can fill it in.
                         </p>
-                      ) : null}
+                      </div>
                     </div>
                   ) : null}
 
@@ -853,7 +722,8 @@ export function AvatarWizard({
                   {step === 6 ? (
                     <div className="flex flex-col gap-4">
                       <p className="text-ink/65 text-[10.5px]">
-                        Both prompts are saved with the profile. Edit or copy them before generating.
+                        Copy each prompt into your image AI, then upload the two images here. Both prompts are
+                        saved with the profile.
                       </p>
                       <PromptEditor
                         label="Reference sheet prompt"
@@ -867,6 +737,13 @@ export function AvatarWizard({
                         onChange={setPanelEdit}
                         onCopy={() => void copy(panelPrompt)}
                       />
+                      <AvatarSheetUploads
+                        sheetId={sheetId}
+                        panelId={panelId}
+                        onSheet={setSheetId}
+                        onPanel={setPanelId}
+                        onPickerOpenChange={setPickerOpen}
+                      />
                     </div>
                   ) : null}
                 </motion.div>
@@ -874,26 +751,6 @@ export function AvatarWizard({
             </div>
 
             <div className="border-line bg-surface mt-4 flex shrink-0 flex-col gap-3 border-t pt-3">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-                <div className="flex items-center gap-2">
-                  <AssetPill label="Sheet" assetId={sheetId} />
-                  <AssetPill label="Panel" assetId={panelId} />
-                </div>
-                <div className="sm:ml-auto sm:w-64">
-                  <ModelCombobox
-                    options={modelOptions}
-                    value={model?.id ?? ''}
-                    onChange={(entry: ModelOption) => {
-                      if (entry.modelId) setModelId(entry.modelId)
-                    }}
-                    ariaLabel="Image model"
-                  />
-                  <p className="text-ink/65 mt-1 text-[10.5px]">
-                    The image model used by both generate buttons.
-                  </p>
-                </div>
-              </div>
-
               <AnimatePresence initial={false}>
                 {error ? (
                   <motion.p
@@ -911,24 +768,6 @@ export function AvatarWizard({
               </AnimatePresence>
 
               <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => void runGeneration('sheet')}
-                  loading={busy === 'sheet'}
-                  disabled={busy !== null || !model}
-                  className="min-h-11 text-[11px] sm:min-h-10"
-                >
-                  Generate reference sheet
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => void runGeneration('panel')}
-                  loading={busy === 'panel'}
-                  disabled={busy !== null || !model || !sheetId}
-                  className="min-h-11 text-[11px] sm:min-h-10"
-                >
-                  Generate 4×4 panel
-                </Button>
                 <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
                   {item ? (
                     <Button
@@ -964,22 +803,39 @@ export function AvatarWizard({
             </div>
           </div>
 
-          {pickerOpen ? (
-            <ReferencePicker
-              title="Portrait for likeness"
-              allowAvatars={false}
-              existingIds={[]}
-              max={1}
-              onClose={() => setPickerOpen(false)}
-              onConfirm={(picked: ReferenceItem[]) => {
-                const chosen = picked[0]
-                if (chosen) {
-                  patch('source', { portraitAssetId: chosen.id })
-                  if (!name.trim()) setName(chosen.name)
-                }
-                setPickerOpen(false)
-              }}
-            />
+          {pasteOpen ? (
+            <Dialog.Root open onOpenChange={setPasteOpen}>
+              <DialogSurface className="w-[min(92vw,560px)]">
+                <Dialog.Title className="font-display text-[15px] font-semibold">Paste prompt</Dialog.Title>
+                <p className="text-ink/65 mt-0.5 text-[11px]">
+                  Only what the prompt states is filled in. Everything else is listed so you can fill it in
+                  the steps.
+                </p>
+                <div className="mt-3">
+                  <PromptExtract
+                    onExtracted={(extracted) =>
+                      setProfile((current) => ({
+                        ...extracted,
+                        source: {
+                          ...extracted.source,
+                          portraitAssetId: current.source.portraitAssetId,
+                          usePortrait: current.source.usePortrait,
+                        },
+                      }))
+                    }
+                  />
+                </div>
+                <div className="mt-4 flex justify-end">
+                  <Button
+                    variant="outline"
+                    onClick={() => setPasteOpen(false)}
+                    className="min-h-11 text-[11px] sm:min-h-9"
+                  >
+                    Done
+                  </Button>
+                </div>
+              </DialogSurface>
+            </Dialog.Root>
           ) : null}
         </DialogSurface>
       </Dialog.Root>
@@ -1126,19 +982,5 @@ function PromptEditor({
       </div>
       <Textarea value={value} onChange={(event) => onChange(event.target.value)} className="min-h-40" />
     </div>
-  )
-}
-
-function AssetPill({ label, assetId }: { label: string; assetId: string | null }) {
-  return (
-    <span className="border-line bg-canvas/40 inline-flex items-center gap-1.5 rounded-lg border px-2 py-1 text-[10px]">
-      {assetId ? (
-        <Check size={10} className="text-accent" aria-hidden="true" />
-      ) : (
-        <Circle size={10} className="text-ink/60" aria-hidden="true" />
-      )}
-      <span className="text-ink/70">{label}</span>
-      <span className="sr-only">{assetId ? 'ready' : 'missing'}</span>
-    </span>
   )
 }

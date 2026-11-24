@@ -19,6 +19,7 @@ import {
   motionPop,
   motionSpring,
   motionSwap,
+  toast,
 } from '@sunnygen/ui'
 import { Check, Sparkles, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
@@ -103,8 +104,11 @@ export function StudioTrainDialog({
       if (run.status === 'failed') throw new Error(run.error ?? 'Training failed')
       onStarted(run)
       onOpenChange(false)
+      toast('Training started', { tone: 'info' })
     } catch (startError) {
-      setError(startError instanceof Error ? startError.message : 'Training failed')
+      const message = startError instanceof Error ? startError.message : 'Training failed'
+      setError(message)
+      toast(message, { tone: 'error' })
     } finally {
       setBusy(false)
     }

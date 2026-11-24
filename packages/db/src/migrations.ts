@@ -1,4 +1,4 @@
-export const SCHEMA_VERSION = 3
+export const SCHEMA_VERSION = 4
 
 export const MIGRATIONS: readonly string[] = [
   `
@@ -115,5 +115,10 @@ export const MIGRATIONS: readonly string[] = [
     created_at INTEGER NOT NULL,
     PRIMARY KEY (provider, sha256)
   ) STRICT;
+  `,
+  `
+  ALTER TABLE assets ADD COLUMN name TEXT;
+  DROP INDEX IF EXISTS assets_sha256;
+  CREATE INDEX assets_sha256 ON assets(sha256);
   `,
 ]

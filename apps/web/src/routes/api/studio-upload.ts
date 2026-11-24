@@ -42,7 +42,9 @@ export const Route = createFileRoute('/api/studio-upload')({
             buffer: Buffer.from(await file.arrayBuffer()),
             mime,
             kind: 'image',
-            source: 'studio',
+            source: 'upload',
+            unique: true,
+            name: file.name,
           })
           return Response.json(toPublicAsset(asset))
         } catch (error) {

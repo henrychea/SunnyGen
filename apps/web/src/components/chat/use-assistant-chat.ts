@@ -7,6 +7,7 @@ import {
   loadChatSessions,
   saveChatSession,
 } from '~/server/chat.functions'
+import { toast } from '@sunnygen/ui'
 import type { ChatTurn } from './transcript'
 
 interface StreamEvent {
@@ -299,8 +300,11 @@ export function useAssistantChat({
         changeRef.current(null, { replace: true })
       }
       await queryClient.invalidateQueries({ queryKey: ['chat-sessions'] })
+      toast('Chat deleted', { tone: 'info' })
     } catch (cause) {
-      setError(messageOf(cause, 'Could not delete that chat.'))
+      const message = messageOf(cause, 'Could not delete that chat.')
+      setError(message)
+      toast(message, { tone: 'error' })
     }
   }
 

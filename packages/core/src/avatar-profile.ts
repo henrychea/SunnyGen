@@ -117,6 +117,7 @@ export type SheetLabelMode = 'section-names' | 'none'
 
 export interface AvatarSourceSettings {
   portraitAssetId?: string
+  usePortrait?: boolean
   likenessPercent: number
   keep: LikenessKeepTrait[]
   change: LikenessChangeTrait[]
@@ -307,6 +308,7 @@ const STYLE_BANS: ReadonlyArray<{ key: AvatarStyleBan; label: string }> = [
 
 export const DEFAULT_AVATAR_PROFILE: AvatarProfile = {
   source: {
+    usePortrait: false,
     likenessPercent: 70,
     keep: [...LIKENESS_KEEP_TRAITS],
     change: [...LIKENESS_CHANGE_TRAITS],
@@ -438,6 +440,7 @@ export function parseAvatarProfile(value: unknown): AvatarProfile | null {
   return {
     source: {
       portraitAssetId: text(source.portraitAssetId, '') || undefined,
+      usePortrait: flag(source.usePortrait, false),
       likenessPercent: count(source.likenessPercent, defaults.source.likenessPercent, 20, 95),
       keep: traits(source.keep, LIKENESS_KEEP_TRAITS, defaults.source.keep),
       change: traits(source.change, LIKENESS_CHANGE_TRAITS, defaults.source.change),
@@ -506,6 +509,47 @@ export function parseAvatarProfile(value: unknown): AvatarProfile | null {
       borders: flag(panel.borders, defaults.panel.borders),
     },
   }
+}
+
+export const AVATAR_PROFILE_FIELD_LABELS: Record<string, string> = {
+  'identity.gender': 'Gender',
+  'identity.age': 'Age',
+  'identity.ethnicity': 'Ethnicity',
+  'identity.heightCm': 'Height',
+  'face.faceShape': 'Face shape',
+  'face.jawline': 'Jawline',
+  'face.chin': 'Chin',
+  'face.eyeSize': 'Eye size',
+  'face.eyeShape': 'Eye shape',
+  'face.eyebrows': 'Eyebrows',
+  'face.noseBridge': 'Nose bridge',
+  'face.noseTip': 'Nose tip',
+  'face.lips': 'Lips',
+  'face.skinTone': 'Skin tone',
+  'hair.color': 'Hair colour',
+  'hair.length': 'Hair length',
+  'hair.texture': 'Hair texture',
+  'hair.parting': 'Parting',
+  'body.build': 'Figure',
+  'body.legs': 'Legs',
+  'body.bust': 'Bust',
+  'outfit.top': 'Top',
+  'outfit.legwear': 'Legwear',
+  'outfit.shoes': 'Shoes',
+}
+
+export const AVATAR_PROFILE_FIELDS = Object.keys(AVATAR_PROFILE_FIELD_LABELS)
+
+// Reads the raw extraction reply: parseAvatarProfile fills defaults, so missing fields must be
+// found before it runs.
+export function missingProfileFields(value: unknown): string[] {
+  const record = group(value)
+  return AVATAR_PROFILE_FIELDS.filter((path) => {
+    const [key, field] = path.split('.')
+    const entry = group(record[key as string])[field as string]
+    if (entry === undefined || entry === null) return true
+    return typeof entry === 'string' && entry.trim().length === 0
+  })
 }
 
 function joinAnd(items: string[]): string {
@@ -584,12 +628,12 @@ function sheetSettingsLine(profile: AvatarProfile): string {
 }
 
 export function buildReferenceSheetPrompt(profile: AvatarProfile): string {
-  const hasPortrait = Boolean(profile.source.portraitAssetId)
+  const hasPortrait = profile.source.usePortrait === true || Boolean(profile.source.portraitAssetId)
   const lines: string[] = []
 
   lines.push(
     hasPortrait
-      ? `Create a professional-grade original character reference sheet. Use the uploaded portrait only as a ${profile.source.likenessPercent}% likeness guide, not as an identity to copy.`
+      ? `Create a professional-grade original character reference sheet. Use the attached portrait only as a ${profile.source.likenessPercent}% likeness guide, not as an identity to copy.`
       : 'Create a professional-grade original character reference sheet.',
   )
   if (hasPortrait) lines.push('', likenessRule(profile))
@@ -627,7 +671,7 @@ export function buildReferenceSheetPrompt(profile: AvatarProfile): string {
 
   const lock = [
     'Identity lock for every panel: same new face, same body, same hair, same outfit.',
-    hasPortrait ? "Do not revert to the uploaded portrait's face in any panel." : '',
+    hasPortrait ? "Do not revert to the attached portrait's face in any panel." : '',
     sheetSettingsLine(profile),
   ]
     .filter(Boolean)

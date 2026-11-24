@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Loader2, Trash2 } from 'lucide-react'
-import { cn, motionMountFade } from '@sunnygen/ui'
+import { cn, motionMountFade, toast } from '@sunnygen/ui'
 import { cleanupFailedGenerations } from '~/server/library.functions'
 
 export function CleanupFailedButton({ count, className }: { count: number; className?: string }) {
@@ -8,6 +8,7 @@ export function CleanupFailedButton({ count, className }: { count: number; class
   const cleanup = useMutation({
     mutationFn: () => cleanupFailedGenerations(),
     onSuccess: async () => {
+      toast(`Cleaned ${count} failed ${count === 1 ? 'generation' : 'generations'}`, { tone: 'info' })
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['home-generations'] }),
         queryClient.invalidateQueries({ queryKey: ['gallery'] }),
@@ -15,6 +16,10 @@ export function CleanupFailedButton({ count, className }: { count: number; class
         queryClient.invalidateQueries({ queryKey: ['folders'] }),
       ])
     },
+    onError: (error) =>
+      toast(error instanceof Error ? error.message : 'Could not clean failed generations', {
+        tone: 'error',
+      }),
   })
 
   if (count === 0) return null

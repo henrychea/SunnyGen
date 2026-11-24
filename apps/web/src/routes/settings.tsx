@@ -16,6 +16,7 @@ import {
   motionFadeRise,
   motionPop,
   motionSpring,
+  toast,
 } from '@sunnygen/ui'
 import { ExternalLink, RefreshCw, Search } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
@@ -238,9 +239,12 @@ function ProviderKeyCard({
       })
       setValue('')
       setMessage('Saved')
+      toast(`${label} key saved`, { tone: 'info' })
       onSaved()
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Could not save the key')
+      const text = error instanceof Error ? error.message : 'Could not save the key'
+      setMessage(text)
+      toast(text, { tone: 'error' })
     } finally {
       setBusy(false)
     }
@@ -251,7 +255,10 @@ function ProviderKeyCard({
     try {
       await clearProviderKey({ data: { provider: providerId as 'sunra' | 'fal' | 'azure' } })
       setMessage('Removed')
+      toast(`${label} key removed`, { tone: 'info' })
       onSaved()
+    } catch (error) {
+      toast(error instanceof Error ? error.message : 'Could not remove the key', { tone: 'error' })
     } finally {
       setBusy(false)
     }
@@ -341,9 +348,12 @@ function AzureCard({
     try {
       await saveAzureConfig({ data: { baseUrl: url.trim(), deployment: deploy.trim() } })
       setMessage('Saved')
+      toast('Azure settings saved', { tone: 'info' })
       onSaved()
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Could not save Azure settings')
+      const text = error instanceof Error ? error.message : 'Could not save Azure settings'
+      setMessage(text)
+      toast(text, { tone: 'error' })
     } finally {
       setBusy(false)
     }
@@ -407,9 +417,12 @@ function AssistantKeyCard({ configured, onSaved }: { configured: boolean; onSave
       await saveOpenRouterKey({ data: { key: value.trim() } })
       setValue('')
       setMessage('Saved')
+      toast('OpenRouter key saved', { tone: 'info' })
       onSaved()
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Could not save the key')
+      const text = error instanceof Error ? error.message : 'Could not save the key'
+      setMessage(text)
+      toast(text, { tone: 'error' })
     } finally {
       setBusy(false)
     }
@@ -420,7 +433,10 @@ function AssistantKeyCard({ configured, onSaved }: { configured: boolean; onSave
     try {
       await clearOpenRouterKey()
       setMessage('Removed')
+      toast('OpenRouter key removed', { tone: 'info' })
       onSaved()
+    } catch (error) {
+      toast(error instanceof Error ? error.message : 'Could not remove the key', { tone: 'error' })
     } finally {
       setBusy(false)
     }
@@ -525,8 +541,11 @@ function ModelCatalogCard({ catalog }: { catalog: ModelCatalogView }) {
           result.priced ? ' with live prices.' : '. Add a provider key to load prices.'
         }`,
       )
+      toast(`${label}: catalog rebuilt`, { tone: 'info' })
     } catch (rebuildError) {
-      setError(rebuildError instanceof Error ? rebuildError.message : 'Rebuild failed')
+      const text = rebuildError instanceof Error ? rebuildError.message : 'Rebuild failed'
+      setError(text)
+      toast(text, { tone: 'error' })
     } finally {
       setRebuilding(null)
     }
@@ -753,7 +772,10 @@ function PrepModelCard({
     setBusy(true)
     try {
       await savePrepModel({ data: { model: value.trim() } })
+      toast('Prep model saved', { tone: 'info' })
       onSaved()
+    } catch (error) {
+      toast(error instanceof Error ? error.message : 'Could not save the prep model', { tone: 'error' })
     } finally {
       setBusy(false)
     }

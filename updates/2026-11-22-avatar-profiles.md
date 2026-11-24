@@ -48,6 +48,8 @@ Identity, Hair & body, Outfit & style, Sheet, Review. It opens from New avatar i
 place, can run Extract keywords from sheet, and offers Save profile only. No provider
 call happens without a click.
 
+_Updated 2026-11-24: the in-wizard generation and the Extract keywords from sheet button were replaced by copying the two prompts and uploading the results, plus a Paste prompt dialog that extracts from a pasted prompt; see [2026-11-24-avatar-wizard-uploads-toasts.md](2026-11-24-avatar-wizard-uploads-toasts.md)._
+
 **Consumers.** Edit uses the profile in `apps/web/src/lib/edit-prompt.ts`; Studio look
 uses it in `apps/web/src/components/studio/look-builder.tsx`; Home generate appends the
 clause in `apps/web/src/components/home/composer.tsx`; Video does the same in

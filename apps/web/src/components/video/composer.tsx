@@ -353,10 +353,16 @@ export function VideoComposer({
         setNotice(
           `Queued ${ids.length} ${ids.length === 1 ? 'render' : 'renders'}. The wall updates as each finishes.`,
         )
+        toast(`${ids.length} ${ids.length === 1 ? 'render' : 'renders'} started`, { tone: 'info' })
       }
-      if (failures.length > 0) setError(failures[0] ?? 'Generation failed')
+      if (failures.length > 0) {
+        setError(failures[0] ?? 'Generation failed')
+        toast(failures[0] ?? 'Generation failed', { tone: 'error' })
+      }
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : 'Generation failed')
+      const message = submitError instanceof Error ? submitError.message : 'Generation failed'
+      setError(message)
+      toast(message, { tone: 'error' })
     } finally {
       setBusy(false)
     }

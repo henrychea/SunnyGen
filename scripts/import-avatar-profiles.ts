@@ -2,7 +2,7 @@
  * Backfill avatar profiles and identity keywords from each avatar's reference sheet.
  *
  * Existing avatars predate the profile, so the sheet is the only truthful source. The
- * extraction is the same request the wizard's "Extract keywords from sheet" button makes.
+ * extraction is the same vision request the wizard used before prompts replaced it.
  *
  *   pnpm tsx scripts/import-avatar-profiles.ts --db ../SunnyGen/data/sunnygen.db
  *   pnpm tsx scripts/import-avatar-profiles.ts --db ... --dry-run

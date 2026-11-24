@@ -12,6 +12,7 @@ import {
   motionSpring,
   motionTransition,
   Skeleton,
+  toast,
 } from '@sunnygen/ui'
 import { Columns3, LayoutGrid, Loader2, RefreshCw, Sparkles, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
@@ -74,16 +75,25 @@ function GalleryPage() {
       moveLibraryItemFn({ data: { type: 'generation', id: item.id, folderId: target } }),
     onSuccess: async (_data, variables) => {
       setOpen((current) => (current ? { ...current, folderId: variables.target } : current))
+      const folder = variables.target
+        ? (folders.data ?? []).find((entry) => entry.id === variables.target)?.name
+        : null
+      toast(folder ? `Moved to ${folder}` : 'Moved to Unfiled', { tone: 'info' })
       await queryClient.invalidateQueries({ queryKey: ['gallery'] })
     },
+    onError: (error) =>
+      toast(error instanceof Error ? error.message : 'Could not move the item', { tone: 'error' }),
   })
 
   const remove = useMutation({
     mutationFn: (item: GalleryItem) => deleteLibraryItemFn({ data: { type: 'generation', id: item.id } }),
     onSuccess: async () => {
       setOpen(null)
+      toast('Item deleted', { tone: 'info' })
       await queryClient.invalidateQueries({ queryKey: ['gallery'] })
     },
+    onError: (error) =>
+      toast(error instanceof Error ? error.message : 'Could not delete the item', { tone: 'error' }),
   })
 
   const items = gallery.data ?? []
@@ -200,6 +210,7 @@ function GalleryPage() {
                               try {
                                 await deleteLibraryItemFn({ data: { type: 'generation', id: failure.id } })
                                 await queryClient.invalidateQueries({ queryKey: ['failures'] })
+                                toast('Failure removed', { tone: 'info' })
                               } finally {
                                 setDismissingId(null)
                               }

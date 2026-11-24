@@ -258,6 +258,7 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
       const folder = await createFolderFn({
         data: { name: studioFolderName() },
       })
+      toast(`${selected.length} ${selected.length === 1 ? 'angle' : 'angles'} started`, { tone: 'info' })
 
       for (const angle of selected) {
         if (runToken.current !== token) return
@@ -314,7 +315,9 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
         await queryClient.invalidateQueries({ queryKey: ['gallery'] })
       }
     } catch (runError) {
-      setError(runError instanceof Error ? runError.message : 'Could not run the look')
+      const message = runError instanceof Error ? runError.message : 'Could not run the look'
+      setError(message)
+      toast(message, { tone: 'error' })
     } finally {
       if (runToken.current === token) setRunning(false)
     }

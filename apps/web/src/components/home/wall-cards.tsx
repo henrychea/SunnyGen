@@ -9,6 +9,7 @@ import {
   motionFast,
   motionPop,
   motionSwap,
+  toast,
 } from '@sunnygen/ui'
 import { AlertCircle, Clock, FileAudio, Folder, Loader2, Trash2 } from 'lucide-react'
 import { useEffect, useState, type Ref } from 'react'
@@ -388,8 +389,11 @@ function DeleteAllButton({
         queryClient.invalidateQueries({ queryKey: ['folders'] }),
       ])
       onDeleted()
-    } catch {
+      toast(`${ids.length} ${ids.length === 1 ? 'item' : 'items'} deleted`, { tone: 'info' })
+    } catch (deleteError) {
+      const message = deleteError instanceof Error ? deleteError.message : 'Could not delete'
       setError('Could not delete everything in this group.')
+      toast(message, { tone: 'error' })
     } finally {
       setBusy(false)
     }
@@ -454,6 +458,7 @@ function CollectionModal({
       queryClient.invalidateQueries({ queryKey: ['folders'] }),
     ])
     setHidden((current) => new Set(current).add(generation.id))
+    toast(`${noun.charAt(0).toUpperCase()}${noun.slice(1)} deleted`, { tone: 'info' })
   }
 
   return (
@@ -569,6 +574,7 @@ function OutputModal({
       queryClient.invalidateQueries({ queryKey: ['folders'] }),
     ])
     onClose()
+    toast('Item deleted', { tone: 'info' })
   }
 
   return (

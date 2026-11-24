@@ -45,6 +45,7 @@ export interface GenerationRecord {
 export interface AssetRecord {
   id: string
   kind: AssetKind
+  name: string | null
   mime: string
   byteSize: number
   width: number | null

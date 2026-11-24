@@ -17,7 +17,6 @@ import {
   parseAvatarLora,
   parseAvatarProfile,
   parseGarmentViews,
-  type AvatarProfile,
   type GarmentSlot,
   type GarmentSource,
   type GarmentView,
@@ -38,7 +37,7 @@ import sharp from 'sharp'
 import { getGenerationView, submitGeneration } from './generation.functions'
 import { assetUrl, readAssetBuffer, storeBuffer } from './media.server'
 import { ensureAvatarCrops } from './avatar-crops.server'
-import { extractAvatarProfile } from './avatar-profile.server'
+import { extractAvatarFromPrompt } from './avatar-profile.server'
 
 export interface StudioItemDto {
   id: string
@@ -167,25 +166,19 @@ export const saveStudioItemFn = createServerFn({ method: 'POST', strict: false }
 
 const OPENROUTER_KEY_SETTING = 'assistant.openrouter.key'
 
-export const extractAvatarProfileFn = createServerFn({ method: 'POST', strict: false })
-  .validator(z.object({ avatarId: z.string().min(1) }))
-  .handler(async ({ data }): Promise<AvatarProfile> => {
-    const avatar = getStudioItem(data.avatarId)
-    if (!avatar || avatar.kind !== 'avatar') throw new Error('Avatar not found')
-    const sheetId =
-      typeof avatar.data.characterSheetAssetId === 'string'
-        ? avatar.data.characterSheetAssetId
-        : avatar.assetId
-    if (!sheetId) throw new Error('This avatar has no sheet to read.')
-    const sheet = await readAssetBuffer(sheetId)
-    if (!sheet) throw new Error('The avatar sheet is missing from disk.')
-    const key = readSetting(OPENROUTER_KEY_SETTING)?.trim() || process.env.OPENROUTER_API_KEY?.trim() || ''
-    return extractAvatarProfile({
-      imageDataUrl: `data:${sheet.asset.mime};base64,${sheet.buffer.toString('base64')}`,
-      key,
+function openRouterKey(): string {
+  return readSetting(OPENROUTER_KEY_SETTING)?.trim() || process.env.OPENROUTER_API_KEY?.trim() || ''
+}
+
+export const extractAvatarFromPromptFn = createServerFn({ method: 'POST', strict: false })
+  .validator(z.object({ prompt: z.string().trim().min(20).max(20_000) }))
+  .handler(({ data }) =>
+    extractAvatarFromPrompt({
+      promptText: data.prompt,
+      key: openRouterKey(),
       model: DEFAULT_ASSISTANT_MODEL,
-    })
-  })
+    }),
+  )
 
 export const deleteStudioItemFn = createServerFn({ method: 'POST' })
   .validator(z.object({ id: z.string() }))

@@ -2,12 +2,22 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import type { StudioKind } from '@sunnygen/core'
-import { Button, cn, motionFast, motionSpring, motionTransition, Selector, Skeleton } from '@sunnygen/ui'
-import { PackagePlus, Plus } from 'lucide-react'
+import {
+  Button,
+  cn,
+  motionFast,
+  motionSpring,
+  motionTransition,
+  Selector,
+  Skeleton,
+  toast,
+} from '@sunnygen/ui'
+import { PackagePlus, Plus, ClipboardPaste } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { PageBody, PageHeader, PageScroll } from '~/components/app-shell'
 import { StudioPackDialog } from '~/components/studio/import-dialog'
 import { AvatarWizard } from '~/components/studio/avatar-wizard'
+import { ImportAvatarDialog, type ImportedAvatar } from '~/components/studio/import-avatar-dialog'
 import { StudioItemDialog } from '~/components/studio/item-dialog'
 import { StudioLibraryGrid } from '~/components/studio/library-grid'
 import { StudioLookBuilder } from '~/components/studio/look-builder'
@@ -91,7 +101,8 @@ function StudioPage() {
   const queryClient = useQueryClient()
   const [tab, setTab] = useState<Tab>('look')
   const [dialog, setDialog] = useState<{ kind: StudioKind; item: StudioItemDto | null } | null>(null)
-  const [wizard, setWizard] = useState<{ item: StudioItemDto | null } | null>(null)
+  const [wizard, setWizard] = useState<{ item: StudioItemDto | null; initial?: ImportedAvatar } | null>(null)
+  const [importOpen, setImportOpen] = useState(false)
   const [packOpen, setPackOpen] = useState(false)
   const [preparingId, setPreparingId] = useState<string | null>(null)
   const [trainAvatar, setTrainAvatar] = useState<StudioItemDto | null>(null)
@@ -118,7 +129,12 @@ function StudioPage() {
 
   const remove = useMutation({
     mutationFn: (id: string) => deleteStudioItemFn({ data: { id } }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['studio'] }),
+    onSuccess: async () => {
+      toast('Deleted', { tone: 'info' })
+      await queryClient.invalidateQueries({ queryKey: ['studio'] })
+    },
+    onError: (error) =>
+      toast(error instanceof Error ? error.message : 'Could not delete the item', { tone: 'error' }),
   })
 
   const prepare = useMutation({
@@ -127,9 +143,14 @@ function StudioPage() {
       setPreparingId(item.id)
       setError(null)
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['studio'] }),
+    onSuccess: async () => {
+      toast('Views prepared', { tone: 'info' })
+      await queryClient.invalidateQueries({ queryKey: ['studio'] })
+    },
     onError: (prepareError) => {
-      setError(prepareError instanceof Error ? prepareError.message : 'Prep failed')
+      const message = prepareError instanceof Error ? prepareError.message : 'Prep failed'
+      setError(message)
+      toast(message, { tone: 'error' })
     },
     onSettled: () => setPreparingId(null),
   })
@@ -150,11 +171,19 @@ function StudioPage() {
       setError(null)
     },
     onSuccess: (result) => {
-      if (result.status === 'failed') setError(result.error ?? 'Training failed')
+      if (result.status === 'failed') {
+        const message = result.error ?? 'Training failed'
+        setError(message)
+        toast(message, { tone: 'error' })
+      } else {
+        toast('Training started', { tone: 'info' })
+      }
       void queryClient.invalidateQueries({ queryKey: ['lora-runs'] })
     },
     onError: (retryError) => {
-      setError(retryError instanceof Error ? retryError.message : 'Training failed')
+      const message = retryError instanceof Error ? retryError.message : 'Training failed'
+      setError(message)
+      toast(message, { tone: 'error' })
     },
     onSettled: () => setRetryingId(null),
   })
@@ -210,6 +239,11 @@ function StudioPage() {
                 <Button variant="outline" onClick={() => setPackOpen(true)}>
                   <PackagePlus size={13} /> Import pack
                 </Button>
+                {activeKind === 'avatar' ? (
+                  <Button variant="outline" onClick={() => setImportOpen(true)}>
+                    <ClipboardPaste size={13} /> Import avatar
+                  </Button>
+                ) : null}
                 <Button onClick={() => setWizard({ item: null })}>
                   <Plus size={13} /> New avatar
                 </Button>
@@ -350,7 +384,7 @@ function StudioPage() {
                   {tab === 'wardrobe'
                     ? 'On-model and supplier photos must be prepared before a shoot. Prep fills every missing view and costs one image generation per view.'
                     : tab === 'avatars'
-                      ? 'Build the sheet and 4×4 panel in the wizard, then edit the profile to refresh the identity keywords.'
+                      ? 'Fill in the profile in the wizard, run the two prompts in your image AI, then upload the sheet and 4×4 panel to save the identity keywords.'
                       : tab === 'models'
                         ? 'Trained LoRAs belong to their avatar and are used from the home prompt bar in Generate mode.'
                         : 'References only guide stance and lighting. Identity and garments come from the look.'}
@@ -363,15 +397,26 @@ function StudioPage() {
 
       {wizard ? (
         <AvatarWizard
-          key={wizard.item?.id ?? 'new-avatar'}
+          key={wizard.item?.id ?? (wizard.initial ? 'imported-avatar' : 'new-avatar')}
           open
           onOpenChange={(open) => {
             if (!open) setWizard(null)
           }}
           item={wizard.item}
+          initial={wizard.initial ?? null}
           onSaved={() => queryClient.invalidateQueries({ queryKey: ['studio'] })}
         />
       ) : null}
+
+      <ImportAvatarDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        onSaved={() => queryClient.invalidateQueries({ queryKey: ['studio'] })}
+        onOpenInWizard={(initial) => {
+          setImportOpen(false)
+          setWizard({ item: null, initial })
+        }}
+      />
 
       {dialog ? (
         <StudioItemDialog
