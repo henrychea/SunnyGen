@@ -14,7 +14,9 @@ import { Route as AssetsRouteImport } from './routes/assets'
 import { Route as CanvasRouteImport } from './routes/canvas'
 import { Route as ChatRouteImport } from './routes/chat'
 import { Route as GalleryRouteImport } from './routes/gallery'
+import { Route as ImagesRouteImport } from './routes/images'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as ShootsRouteImport } from './routes/shoots'
 import { Route as StudioRouteImport } from './routes/studio'
 import { Route as VideoRouteImport } from './routes/video'
 import { Route as ApiAssistantRouteImport } from './routes/api/assistant'
@@ -52,9 +54,19 @@ const GalleryRoute = GalleryRouteImport.update({
   path: '/gallery',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ImagesRoute = ImagesRouteImport.update({
+  id: '/images',
+  path: '/images',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ShootsRoute = ShootsRouteImport.update({
+  id: '/shoots',
+  path: '/shoots',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StudioRoute = StudioRouteImport.update({
@@ -120,7 +132,9 @@ export interface FileRoutesByFullPath {
   '/canvas': typeof CanvasRoute
   '/chat': typeof ChatRoute
   '/gallery': typeof GalleryRoute
+  '/images': typeof ImagesRoute
   '/settings': typeof SettingsRoute
+  '/shoots': typeof ShootsRoute
   '/studio': typeof StudioRoute
   '/video': typeof VideoRoute
   '/api/assistant': typeof ApiAssistantRoute
@@ -139,7 +153,9 @@ export interface FileRoutesByTo {
   '/canvas': typeof CanvasRoute
   '/chat': typeof ChatRoute
   '/gallery': typeof GalleryRoute
+  '/images': typeof ImagesRoute
   '/settings': typeof SettingsRoute
+  '/shoots': typeof ShootsRoute
   '/studio': typeof StudioRoute
   '/video': typeof VideoRoute
   '/api/assistant': typeof ApiAssistantRoute
@@ -159,7 +175,9 @@ export interface FileRoutesById {
   '/canvas': typeof CanvasRoute
   '/chat': typeof ChatRoute
   '/gallery': typeof GalleryRoute
+  '/images': typeof ImagesRoute
   '/settings': typeof SettingsRoute
+  '/shoots': typeof ShootsRoute
   '/studio': typeof StudioRoute
   '/video': typeof VideoRoute
   '/api/assistant': typeof ApiAssistantRoute
@@ -180,7 +198,9 @@ export interface FileRouteTypes {
     | '/canvas'
     | '/chat'
     | '/gallery'
+    | '/images'
     | '/settings'
+    | '/shoots'
     | '/studio'
     | '/video'
     | '/api/assistant'
@@ -199,7 +219,9 @@ export interface FileRouteTypes {
     | '/canvas'
     | '/chat'
     | '/gallery'
+    | '/images'
     | '/settings'
+    | '/shoots'
     | '/studio'
     | '/video'
     | '/api/assistant'
@@ -218,7 +240,9 @@ export interface FileRouteTypes {
     | '/canvas'
     | '/chat'
     | '/gallery'
+    | '/images'
     | '/settings'
+    | '/shoots'
     | '/studio'
     | '/video'
     | '/api/assistant'
@@ -238,7 +262,9 @@ export interface RootRouteChildren {
   CanvasRoute: typeof CanvasRoute
   ChatRoute: typeof ChatRoute
   GalleryRoute: typeof GalleryRoute
+  ImagesRoute: typeof ImagesRoute
   SettingsRoute: typeof SettingsRoute
+  ShootsRoute: typeof ShootsRoute
   StudioRoute: typeof StudioRoute
   VideoRoute: typeof VideoRoute
   ApiAssistantRoute: typeof ApiAssistantRoute
@@ -289,11 +315,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GalleryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/images': {
+      id: '/images'
+      path: '/images'
+      fullPath: '/images'
+      preLoaderRoute: typeof ImagesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/shoots': {
+      id: '/shoots'
+      path: '/shoots'
+      fullPath: '/shoots'
+      preLoaderRoute: typeof ShootsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/studio': {
@@ -382,7 +422,9 @@ const rootRouteChildren: RootRouteChildren = {
   CanvasRoute: CanvasRoute,
   ChatRoute: ChatRoute,
   GalleryRoute: GalleryRoute,
+  ImagesRoute: ImagesRoute,
   SettingsRoute: SettingsRoute,
+  ShootsRoute: ShootsRoute,
   StudioRoute: StudioRoute,
   VideoRoute: VideoRoute,
   ApiAssistantRoute: ApiAssistantRoute,

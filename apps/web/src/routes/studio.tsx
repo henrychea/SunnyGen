@@ -385,7 +385,7 @@ function StudioPage() {
                   onTrain={(avatar) => setTrainAvatar(avatar)}
                   onRetry={(run) => retry.mutate(run)}
                   onUse={(run) => {
-                    if (run.avatarId) navigate({ to: '/', search: { avatar: run.avatarId } })
+                    if (run.avatarId) navigate({ to: '/images', search: { avatar: run.avatarId } })
                   }}
                 />
               ) : (

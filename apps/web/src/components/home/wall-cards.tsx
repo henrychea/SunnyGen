@@ -111,7 +111,15 @@ export function OutputCard({
   )
 }
 
-export function JobCard({ generation, ref }: { generation: GenerationWallItem; ref?: Ref<HTMLDivElement> }) {
+export function JobCard({
+  generation,
+  onRetried,
+  ref,
+}: {
+  generation: GenerationWallItem
+  onRetried?: () => void
+  ref?: Ref<HTMLDivElement>
+}) {
   const failed = generation.status === 'failed'
   const running = generation.status === 'running'
   return (
@@ -155,7 +163,7 @@ export function JobCard({ generation, ref }: { generation: GenerationWallItem; r
           <p className="text-ink/30 truncate text-[9.5px]">
             {generation.model} · {generation.provider}
           </p>
-          <FailureActions generation={generation} className="mt-auto pt-0.5" />
+          <FailureActions generation={generation} onRetried={onRetried} className="mt-auto pt-0.5" />
         </div>
       ) : (
         <div className="flex flex-1 flex-col gap-2 p-3">

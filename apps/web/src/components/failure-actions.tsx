@@ -7,6 +7,7 @@ import { useRetryGeneration, type RetryableGeneration } from '~/lib/use-retry-ge
 export function FailureActions({
   generation,
   className,
+  onRetried,
 }: {
   generation: RetryableGeneration & {
     error?: string | null
@@ -14,6 +15,7 @@ export function FailureActions({
     errorReason?: string | null
   }
   className?: string
+  onRetried?: () => void
 }) {
   const retry = useRetryGeneration()
   const [copied, setCopied] = useState(false)
@@ -45,7 +47,7 @@ export function FailureActions({
         {retryable ? (
           <button
             type="button"
-            onClick={() => retry.mutate(generation)}
+            onClick={() => retry.mutate(generation, { onSuccess: () => onRetried?.() })}
             disabled={retry.isPending}
             className="border-line text-ink/60 hover:border-ink/25 hover:text-ink inline-flex h-7 items-center gap-1 rounded-md border px-2 text-[10px] font-medium transition-[color,border-color,transform] active:scale-[0.97] disabled:opacity-50 motion-reduce:active:scale-100"
           >
