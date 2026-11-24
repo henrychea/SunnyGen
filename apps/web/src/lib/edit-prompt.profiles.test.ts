@@ -35,6 +35,7 @@ const EDIT_MODELS = [
   'sunra:google/gemini-3-pro-image',
   'sunra:google/gemini-nano-banana-2.1',
   'sunra:qwen/qwen-image-2.1',
+  'fal:fal-ai/wan/v2.7/image-edit',
   'fal:fal-ai/qwen-image-edit-2509',
   'sunra:bytedance/seedream-5-lite',
   'sunra:bytedance/seedream-5-pro',
@@ -59,6 +60,7 @@ const CANONICAL: Record<AvatarModelFamily, string> = {
   seedream: 'sunra:bytedance/seedream-5.5',
   'gpt-image': 'sunra:openai/gpt-image-2',
   grok: 'sunra:xai/grok-imagine-image',
+  wan: 'fal:fal-ai/wan/v2.7/image-edit',
   generic: 'fal:custom/endpoint',
 }
 
@@ -225,6 +227,16 @@ const SNAPSHOTS: Record<AvatarModelFamily, string> = {
     'Replace the person in image 1 with the avatar: copy the face, facial features, skin tone and hair from image 2, image 3, image 4.',
     "Keep image 1's pose, clothing, background, lighting and camera.",
     "Replace image 1's body with the avatar's: 165 cm, 49 kg, slim build, slight bust, long legs. Take the body proportions from image 3 (full body).",
+    '',
+    'Additional instructions:',
+    'keep the same expression and make the light warmer and softer',
+  ].join('\n'),
+  wan: [
+    'image 4 is the target photo.',
+    'image 1 (front face), image 2 (full body), image 3 (three-quarter face) are identity references of the same avatar: 24yo East Asian woman, soft oval face, slender jaw, petite chin, slim bridge, dainty tip, full lips, large almond eyes, visible crease, slender arched brows, fair skin, dark brown near-black long hair, slightly wavy, natural center-parted fringe.',
+    'Replace the person in image 4 with the avatar: copy the face, facial features, skin tone and hair from image 1, image 2, image 3.',
+    "Replace image 4's body with the avatar's: 165 cm, 49 kg, slim build, slight bust, long legs. Take the body proportions from image 2 (full body).",
+    "Keep image 4's pose, clothing, background, lighting and camera.",
     '',
     'Additional instructions:',
     'keep the same expression and make the light warmer and softer',

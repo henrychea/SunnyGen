@@ -720,6 +720,8 @@ const FAMILY_PATTERNS: ReadonlyArray<[RegExp, AvatarModelFamily]> = [
   [/gpt-image/i, 'gpt-image'],
   [/flux/i, 'flux'],
   [/grok/i, 'grok'],
+  // Wan image edit: matched after the others so a "wan" inside another id cannot claim them.
+  [/\bwan\b|wan[-_]/i, 'wan'],
 ]
 
 export function avatarModelFamily(modelId: string): AvatarModelFamily {
@@ -736,6 +738,7 @@ export const IDENTITY_CLAUSE_BUDGETS: Record<AvatarModelFamily, number> = {
   flux: 600,
   'gpt-image': 600,
   grok: 350,
+  wan: 300,
   generic: 600,
 }
 

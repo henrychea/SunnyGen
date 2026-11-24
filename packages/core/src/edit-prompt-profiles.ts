@@ -4,7 +4,15 @@ import { avatarModelFamily } from './avatar-profile'
  * One prompt shape per model family, because the vendors document opposite advice:
  * Qwen truncates long prompts, Gemini wants them long and specific.
  */
-export type EditPromptFamily = 'nano-banana' | 'qwen' | 'flux' | 'seedream' | 'gpt-image' | 'grok' | 'generic'
+export type EditPromptFamily =
+  | 'nano-banana'
+  | 'qwen'
+  | 'flux'
+  | 'seedream'
+  | 'gpt-image'
+  | 'grok'
+  | 'wan'
+  | 'generic'
 
 export interface EditPromptProfile {
   family: EditPromptFamily
@@ -87,6 +95,16 @@ export const EDIT_PROMPT_PROFILES: Record<EditPromptFamily, EditPromptProfile> =
     negatives: 'allow',
     restateBody: false,
     maxRefs: 2,
+  },
+  // Alibaba Wan image edit takes a short, direct instruction; no length cap is documented.
+  wan: {
+    family: 'wan',
+    clauseBudget: 300,
+    detail: 'compact',
+    bodyPlacement: 'early',
+    negatives: 'allow',
+    restateBody: false,
+    maxRefs: 3,
   },
   // Undocumented endpoints get the middle of every range.
   generic: {

@@ -123,6 +123,7 @@ const FAMILY_CROPS: Record<AvatarModelFamily, readonly AvatarCropRole[]> = {
   flux: REFERENCE_ORDER,
   'gpt-image': REFERENCE_ORDER,
   grok: REFERENCE_ORDER,
+  wan: REFERENCE_ORDER,
   generic: REFERENCE_ORDER,
 }
 

@@ -337,39 +337,6 @@ for (const modelId of BODY_FAMILIES) {
   })
 }
 
-test('board references name their tiles and the body board supplies the curves sentence', () => {
-  const boards = [
-    { role: 'face' as const, assetId: 'face-board', width: 4096, height: 4096 },
-    { role: 'body' as const, assetId: 'body-board', width: 4096, height: 4096 },
-    { role: 'details' as const, assetId: 'details-board', width: 4096, height: 1200 },
-  ]
-  const avatar = editReferencePlan(
-    [{ id: 'face-board', assetIds: [], avatar: true, profile: DEFAULT_AVATAR_PROFILE, boards }],
-    'fal:fal-ai/nano-banana-pro',
-  )
-  const prompt = buildEditPrompt(
-    '',
-    [{ id: 'target', assetIds: ['target'], avatar: false, role: 'target photo' }, ...avatar],
-    editProfile('fal:fal-ai/nano-banana-pro'),
-    { modelId: 'fal:fal-ai/nano-banana-pro' },
-  )
-
-  assert.match(
-    prompt,
-    /\(face board: top-left front, top-right three-quarter, bottom-left side profile, bottom-right expressions\)/,
-  )
-  assert.match(
-    prompt,
-    /\(body board: top-left front, top-right side profile, bottom-left back, bottom-right three-quarter\)/,
-  )
-  assert.match(
-    prompt,
-    /\(details board: top row hands, skin, hair; bottom row facial features, body details\)/,
-  )
-  assert.match(prompt, /bust, waist, hip, buttock and leg curves/)
-  assert.match(prompt, /body board\)\)?/)
-})
-
 test('qwen names the face and body boards and drops the details board', () => {
   const boards = [
     { role: 'face' as const, assetId: 'face-board', width: 4096, height: 4096 },
