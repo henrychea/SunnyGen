@@ -246,6 +246,10 @@ interface BoardFacts {
   integrateShort: string
 }
 
+function capitalised(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1)
+}
+
 function boardSection(label: string, text: string): string {
   return `${label}: ${text}`
 }
@@ -334,19 +338,19 @@ function boardFacts(
     keepFull:
       'pose, gesture, expression type, clothing design, background, camera angle, framing and crop, focal length, depth of field',
     keepCompact: 'pose, gesture, clothing design, background, camera, framing, focal length, depth of field',
-    integrateFull: `relight the avatar to ${target}'s light (direction, softness, colour temperature, shadows and highlights on skin and clothes), then match ${target}'s colour grading, white balance, noise or grain and sharpness`,
-    integrateShort: `relight the avatar to ${target}'s light and match its colour grading and grain`,
+    integrateFull: `Relight the avatar to ${target}'s light (direction, softness, colour temperature, shadows and highlights on skin and clothes), then match ${target}'s colour grading, white balance, noise or grain and sharpness`,
+    integrateShort: `Relight the avatar to ${target}'s light and match its colour grading and grain`,
   }
 }
 
 function faceLine(facts: BoardFacts, tier: BoardTier, label = 'Face'): string {
   const source = facts.face?.token ?? 'the avatar references'
   const rule = facts.positives
-    ? `every facial feature comes from ${source}`
-    : `none of ${facts.target}'s facial structure may remain`
+    ? `Every facial feature comes from ${source}`
+    : `None of ${facts.target}'s facial structure may remain`
   return boardSection(
     label,
-    `replace the face completely with the avatar's from ${source}: ${tier.features === 'core' ? facts.faceCore : facts.faceFull}. ${rule}.`,
+    `Replace the face completely with the avatar's from ${source}: ${tier.features === 'core' ? facts.faceCore : facts.faceFull}. ${rule}.`,
   )
 }
 
@@ -355,18 +359,18 @@ function hairLine(facts: BoardFacts, tier: BoardTier): string {
     ? `${facts.face?.token ?? 'the avatar'} and ${facts.details.token}`
     : (facts.face?.token ?? 'the avatar')
   const restyle = tier.compact ? '' : ', restyled to fit the scene (wind, pose)'
-  return boardSection('Hair', `replace the hair with the avatar's from ${sources}: ${facts.hair}${restyle}.`)
+  return boardSection('Hair', `Replace the hair with the avatar's from ${sources}: ${facts.hair}${restyle}.`)
 }
 
 function bodyLine(facts: BoardFacts, tier: BoardTier): string {
   const source = facts.body?.token ?? 'the avatar references'
   const factsText = tier.body === 'core' ? facts.bodyCore : facts.bodyFull
   if (tier.body === 'core') {
-    return boardSection('Body', `replace the body with the avatar's from ${source}: ${factsText}.`)
+    return boardSection('Body', `Replace the body with the avatar's from ${source}: ${factsText}.`)
   }
   return boardSection(
     'Body',
-    `replace the body with the avatar's from ${source}: ${factsText}. take the widths from the front tile and the curves from the side profile tile; the clothing is refitted to the new body, same garment.`,
+    `Replace the body with the avatar's from ${source}: ${factsText}. Take the widths from the front tile and the curves from the side profile tile. The clothing is refitted to the new body, same garment.`,
   )
 }
 
@@ -379,7 +383,7 @@ function integrateLine(facts: BoardFacts, tier: BoardTier): string {
     'Integrate',
     tier.integrate === 'short'
       ? `${facts.integrateShort}.`
-      : `${facts.integrateFull}. ignore the white studio background, flat lighting and layout of the boards.`,
+      : `${facts.integrateFull}. Ignore the white studio background, flat lighting and layout of the boards.`,
   )
 }
 
@@ -424,12 +428,12 @@ function googleTemplate(facts: BoardFacts, tier: BoardTier): string {
 function openaiTemplate(facts: BoardFacts, tier: BoardTier): string {
   const steps = [
     `Replace the person in ${facts.target} with the avatar. ${ONE_PHOTO}`,
+    referencesLine(facts, tier),
     faceLine(facts, tier),
     hairLine(facts, tier),
     bodyLine(facts, tier),
     keepLine(facts, tier),
     integrateLine(facts, tier),
-    boardSection('References', referencesLine(facts, tier).replace('References: ', '')),
   ]
   return [
     boardSection('Task', `Edit ${facts.target}.`),
@@ -451,7 +455,7 @@ function fluxTemplate(facts: BoardFacts, tier: BoardTier): string {
     `The hair is the avatar's: ${facts.hair}${tier.compact ? '' : ', restyled for the scene'}.`,
     `The body is the avatar's from ${facts.body?.token ?? source}: ${tier.body === 'core' ? facts.bodyCore : facts.bodyFull}${tier.body === 'core' ? '' : ', widths from the front tile, curves from the side profile tile, the same garment refitted'}.`,
     `Keep ${facts.target}'s ${tier.compact ? facts.keepCompact : facts.keepFull}.`,
-    `Light and grade it like ${facts.target}: ${facts.integrateShort}.`,
+    `Light and grade it like ${facts.target}: ${capitalised(facts.integrateShort)}.`,
     facts.restate ? `One photo, ${facts.target}'s pose, the avatar's body proportions.` : '',
   ]
     .filter(Boolean)
