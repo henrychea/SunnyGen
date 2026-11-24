@@ -6,7 +6,7 @@ limits. These are working notes, not marketing copy.
 
 | File                                                                                                         | Date       | Covers                                                                     |
 | ------------------------------------------------------------------------------------------------------------ | ---------- | -------------------------------------------------------------------------- |
-| [2026-11-24-home-today-shoots.md](2026-11-24-home-today-shoots.md)                                           | 2026-11-24 | PR pending: Today inbox, Home renamed to Images, and the shoot planner     |
+| [2026-11-24-home-today-shoots.md](2026-11-24-home-today-shoots.md)                                           | 2026-11-24 | PR #23: Today inbox, Home renamed to Images, and the shoot planner         |
 | [2026-11-24-studio-previews-wall.md](2026-11-24-studio-previews-wall.md)                                     | 2026-11-24 | PR #22: studio previews, scene prep, and the Studio generation wall        |
 | [2026-11-24-avatar-wizard-uploads-toasts.md](2026-11-24-avatar-wizard-uploads-toasts.md)                     | 2026-11-24 | PR #21: avatar wizard uploads, named uploads, migration 4, toasts          |
 | [2026-11-24-lightbox-delete.md](2026-11-24-lightbox-delete.md)                                               | 2026-11-24 | PR #20: lightbox delete fix and Delete all                                 |

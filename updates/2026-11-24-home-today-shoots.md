@@ -1,7 +1,7 @@
 # Today inbox, Home renamed to Images, and the shoot planner
 
 - Date: 2026-11-24
-- Status: open, PR pending
+- Status: open, PR #23
 
 ## Summary
 
