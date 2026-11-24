@@ -20,6 +20,7 @@ export function StudioLibraryGrid({
   onEdit,
   onDelete,
   onPrepare,
+  onPreview,
   preparingId,
 }: {
   kind: StudioKind
@@ -28,6 +29,7 @@ export function StudioLibraryGrid({
   onEdit: (item: StudioItemDto) => void
   onDelete: (item: StudioItemDto) => void
   onPrepare?: (item: StudioItemDto) => void
+  onPreview?: (item: StudioItemDto) => void
   preparingId?: string | null
 }) {
   return (
@@ -45,10 +47,17 @@ export function StudioLibraryGrid({
         {items.map((item) => {
           const sourceKind = item.data.sourceKind as GarmentSource | undefined
           const views = kind === 'garment' ? parseGarmentViews(item) : []
-          const unprepared = views.filter((view) => !view.cleanAssetId).length
+          const unprepared =
+            kind === 'garment' ? views.filter((view) => !view.cleanAssetId).length : item.cleanAssetId ? 0 : 1
+          const prepared = kind === 'garment' || kind === 'scene'
           const needsPrep =
-            kind === 'garment' && unprepared > 0 && (sourceKind === 'on-model' || sourceKind === 'supplier')
-          const image = kind === 'garment' ? (item.cleanAssetUrl ?? item.assetUrl) : item.assetUrl
+            prepared &&
+            !item.builtin &&
+            unprepared > 0 &&
+            (kind === 'scene' || sourceKind === 'on-model' || sourceKind === 'supplier')
+          const image =
+            kind === 'garment' || kind === 'scene' ? (item.cleanAssetUrl ?? item.assetUrl) : item.assetUrl
+          const canPreview = Boolean(onPreview) && (kind === 'garment' || kind === 'scene')
           const lora = kind === 'avatar' ? parseAvatarLora(item.data.lora) : null
 
           return (
@@ -78,6 +87,18 @@ export function StudioLibraryGrid({
                       <span className="bg-ink/[0.04] size-8 rounded-full" />
                     </div>
                   )}
+                  {canPreview ? (
+                    <button
+                      type="button"
+                      onClick={() => onPreview?.(item)}
+                      aria-label={`Preview ${item.name}`}
+                      className="group text-canvas hover:bg-ink/25 absolute inset-0 grid place-items-center bg-transparent transition-colors duration-150 ease-out"
+                    >
+                      <span className="bg-ink/70 rounded-md px-2 py-1 text-[10px] font-medium opacity-0 backdrop-blur transition-opacity duration-150 ease-out group-hover:opacity-100 group-focus-visible:opacity-100">
+                        Preview
+                      </span>
+                    </button>
+                  ) : null}
                   {item.builtin ? (
                     <Badge tone="neutral" className="absolute top-2 left-2">
                       Built in
@@ -149,7 +170,7 @@ export function StudioLibraryGrid({
                     </div>
                   </div>
 
-                  {kind === 'garment' && onPrepare && !item.builtin ? (
+                  {(kind === 'garment' || kind === 'scene') && onPrepare && !item.builtin ? (
                     <Button
                       size="sm"
                       variant={needsPrep ? 'primary' : 'outline'}
@@ -158,9 +179,11 @@ export function StudioLibraryGrid({
                       onClick={() => onPrepare(item)}
                     >
                       <Sparkles size={10} />
-                      {unprepared > 0
-                        ? `Prepare ${unprepared} view${unprepared === 1 ? '' : 's'}`
-                        : 'Re-prep'}
+                      {unprepared === 0
+                        ? 'Re-prep'
+                        : kind === 'garment'
+                          ? `Prepare ${unprepared} view${unprepared === 1 ? '' : 's'}`
+                          : 'Prepare'}
                     </Button>
                   ) : null}
                 </div>

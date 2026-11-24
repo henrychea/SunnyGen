@@ -96,7 +96,8 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
   )
   const pose = poseId === 'none' ? null : (library.poses.find((item) => item.id === poseId) ?? null)
   const scene = library.scenes.find((item) => item.id === sceneId) ?? null
-  const hasSceneImage = Boolean(scene?.assetUrl)
+  const sceneAssetId = scene ? (scene.cleanAssetId ?? scene.assetId) : null
+  const hasSceneImage = Boolean(sceneAssetId)
 
   const garmentViews = orderedGarments.map((item) => parseGarmentViews(item))
   const garmentInputs: StudioGarmentInput[] = orderedGarments.map((item, index) => ({
@@ -161,7 +162,7 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
       ids.push(view?.cleanAssetId ?? view?.assetId ?? '')
     }
     if (pose?.assetId) ids.push(pose.assetId)
-    if (scene?.assetId) ids.push(scene.assetId)
+    if (sceneAssetId) ids.push(sceneAssetId)
     return ids
   }
 
@@ -195,7 +196,7 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
 
   const fitReferences = (definition: ModelDefinition, selection: StudioSelection): StudioSelection => {
     const sceneItem = library.scenes.find((item) => item.id === selection.sceneId)
-    const hasScene = Boolean(sceneItem?.assetUrl)
+    const hasScene = Boolean(sceneItem?.cleanAssetId ?? sceneItem?.assetId)
     const fitted = trimStudioReferences(
       {
         garmentCount: selection.garmentIds.length,
@@ -271,7 +272,7 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
             model: model.id,
             prompt,
             assetIds: usableReferenceIds,
-            params: { aspectRatio: ratio, quality },
+            params: { aspectRatio: ratio, quality, origin: 'studio', studioJob: 'angles' },
             folderId: folder.id,
           },
         })

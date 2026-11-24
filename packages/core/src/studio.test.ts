@@ -7,6 +7,7 @@ import {
   orderStudioGarments,
   parseGarmentViews,
   pickGarmentView,
+  scenePrepPrompt,
   validateStudioLook,
   type StudioGarmentInput,
 } from './studio'
@@ -190,4 +191,16 @@ test('the single sheet reference keeps the original opening', () => {
   })
   assert.match(prompt, /the attached identity reference sheet\./)
   assert.doesNotMatch(prompt, /Identity anchors/)
+})
+
+test('the scene prep prompt keeps the location and strips everything people brought', () => {
+  const prompt = scenePrepPrompt('Loft', '  wood floor  ')
+  assert.match(prompt, /background plate of the location in image 1/)
+  assert.match(prompt, /Remove every person, mannequin, and temporary clutter/)
+  assert.match(prompt, /lighting, shadows, perspective, and camera angle exactly unchanged/)
+  assert.match(prompt, /Do not add, move, restyle, or remove any fixed object/)
+  assert.match(prompt, /Scene: Loft\. Details to keep: wood floor$/)
+  const bare = scenePrepPrompt('Loft')
+  assert.doesNotMatch(bare, /Details to keep/)
+  assert.match(bare, /Scene: Loft\.$/)
 })

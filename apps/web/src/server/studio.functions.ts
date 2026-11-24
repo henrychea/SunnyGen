@@ -18,6 +18,7 @@ import {
   parseAvatarLora,
   parseAvatarProfile,
   parseGarmentViews,
+  scenePrepPrompt,
   type GarmentSlot,
   type GarmentSource,
   type GarmentView,
@@ -232,10 +233,7 @@ export const prepareGarmentFn = createServerFn({ method: 'POST', strict: false }
       throw new Error('This garment is missing its slot or source type.')
     }
 
-    const modelId = data.modelId ?? readSetting('studio.prepModel') ?? 'nano-banana-2'
-    const model = getModel(modelId)
-    if (!model || model.kind !== 'image') throw new Error('Choose an image model for prep.')
-    if (!model.supportsImages) throw new Error('The prep model needs to accept a reference image.')
+    const model = prepModel(data.modelId)
 
     const views = parseGarmentViews(item)
     const missing = views.filter((view) => !view.cleanAssetId)
@@ -268,19 +266,28 @@ function saveGarmentViews(item: StudioItemRecord, views: GarmentView[]): StudioI
   })
 }
 
-async function prepGarmentView(
-  item: StudioItemRecord,
-  view: GarmentView,
-  slot: GarmentSlot,
+function prepModel(modelId?: string): { id: string; defaultQuality: string } {
+  const id = modelId ?? readSetting('studio.prepModel') ?? 'nano-banana-2'
+  const model = getModel(id)
+  if (!model || model.kind !== 'image') throw new Error('Choose an image model for prep.')
+  if (!model.supportsImages) throw new Error('The prep model needs to accept a reference image.')
+  return model
+}
+
+async function prepImage(
+  prompt: string,
+  assetId: string,
+  aspectRatio: string,
+  studioJob: 'garment-prep' | 'scene-prep',
   model: { id: string; defaultQuality: string },
 ): Promise<string> {
   const submitted = await submitGeneration({
     data: {
       kind: 'image',
       model: model.id,
-      prompt: garmentPrepPrompt(item.name, slot, String(item.data.notes ?? ''), view.angle),
-      assetIds: [view.assetId],
-      params: { aspectRatio: '3:4', quality: model.defaultQuality },
+      prompt,
+      assetIds: [assetId],
+      params: { aspectRatio, quality: model.defaultQuality },
     },
   })
 
@@ -309,6 +316,48 @@ async function prepGarmentView(
   deleteGeneration(submitted.generation.id)
   return outputId
 }
+
+function prepGarmentView(
+  item: StudioItemRecord,
+  view: GarmentView,
+  slot: GarmentSlot,
+  model: { id: string; defaultQuality: string },
+): Promise<string> {
+  return prepImage(
+    garmentPrepPrompt(item.name, slot, String(item.data.notes ?? ''), view.angle),
+    view.assetId,
+    '3:4',
+    'garment-prep',
+    model,
+  )
+}
+
+export const prepareSceneFn = createServerFn({ method: 'POST', strict: false })
+  .validator(z.object({ id: z.string(), modelId: z.string().optional() }))
+  .handler(async ({ data }): Promise<StudioItemDto> => {
+    const item = getStudioItem(data.id)
+    if (!item || item.kind !== 'scene') throw new Error('Scene not found')
+    if (!item.assetId) throw new Error('Upload a scene photo first.')
+
+    const model = prepModel(data.modelId)
+    const cleanAssetId = await prepImage(
+      scenePrepPrompt(item.name, String(item.data.notes ?? '')),
+      item.assetId,
+      '16:9',
+      'scene-prep',
+      model,
+    )
+    return toDto(
+      saveStudioItem({
+        id: item.id,
+        kind: 'scene',
+        name: item.name,
+        assetId: item.assetId,
+        cleanAssetId,
+        data: item.data,
+      }),
+    )
+  })
 
 export interface TrainingImage {
   id: string
