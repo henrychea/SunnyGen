@@ -6,7 +6,6 @@ import { AnimatePresence } from 'motion/react'
 import { useState, type ReactNode } from 'react'
 import { PageScroll } from '~/components/app-shell'
 import { CleanupFailedButton } from '~/components/cleanup-failed'
-import { FailureActions } from '~/components/failure-actions'
 import {
   JobCard,
   OutputCard,
@@ -292,9 +291,7 @@ function TodayPage() {
                 <AnimatePresence initial={false} mode="popLayout">
                   {data.failed.map((generation) => (
                     <div key={generation.id} className="flex shrink-0 flex-col gap-1.5">
-                      <div className="[&_[data-wall-card]]:h-[196px]">
-                        <JobCard generation={generation} />
-                      </div>
+                      <JobCard generation={generation} onRetried={() => toast('Retry queued.')} />
                       <div className="flex items-center gap-1">
                         <button
                           type="button"
@@ -303,7 +300,6 @@ function TodayPage() {
                         >
                           Dismiss
                         </button>
-                        <FailureActions generation={generation} onRetried={() => toast('Retry queued.')} />
                       </div>
                     </div>
                   ))}
