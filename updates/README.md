@@ -6,7 +6,7 @@ limits. These are working notes, not marketing copy.
 
 | File                                                                                                         | Date       | Covers                                                                     |
 | ------------------------------------------------------------------------------------------------------------ | ---------- | -------------------------------------------------------------------------- |
-| [2026-11-24-avatar-wizard-uploads-toasts.md](2026-11-24-avatar-wizard-uploads-toasts.md)                     | 2026-11-24 | PR pending: avatar wizard uploads, named uploads, migration 4, toasts      |
+| [2026-11-24-avatar-wizard-uploads-toasts.md](2026-11-24-avatar-wizard-uploads-toasts.md)                     | 2026-11-24 | PR #21: avatar wizard uploads, named uploads, migration 4, toasts          |
 | [2026-11-24-lightbox-delete.md](2026-11-24-lightbox-delete.md)                                               | 2026-11-24 | PR #20: lightbox delete fix and Delete all                                 |
 | [2026-11-23-avatar-edit-face-swap.md](2026-11-23-avatar-edit-face-swap.md)                                   | 2026-11-23 | PR #19: avatar edit prompts ask for the face swap                          |
 | [2026-11-23-video-edits.md](2026-11-23-video-edits.md)                                                       | 2026-11-23 | PR #18: reference-driven video edits, wall-first video tab                 |

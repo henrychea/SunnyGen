@@ -1,7 +1,7 @@
 # Avatar wizard uploads, uploads get names, changes toast
 
 - Date: 2026-11-24
-- Status: open, PR pending
+- Status: open, PR #21
 
 ## Summary
 
