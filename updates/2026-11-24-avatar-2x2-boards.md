@@ -95,6 +95,14 @@ the curves from the side profile tile.
 
 ## Limits
 
+- Sunra documents no maximum size for the files it fetches from an input URL, so the send-time
+  copy for Sunra is capped at 6 MB (6.2 MB and 7.6 MB boards fetched fine, an 18.1 MB board was
+  rejected). Nothing on disk changes: the stored board stays a full-quality PNG and only the
+  uploaded copy is re-encoded (JPEG quality 80 for opaque images, WebP when the image is really
+  transparent). A board-shaped 4096 PNG of 12.3 MB becomes a 1.95 MB JPEG at full 4096.
+- A Sunra `input_fetch_failed` over the size limit now reads "An input image was too large for
+  Sunra. It has been resized for next time; press Retry." and is retryable.
+
 - No provider run is exercised: the boards, their sizes and the prompt text are covered by unit
   tests, but no model has been asked to render from them yet.
 - The region editor has no automated test. Dragging, clamping and the save round trip were only

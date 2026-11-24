@@ -7,6 +7,7 @@ import { resetFalUploadCache, uploadFalAsset } from './fal/client'
 import { normalizeAsset } from './normalize'
 import { getAdapter } from './registry'
 import { resetSunraUploadCache, uploadSunraAsset } from './sunra/client'
+import { SUNRA_IMAGE_LIMITS } from './sunra/limits'
 import type { AdapterContext, ProviderAsset, ProviderUpload, ProviderUploadCache } from './types'
 import { assetSha256 } from './uploads'
 
@@ -195,4 +196,53 @@ test('a rejected submission drops the stored upload URL', async () => {
     /image_url is not reachable/,
   )
   assert.equal(uploads.get('sunra', assetSha256(asset)), null)
+})
+
+test('a stored 4096 board over the limit reaches Sunra as a smaller copy, stored bytes untouched', async () => {
+  // A 4096 x 4096 photo board is around 18 MB in production; noise of the same size is far over
+  // the limit and makes the point harder.
+  const board: ProviderAsset = {
+    buffer: await sharp(randomBytes(4096 * 4096 * 3), { raw: { width: 4096, height: 4096, channels: 3 } })
+      .png()
+      .toBuffer(),
+    mime: 'image/png',
+    fileName: 'face-board.png',
+  }
+  const original = Buffer.from(board.buffer)
+  assert.ok(board.buffer.byteLength > SUNRA_IMAGE_LIMITS.bytes)
+
+  let putBody: Uint8Array | null = null
+  let putType: string | null = null
+  const context: AdapterContext = {
+    apiKey: 'test',
+    baseUrl: null,
+    deployment: null,
+    uploads: null,
+    fetch: async (input, init) => {
+      const url = String(input)
+      if (url.includes('/storage/upload/initiate')) {
+        return Response.json({
+          upload_url: 'https://upload.test/put',
+          file_url: 'https://assets.test/board.jpg',
+        })
+      }
+      if (init?.method === 'PUT') {
+        putBody = init.body as Uint8Array
+        putType = (init.headers as Record<string, string>)['Content-Type'] ?? null
+        return new Response('ok')
+      }
+      return new Response('unexpected', { status: 500 })
+    },
+  }
+
+  const fileUrl = await uploadSunraAsset(context, board)
+
+  assert.equal(fileUrl, 'https://assets.test/board.jpg')
+  assert.ok(putBody)
+  const uploaded = putBody as Uint8Array
+  assert.ok(uploaded.byteLength <= SUNRA_IMAGE_LIMITS.bytes)
+  assert.equal(putType, 'image/jpeg')
+  // The stored asset itself is untouched: same bytes, same length.
+  assert.equal(board.buffer.byteLength, original.byteLength)
+  assert.ok(board.buffer.equals(original))
 })

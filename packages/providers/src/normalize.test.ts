@@ -4,6 +4,7 @@ import { test } from 'node:test'
 import sharp from 'sharp'
 import { DEFAULT_IMAGE_LIMITS } from '@sunnygen/core'
 import { normalizeAsset } from './normalize'
+import { SUNRA_IMAGE_LIMITS } from './sunra/limits'
 import type { ProviderAsset } from './types'
 
 function noise(width: number, height: number, channels: 3 | 4): Promise<Buffer> {
@@ -78,4 +79,47 @@ test('EXIF orientation is applied before the resize', async () => {
 test('non-image payloads are left alone', async () => {
   const source = { buffer: Buffer.from('not an image'), mime: 'application/zip', fileName: 'images.zip' }
   assert.equal(await normalizeAsset(source), source)
+})
+
+test('a ~7 MB PNG is re-encoded under the Sunra input limit without shrinking it', async () => {
+  // 1536 x 1536 of noise lands around 6.8 MB, the size band that gets rejected upstream.
+  const source = await asset(await noise(1536, 1536, 3), 'image/png', 'board.png')
+  assert.ok(source.buffer.byteLength > SUNRA_IMAGE_LIMITS.bytes)
+
+  const normalized = await normalizeAsset(source, SUNRA_IMAGE_LIMITS)
+
+  assert.equal(normalized.mime, 'image/jpeg')
+  assert.ok(normalized.buffer.byteLength <= SUNRA_IMAGE_LIMITS.bytes)
+  // Quality 80 alone was enough: the dimensions are untouched.
+  const metadata = await sharp(normalized.buffer).metadata()
+  assert.equal(metadata.width, 1536)
+  assert.equal(metadata.height, 1536)
+})
+
+test('a board that carries an opaque alpha channel is encoded as JPEG, not WebP', async () => {
+  // composeBoard composites onto a 3-channel white canvas, but sharp still writes an alpha
+  // channel; nothing in it is actually transparent, so the board must take the JPEG path.
+  const base = await sharp({ create: { width: 2048, height: 2048, channels: 3, background: '#ffffff' } })
+    .png()
+    .toBuffer()
+  // Full-size detail so the board is over the limit; otherwise normalizeAsset passes it through.
+  const detail = await sharp(randomBytes(2048 * 2048 * 3), {
+    raw: { width: 2048, height: 2048, channels: 3 },
+  })
+    .png()
+    .toBuffer()
+  const board = await sharp(base)
+    .composite([{ input: detail, top: 0, left: 0 }])
+    .png()
+    .toBuffer()
+  assert.ok(board.byteLength > SUNRA_IMAGE_LIMITS.bytes)
+  assert.equal((await sharp(board).metadata()).hasAlpha, true)
+
+  const normalized = await normalizeAsset(
+    await asset(board, 'image/png', 'face-board.png'),
+    SUNRA_IMAGE_LIMITS,
+  )
+
+  assert.equal(normalized.mime, 'image/jpeg')
+  assert.ok(normalized.buffer.byteLength <= SUNRA_IMAGE_LIMITS.bytes)
 })
