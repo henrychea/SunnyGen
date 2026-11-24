@@ -6,6 +6,7 @@ limits. These are working notes, not marketing copy.
 
 | File                                                                                                         | Date       | Covers                                                                     |
 | ------------------------------------------------------------------------------------------------------------ | ---------- | -------------------------------------------------------------------------- |
+| [2026-11-24-avatar-2x2-boards.md](2026-11-24-avatar-2x2-boards.md)                                           | 2026-11-24 | Two 2x2 avatar panels, sheet region grid, hand-picked crop regions, three boards |
 | [2026-11-24-home-today-shoots.md](2026-11-24-home-today-shoots.md)                                           | 2026-11-24 | PR #23: Today inbox, Home renamed to Images, and the shoot planner         |
 | [2026-11-24-studio-previews-wall.md](2026-11-24-studio-previews-wall.md)                                     | 2026-11-24 | PR #22: studio previews, scene prep, and the Studio generation wall        |
 | [2026-11-24-avatar-wizard-uploads-toasts.md](2026-11-24-avatar-wizard-uploads-toasts.md)                     | 2026-11-24 | PR #21: avatar wizard uploads, named uploads, migration 4, toasts          |
