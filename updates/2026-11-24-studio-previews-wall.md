@@ -1,7 +1,7 @@
 # Studio previews, scene prep, and a Studio wall
 
 - Date: 2026-11-24
-- Status: open, PR pending
+- Status: open, PR #22
 
 ## Summary
 
