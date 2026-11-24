@@ -42,6 +42,7 @@ import sharp from 'sharp'
 import { getGenerationView, submitGeneration } from './generation.functions'
 import { assetUrl, readAssetBuffer, storeBuffer } from './media.server'
 import {
+  assertSheetSize,
   avatarCropsDto,
   avatarRegionsDto,
   dataForPanelChange,
@@ -144,6 +145,27 @@ export const saveStudioItemFn = createServerFn({ method: 'POST', strict: false }
         const panel = getAsset(data.assetId)
         const panelError = panelSizeError(panel?.width ?? null, panel?.height ?? null)
         if (panelError) throw new Error(panelError)
+      }
+      const facePanelId = typeof data.data.facePanelAssetId === 'string' ? data.data.facePanelAssetId : null
+      const previousFace =
+        previous && typeof previous.data.facePanelAssetId === 'string' ? previous.data.facePanelAssetId : null
+      if (facePanelId && facePanelId !== previousFace) {
+        const facePanel = getAsset(facePanelId)
+        if (panelSizeError(facePanel?.width ?? null, facePanel?.height ?? null)) {
+          throw new Error(
+            `The face panel must be at least 4096 x 4096 px (this one is ${facePanel?.width ?? '?'} x ${facePanel?.height ?? '?'}).`,
+          )
+        }
+      }
+      const sheetId =
+        typeof data.data.characterSheetAssetId === 'string' ? data.data.characterSheetAssetId : null
+      const previousSheet =
+        previous && typeof previous.data.characterSheetAssetId === 'string'
+          ? previous.data.characterSheetAssetId
+          : null
+      if (sheetId && sheetId !== previousSheet) {
+        const sheet = getAsset(sheetId)
+        assertSheetSize(sheet?.width ?? null, sheet?.height ?? null)
       }
       data.data = dataForPanelChange(data.data, panelChanged)
       if (data.data.avatarProfile !== undefined) {

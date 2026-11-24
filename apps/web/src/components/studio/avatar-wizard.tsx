@@ -32,7 +32,11 @@ import { Check, ClipboardCopy, ClipboardPaste, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { AvatarCropsPanel } from '~/components/studio/avatar-crops-panel'
-import { AvatarSheetUploads, type SlotAsset } from '~/components/studio/avatar-sheet-uploads'
+import {
+  AvatarSheetUploads,
+  type AvatarSlotKind,
+  type SlotAsset,
+} from '~/components/studio/avatar-sheet-uploads'
 import { PromptExtract } from '~/components/studio/avatar-prompt-extract'
 import { loadAvatarCropsFn, saveStudioItemFn, type StudioItemDto } from '~/server/studio.functions'
 
@@ -101,10 +105,11 @@ export function AvatarWizard({
   const [profile, setProfile] = useState<AvatarProfile>(stored ?? initial?.profile ?? DEFAULT_AVATAR_PROFILE)
   const [sheetChoice, setSheetChoice] = useState<SlotAsset | null | undefined>(undefined)
   const [panelChoice, setPanelChoice] = useState<SlotAsset | null | undefined>(undefined)
+  const [faceChoice, setFaceChoice] = useState<SlotAsset | null | undefined>(undefined)
   const [sheetEdit, setSheetEdit] = useState<string | null>(null)
   const [bodyPanelEdit, setBodyPanelEdit] = useState<string | null>(null)
   const [facePanelEdit, setFacePanelEdit] = useState<string | null>(null)
-  const [picker, setPicker] = useState<'sheet' | 'panel' | null>(null)
+  const [picker, setPicker] = useState<AvatarSlotKind | null>(null)
   const [pasteOpen, setPasteOpen] = useState(false)
   const [busy, setBusy] = useState<'save' | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -119,6 +124,13 @@ export function AvatarWizard({
   })
   const cropsDto = cropsQuery.data
 
+  const baseFace = stringData(item, 'facePanelAssetId')
+  const face =
+    faceChoice !== undefined
+      ? faceChoice
+      : baseFace
+        ? { id: baseFace, name: null, width: null, height: null }
+        : null
   const baseSheet = stringData(item, 'characterSheetAssetId')
   const sheet =
     sheetChoice !== undefined
@@ -152,8 +164,8 @@ export function AvatarWizard({
       setError('Name the avatar first.')
       return
     }
-    if (!profileOnly && (!sheet || !panel)) {
-      setError('Both the reference sheet and the 4×4 panel are required.')
+    if (!profileOnly && (!sheet || !panel || !face)) {
+      setError('The reference sheet, the body panel and the face panel are required.')
       return
     }
     setBusy('save')
@@ -170,7 +182,7 @@ export function AvatarWizard({
             ...item?.data,
             style: item?.data.style ?? 'photoreal',
             characterSheetAssetId: sheet?.id ?? null,
-            facePanelAssetId: item?.data.facePanelAssetId ?? null,
+            facePanelAssetId: profileOnly ? (item?.data.facePanelAssetId ?? null) : (face?.id ?? null),
             avatarProfile: profile,
           },
         },
@@ -756,10 +768,21 @@ export function AvatarWizard({
                       <AvatarSheetUploads
                         sheet={sheet}
                         panel={panel}
+                        face={face}
                         onSheet={setSheetChoice}
                         onPanel={setPanelChoice}
+                        onFace={setFaceChoice}
                         picker={picker}
                         onPicker={setPicker}
+                        onCopy={(kind) =>
+                          void copy(
+                            kind === 'sheet'
+                              ? sheetPrompt
+                              : kind === 'body-panel'
+                                ? bodyPanelPrompt
+                                : facePanelPrompt,
+                          )
+                        }
                       />
                       {activeId ? (
                         <AvatarCropsPanel
@@ -768,7 +791,7 @@ export function AvatarWizard({
                           cropCells={cropsDto?.cropCells ?? null}
                           panel={cropsDto?.panel ?? null}
                           pending={cropsQuery.isPending}
-                          onReplacePanel={() => setPicker('panel')}
+                          onReplacePanel={() => setPicker('body-panel')}
                           onSaved={(dto) => {
                             queryClient.setQueryData(['avatar-crops', activeId], dto)
                             onSaved()

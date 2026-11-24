@@ -25,6 +25,7 @@ function UploadSlot({
   noteTone = 'muted',
   onPick,
   onClear,
+  onCopy,
 }: {
   label: string
   asset: SlotAsset | null
@@ -32,6 +33,7 @@ function UploadSlot({
   noteTone?: 'muted' | 'error'
   onPick: () => void
   onClear: () => void
+  onCopy?: () => void
 }) {
   return (
     <div className="flex flex-col gap-1.5">
@@ -81,32 +83,50 @@ function UploadSlot({
             Clear
           </Button>
         ) : null}
+        {onCopy ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="min-h-11 text-[11px] sm:h-7 sm:min-h-0 sm:text-[10.5px]"
+            onClick={onCopy}
+          >
+            Copy prompt
+          </Button>
+        ) : null}
       </div>
     </div>
   )
 }
 
+export type AvatarSlotKind = 'sheet' | 'body-panel' | 'face-panel'
+
 export function AvatarSheetUploads({
   sheet,
   panel,
+  face,
   onSheet,
   onPanel,
+  onFace,
   picker,
   onPicker,
+  onCopy,
 }: {
   sheet: SlotAsset | null
   panel: SlotAsset | null
+  face: SlotAsset | null
   onSheet: (next: SlotAsset | null) => void
   onPanel: (next: SlotAsset | null) => void
-  picker: 'sheet' | 'panel' | null
-  onPicker: (next: 'sheet' | 'panel' | null) => void
+  onFace: (next: SlotAsset | null) => void
+  picker: AvatarSlotKind | null
+  onPicker: (next: AvatarSlotKind | null) => void
+  onCopy?: (kind: AvatarSlotKind) => void
 }) {
   const [rejectedPanelError, setRejectedPanelError] = useState<string | null>(null)
 
-  const open = (kind: 'sheet' | 'panel') => onPicker(kind)
+  const open = (kind: AvatarSlotKind) => onPicker(kind)
   const close = () => onPicker(null)
 
-  const adopt = (kind: 'sheet' | 'panel', item: ReferenceItem) => {
+  const adopt = (kind: AvatarSlotKind, item: ReferenceItem) => {
     const next: SlotAsset = {
       id: item.id,
       name: item.name,
@@ -114,6 +134,14 @@ export function AvatarSheetUploads({
       height: item.height ?? null,
     }
     if (kind === 'sheet') {
+      const longest = Math.max(next.width ?? 0, next.height ?? 0)
+      if (longest < 4096) {
+        const error = 'The reference sheet must be at least 4096 px on its long side.'
+        setRejectedPanelError(error)
+        toast(error, { tone: 'error' })
+        return
+      }
+      setRejectedPanelError(null)
       onSheet(next)
       return
     }
@@ -124,36 +152,54 @@ export function AvatarSheetUploads({
       return
     }
     setRejectedPanelError(null)
-    onPanel(next)
+    if (kind === 'body-panel') onPanel(next)
+    else onFace(next)
   }
 
   const adoptedPanelError = panel ? panelSizeError(panel.width, panel.height) : null
+  const adoptedFaceError = face ? panelSizeError(face.width, face.height) : null
 
   return (
     <>
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-3 sm:grid-cols-3">
         <UploadSlot
           label="Reference sheet"
           asset={sheet}
           onPick={() => open('sheet')}
           onClear={() => onSheet(null)}
+          onCopy={onCopy ? () => onCopy('sheet') : undefined}
         />
         <UploadSlot
-          label="4×4 panel"
+          label="Body panel"
           asset={panel}
           note={rejectedPanelError ?? adoptedPanelError}
           noteTone={rejectedPanelError ? 'error' : 'muted'}
-          onPick={() => open('panel')}
+          onPick={() => open('body-panel')}
           onClear={() => {
             setRejectedPanelError(null)
             onPanel(null)
           }}
+          onCopy={onCopy ? () => onCopy('body-panel') : undefined}
+        />
+        <UploadSlot
+          label="Face panel"
+          asset={face}
+          note={rejectedPanelError ?? adoptedFaceError}
+          noteTone={rejectedPanelError ? 'error' : 'muted'}
+          onPick={() => open('face-panel')}
+          onClear={() => {
+            setRejectedPanelError(null)
+            onFace(null)
+          }}
+          onCopy={onCopy ? () => onCopy('face-panel') : undefined}
         />
       </div>
       {picker
         ? createPortal(
             <ReferencePicker
-              title={picker === 'sheet' ? 'Reference sheet' : '4×4 panel'}
+              title={
+                picker === 'sheet' ? 'Reference sheet' : picker === 'body-panel' ? 'Body panel' : 'Face panel'
+              }
               allowAvatars={false}
               existingIds={[]}
               max={1}
