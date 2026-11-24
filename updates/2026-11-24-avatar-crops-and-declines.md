@@ -1,7 +1,7 @@
 # Crops follow the panel, references are labelled for what they are, a decline is not a fault
 
 - Date: 2026-11-24
-- Status: open
+- Status: open, PR #24
 
 ## Summary
 
