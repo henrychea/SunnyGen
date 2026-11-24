@@ -1,17 +1,20 @@
 import { createServerFn } from '@tanstack/react-start'
-import { PROVIDERS } from '@sunnygen/core'
+import { z } from 'zod'
+import { PROVIDERS, type ProviderId } from '@sunnygen/core'
 import {
   countAssets,
   countGenerations,
   countStudioItems,
   getAssetsByIds,
+  getGeneration,
   listGenerations,
   readSetting,
+  updateGeneration,
 } from '@sunnygen/db'
 import { ensurePoller } from './generation-poller.server'
 import { assetUrl, toInputAssets } from './media.server'
 import { generationMediaKind } from '~/lib/media-kind'
-import type { GalleryItem } from './library.functions'
+import { loadGenerationWall, type GalleryItem, type GenerationWallItem } from './library.functions'
 
 export interface DashboardData {
   renders: number
@@ -80,3 +83,68 @@ export const loadDashboard = createServerFn({ method: 'GET' }).handler((): Dashb
     recent,
   }
 })
+
+export interface TodayWeekUsage {
+  provider: ProviderId
+  model: string
+  runs: number
+}
+
+export interface TodayData {
+  running: GenerationWallItem[]
+  review: GenerationWallItem[]
+  failed: GenerationWallItem[]
+  week: TodayWeekUsage[]
+  weekStart: number
+}
+
+function startOfWeek(now: number): number {
+  const date = new Date(now)
+  date.setHours(0, 0, 0, 0)
+  const weekday = (date.getDay() + 6) % 7
+  date.setDate(date.getDate() - weekday)
+  return date.getTime()
+}
+
+export const loadToday = createServerFn({ method: 'GET', strict: false }).handler(
+  async (): Promise<TodayData> => {
+    ensurePoller()
+    const wall = await loadGenerationWall()
+    const weekStart = startOfWeek(Date.now())
+    const usage = new Map<string, TodayWeekUsage>()
+    for (const generation of listGenerations({ status: 'succeeded', limit: 1000 })) {
+      if (generation.kind === 'lora' || generation.createdAt < weekStart) continue
+      const key = `${generation.provider}|${generation.model}`
+      const entry = usage.get(key) ?? { provider: generation.provider, model: generation.model, runs: 0 }
+      entry.runs += 1
+      usage.set(key, entry)
+    }
+    return {
+      running: wall.filter((item) => item.status === 'queued' || item.status === 'running'),
+      review: wall.filter((item) => item.status === 'succeeded' && !item.params.reviewedAt),
+      failed: wall.filter((item) => item.status === 'failed'),
+      week: [...usage.values()].sort((left, right) => right.runs - left.runs),
+      weekStart,
+    }
+  },
+)
+
+export const setGenerationReview = createServerFn({ method: 'POST', strict: false })
+  .validator(
+    z.object({
+      id: z.string().min(1),
+      reviewed: z.boolean().optional(),
+      starred: z.boolean().optional(),
+    }),
+  )
+  .handler(({ data }) => {
+    const generation = getGeneration(data.id)
+    if (!generation) throw new Error('Generation not found')
+    const params: Record<string, unknown> = { ...generation.params }
+    if (data.reviewed === true) params.reviewedAt = Date.now()
+    if (data.reviewed === false) delete params.reviewedAt
+    if (data.starred === true) params.starred = true
+    if (data.starred === false) delete params.starred
+    updateGeneration(generation.id, { params })
+    return { ok: true }
+  })

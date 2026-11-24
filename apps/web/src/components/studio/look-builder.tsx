@@ -2,15 +2,11 @@ import {
   SLOT_LABELS,
   STUDIO_ANGLES,
   STUDIO_ANGLE_LABELS,
-  avatarModelFamily,
-  buildStudioPrompt,
-  identityClause,
   missingViewWarnings,
   normalizeAngles,
   orderStudioGarments,
   parseAvatarProfile,
   parseGarmentViews,
-  pickGarmentView,
   validateStudioLook,
   type StudioAngle,
   type StudioGarmentInput,
@@ -40,6 +36,7 @@ import { thumbSrcSet, thumbUrl } from '~/lib/media-thumbs'
 import { ModelCombobox, type ModelOption } from '~/components/model-combobox'
 import { AspectRatioSelector, QualitySelector } from '~/components/generation-selectors'
 import { sortModelChoices } from '~/lib/model-choices'
+import { studioShot } from '~/lib/studio-shot'
 import { describeReferenceTrim, reconcileParams } from '~/lib/model-params'
 import { trimStudioReferences } from '~/lib/studio-references'
 import { useModelChoices } from '~/lib/use-model-choices'
@@ -134,37 +131,27 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
       ? 'Add at least one garment.'
       : (validation.blocking[0] ?? (!model ? 'Pick an image model.' : null))
 
-  const promptFor = (angle: StudioAngle) =>
-    buildStudioPrompt({
-      garments: orderedGarments.map((item, index) => ({
-        ...garmentInputs[index]!,
-        imageIndex: index + 1 + avatarCount,
-        view: pickGarmentView(garmentViews[index] ?? [], angle)?.angle,
-      })),
-      hasPose: Boolean(pose),
-      poseImageIndex: pose ? 1 + avatarCount + orderedGarments.length : null,
-      hasSceneImage,
-      sceneImageIndex: hasSceneImage ? 1 + avatarCount + orderedGarments.length + (pose ? 1 : 0) : null,
-      angle,
-      notes,
-      identityImageCount: avatarCount,
-      identity: avatarProfile
-        ? identityClause(avatarProfile, { modelFamily: avatarModelFamily(model?.id ?? '') })
-        : undefined,
-    })
+  const promptFor = (angle: StudioAngle) => shotFor(angle).prompt
 
   // One reference per garment: whichever view answers the angle being shot.
-  const referenceIdsFor = (angle: StudioAngle): string[] => {
-    if (!avatar) return []
-    const ids = [...avatarImages]
-    for (const [index] of orderedGarments.entries()) {
-      const view = pickGarmentView(garmentViews[index] ?? [], angle)
-      ids.push(view?.cleanAssetId ?? view?.assetId ?? '')
-    }
-    if (pose?.assetId) ids.push(pose.assetId)
-    if (sceneAssetId) ids.push(sceneAssetId)
-    return ids
-  }
+  const shotFor = (angle: StudioAngle) =>
+    studioShot({
+      avatarAssetIds: avatarImages,
+      avatarProfile,
+      modelId: model?.id,
+      garments: orderedGarments.map((item, index) => ({
+        id: item.id,
+        name: item.name,
+        slot: garmentInputs[index]?.slot ?? 'top',
+        sourceKind: garmentInputs[index]?.sourceKind,
+        notes: garmentInputs[index]?.notes,
+        views: garmentViews[index] ?? [],
+      })),
+      poseAssetId: pose?.assetId ?? null,
+      sceneAssetId,
+      angle,
+      notes,
+    })
 
   const canToggleGarment = (item: StudioItemDto): boolean => {
     if (garmentIds.includes(item.id)) return true
@@ -264,13 +251,13 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
       for (const angle of selected) {
         if (runToken.current !== token) return
         updateResult(angle, { status: 'running' })
-        const prompt = promptFor(angle)
-        const usableReferenceIds = referenceIdsFor(angle).filter(Boolean).slice(0, model.maxImages)
+        const shot = shotFor(angle)
+        const usableReferenceIds = shot.assetIds.filter(Boolean).slice(0, model.maxImages)
         const submitted = await submitGeneration({
           data: {
             kind: 'image',
             model: model.id,
-            prompt,
+            prompt: shot.prompt,
             assetIds: usableReferenceIds,
             params: { aspectRatio: ratio, quality, origin: 'studio', studioJob: 'angles' },
             folderId: folder.id,

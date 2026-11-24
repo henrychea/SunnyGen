@@ -75,7 +75,7 @@ import { ResizeImagesDialog } from '~/components/resize-images-dialog'
 import { ReferencePicker } from './reference-picker'
 
 const PROMPT_LIMIT = 20_000
-const MAX_BATCH = 8
+export const MAX_BATCH = 8
 const SKIP_RESIZE_KEY = 'sunnygen.resize-large-images.skip'
 
 function readSkipResize(): boolean {
