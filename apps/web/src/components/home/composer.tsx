@@ -441,12 +441,16 @@ export function HomeComposer({
         setNotice(
           `Queued ${ids.length} ${ids.length === 1 ? 'result' : 'results'} — the wall updates as each finishes.`,
         )
+        toast(`${ids.length} ${ids.length === 1 ? 'generation' : 'generations'} started`, { tone: 'info' })
       }
       if (failures.length > 0) {
         setError(failures[0] ?? 'Generation failed')
+        toast(failures[0] ?? 'Generation failed', { tone: 'error' })
       }
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : 'Generation failed')
+      const message = submitError instanceof Error ? submitError.message : 'Generation failed'
+      setError(message)
+      toast(message, { tone: 'error' })
     } finally {
       setBusy(false)
     }

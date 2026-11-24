@@ -1,5 +1,5 @@
 import type { StudioKind } from '@sunnygen/core'
-import { Button, Dialog, DialogSurface, Label, cn, motionFast } from '@sunnygen/ui'
+import { Button, Dialog, DialogSurface, Label, cn, motionFast, toast } from '@sunnygen/ui'
 import { FileArchive, FolderUp, Upload, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useRef, useState } from 'react'
@@ -70,9 +70,14 @@ export function StudioPackDialog({
       const payload = (await response.json()) as PackImportResult & { error?: string }
       if (!response.ok) throw new Error(payload.error ?? 'Import failed')
       setResult(payload)
+      toast(`Imported ${payload.imported.length} ${payload.imported.length === 1 ? 'item' : 'items'}`, {
+        tone: 'info',
+      })
       onImported()
     } catch (importError) {
-      setError(importError instanceof Error ? importError.message : 'Import failed')
+      const message = importError instanceof Error ? importError.message : 'Import failed'
+      setError(message)
+      toast(message, { tone: 'error' })
     } finally {
       setBusy(false)
     }

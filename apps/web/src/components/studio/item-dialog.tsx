@@ -27,6 +27,7 @@ import {
   cn,
   motionFast,
   motionPop,
+  toast,
 } from '@sunnygen/ui'
 import { ImagePlus, Loader2, Sparkles, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
@@ -97,8 +98,12 @@ export function StudioItemDialog({
       form.set('file', file)
       form.set('kind', kind)
       const response = await fetch('/api/studio-upload', { method: 'POST', body: form })
-      const payload = (await response.json()) as { id?: string; error?: string }
+      const payload = (await response.json()) as { id?: string; name?: string | null; error?: string }
       if (!response.ok || !payload.id) throw new Error(payload.error ?? 'Upload failed')
+      const uploadedName = payload.name ?? file.name
+      toast(uploadedName === file.name ? `Uploaded ${uploadedName}` : `Uploaded as ${uploadedName}`, {
+        tone: 'info',
+      })
       if (field === 'character') setCharacterSheetId(payload.id)
       else if (field.startsWith('view:')) {
         const angle = field.slice('view:'.length) as StudioAngle
@@ -106,7 +111,9 @@ export function StudioItemDialog({
         setViews((current) => ({ ...current, [angle]: { angle, assetId: payload.id!, cleanAssetId: null } }))
       } else setSheetId(payload.id)
     } catch (uploadError) {
-      setError(uploadError instanceof Error ? uploadError.message : 'Upload failed')
+      const message = uploadError instanceof Error ? uploadError.message : 'Upload failed'
+      setError(message)
+      toast(message, { tone: 'error' })
     } finally {
       setUploading(null)
     }
@@ -145,8 +152,11 @@ export function StudioItemDialog({
       })
       onSaved()
       onOpenChange(false)
+      toast(item ? `${title} saved` : `${title} created`, { tone: 'info' })
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : 'Could not save')
+      const message = saveError instanceof Error ? saveError.message : 'Could not save'
+      setError(message)
+      toast(message, { tone: 'error' })
     } finally {
       setSaving(false)
     }

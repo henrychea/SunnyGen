@@ -20,7 +20,7 @@ const WITH_PORTRAIT: AvatarProfile = {
 }
 
 const GOLDEN_SHEET = normalize(`
-Create a professional-grade original character reference sheet. Use the uploaded portrait only as a 70% likeness guide, not as an identity to copy.
+Create a professional-grade original character reference sheet. Use the attached portrait only as a 70% likeness guide, not as an identity to copy.
 
 Likeness rule: The finished character must read as a different person with a strong family resemblance to the reference — about 70% similar. Keep the ethnicity, age range, skin tone, hair color and texture, general face-shape family, and body proportions. Change the specific identity features: eye shape and eyelid crease, nose bridge and tip, lip contour, jawline and chin, cheekbones, eyebrow shape, ear shape, facial proportions, and makeup. Do not copy, trace, face-swap, or reproduce the reference person's exact face, expression, pose, lighting, or facial geometry. The result must be an original face, not a clone. Side by side, they should look like close relatives, not the same person.
 
@@ -46,7 +46,7 @@ Content Sections:
 
 Overall Style: Realistic Photography Feel, Natural Light, Realistic Skin Texture, Realistic Hair Strands, Realistic Human Proportions, High-Quality Character Consistency Reference Table.
 
-Identity lock for every panel: same new face, same body, same hair, same outfit. Do not revert to the uploaded portrait's face in any panel. 4K res with Ratio 4:3. Remove the profile text and keep only the category ones. Remove the background so it is plain white. No box outlines. No text at the bottom.
+Identity lock for every panel: same new face, same body, same hair, same outfit. Do not revert to the attached portrait's face in any panel. 4K res with Ratio 4:3. Remove the profile text and keep only the category ones. Remove the background so it is plain white. No box outlines. No text at the bottom.
 `)
 
 const GOLDEN_PANEL = normalize(
@@ -64,8 +64,39 @@ test('the default profile reproduces the 4x4 panel prompt', () => {
 test('the likeness section disappears when no portrait is attached', () => {
   const prompt = buildReferenceSheetPrompt(DEFAULT_AVATAR_PROFILE)
   assert.doesNotMatch(prompt, /Likeness rule/)
-  assert.doesNotMatch(prompt, /uploaded portrait/)
+  assert.doesNotMatch(prompt, /attached portrait/)
   assert.match(prompt, /^Create a professional-grade original character reference sheet\./)
+})
+
+test('usePortrait writes the likeness rule without a stored portrait asset', () => {
+  const profile = parseAvatarProfile({
+    ...DEFAULT_AVATAR_PROFILE,
+    source: { ...DEFAULT_AVATAR_PROFILE.source, usePortrait: true },
+  })
+  assert.ok(profile)
+  assert.equal(profile.source.portraitAssetId, undefined)
+  assert.match(buildReferenceSheetPrompt(profile), /Use the attached portrait only as a 70% likeness guide/)
+  assert.match(buildReferenceSheetPrompt(profile), /Likeness rule/)
+})
+
+test('a legacy profile with a portrait asset still writes the likeness rule', () => {
+  const profile = parseAvatarProfile({
+    source: { portraitAssetId: 'portrait-asset', likenessPercent: 60 },
+  })
+  assert.ok(profile)
+  assert.equal(profile.source.usePortrait, false)
+  const prompt = buildReferenceSheetPrompt(profile)
+  assert.match(prompt, /Use the attached portrait only as a 60% likeness guide/)
+  assert.match(prompt, /about 60% similar/)
+})
+
+test('usePortrait survives a save and load round trip', () => {
+  assert.equal(parseAvatarProfile(DEFAULT_AVATAR_PROFILE)?.source.usePortrait, false)
+  const profile = parseAvatarProfile({
+    ...DEFAULT_AVATAR_PROFILE,
+    source: { ...DEFAULT_AVATAR_PROFILE.source, usePortrait: true },
+  })
+  assert.equal(parseAvatarProfile(profile)?.source.usePortrait, true)
 })
 
 test('kept and changed likeness traits follow the profile', () => {

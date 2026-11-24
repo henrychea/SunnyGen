@@ -147,7 +147,7 @@ export async function importPack(source: PackSource): Promise<PackImportResult> 
       const buffer = files.get(item.file.toLowerCase())
       if (!buffer) throw new Error('File not found in the pack.')
       const mime = await imageMime(buffer)
-      const asset = await storeBuffer({ buffer: Buffer.from(buffer), mime, kind: 'image', source: 'studio' })
+      const asset = await storeBuffer({ buffer: Buffer.from(buffer), mime, kind: 'image', source: 'upload' })
 
       let cleanAssetId: string | null = null
       if (item.cleanFile) {
@@ -158,7 +158,7 @@ export async function importPack(source: PackSource): Promise<PackImportResult> 
             buffer: Buffer.from(clean),
             mime: await imageMime(clean),
             kind: 'image',
-            source: 'studio',
+            source: 'upload',
           })
         ).id
       }
@@ -173,7 +173,7 @@ export async function importPack(source: PackSource): Promise<PackImportResult> 
             buffer: Buffer.from(viewBuffer),
             mime: await imageMime(viewBuffer),
             kind: 'image',
-            source: 'studio',
+            source: 'upload',
           })
           let viewCleanId: string | null = null
           if (view.cleanFile) {
@@ -184,7 +184,7 @@ export async function importPack(source: PackSource): Promise<PackImportResult> 
                 buffer: Buffer.from(viewClean),
                 mime: await imageMime(viewClean),
                 kind: 'image',
-                source: 'studio',
+                source: 'upload',
               })
             ).id
           }
@@ -200,7 +200,7 @@ export async function importPack(source: PackSource): Promise<PackImportResult> 
             buffer: Buffer.from(sheet),
             mime: await imageMime(sheet),
             kind: 'image',
-            source: 'studio',
+            source: 'upload',
           })
         ).id
       }

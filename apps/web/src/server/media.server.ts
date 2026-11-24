@@ -50,6 +50,7 @@ export interface InputAsset {
 export interface PublicAsset {
   id: string
   kind: AssetKind
+  name: string | null
   mime: string
   width: number | null
   height: number | null
@@ -92,6 +93,7 @@ export function toPublicAsset(asset: AssetRecord): PublicAsset {
   return {
     id: asset.id,
     kind: asset.kind,
+    name: asset.name,
     mime: asset.mime,
     width: asset.width,
     height: asset.height,
@@ -128,6 +130,9 @@ export interface StoreBufferInput {
   folderId?: string | null
   kind?: AssetKind
   fileName?: string
+  // User uploads always become a new row and a new file, even for identical bytes.
+  unique?: boolean
+  name?: string
 }
 
 export async function storeBuffer(input: StoreBufferInput): Promise<AssetRecord> {
@@ -138,8 +143,10 @@ export async function storeBuffer(input: StoreBufferInput): Promise<AssetRecord>
   if (input.buffer.byteLength > MAX_UPLOAD_BYTES) throw new Error('File exceeds the 100 MB limit')
 
   const sha256 = createHash('sha256').update(input.buffer).digest('hex')
-  const existing = findAssetBySha256(sha256)
-  if (existing) return existing
+  if (!input.unique) {
+    const existing = findAssetBySha256(sha256)
+    if (existing) return existing
+  }
 
   const now = new Date()
   const folder = join(String(now.getUTCFullYear()), String(now.getUTCMonth() + 1).padStart(2, '0'))
@@ -161,6 +168,8 @@ export async function storeBuffer(input: StoreBufferInput): Promise<AssetRecord>
     source: input.source,
     path: relativePath,
     folderId: input.folderId ?? null,
+    name: input.name ?? null,
+    unique: input.unique === true,
   })
 }
 

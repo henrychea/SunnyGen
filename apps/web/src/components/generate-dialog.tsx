@@ -13,6 +13,7 @@ import {
   motionFade,
   motionFast,
   motionSpring,
+  toast,
 } from '@sunnygen/ui'
 import { FolderOpen, ImagePlus, Loader2, Sparkles, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
@@ -138,12 +139,20 @@ export function GenerateDialog({
           const payload = (await response.json().catch(() => null)) as { error?: string } | null
           throw new Error(payload?.error ?? 'Upload failed')
         }
-        const payload = (await response.json()) as { asset?: { id?: string } }
+        const payload = (await response.json()) as {
+          asset?: { id?: string; name?: string | null }
+        }
+        const uploadedName = payload.asset?.name ?? file.name
+        toast(uploadedName === file.name ? `Uploaded ${uploadedName}` : `Uploaded as ${uploadedName}`, {
+          tone: 'info',
+        })
         if (payload.asset?.id) next.push(payload.asset.id)
       }
       setAssetIds((current) => [...current, ...next])
     } catch (uploadError) {
-      setError(uploadError instanceof Error ? uploadError.message : 'Upload failed')
+      const message = uploadError instanceof Error ? uploadError.message : 'Upload failed'
+      setError(message)
+      toast(message, { tone: 'error' })
     } finally {
       setUploading(false)
       if (fileRef.current) fileRef.current.value = ''
@@ -169,7 +178,9 @@ export function GenerateDialog({
         return
       }
       if (view.generation.status === 'failed') {
-        setError(view.generation.error ?? 'Generation failed')
+        const message = view.generation.error ?? 'Generation failed'
+        setError(message)
+        toast(message, { tone: 'error' })
         setPhase('failed')
         return
       }
@@ -212,7 +223,9 @@ export function GenerateDialog({
         },
       })
       if (view.generation.status === 'failed') {
-        setError(view.generation.error ?? 'Generation failed')
+        const message = view.generation.error ?? 'Generation failed'
+        setError(message)
+        toast(message, { tone: 'error' })
         setPhase('failed')
         return
       }
@@ -223,6 +236,7 @@ export function GenerateDialog({
       }
       setGenerationId(view.generation.id)
       setPhase('running')
+      toast('Generation started', { tone: 'info' })
       void poll(view.generation.id, token)
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Generation failed')

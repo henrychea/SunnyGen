@@ -6,6 +6,7 @@ import { asRows } from '../rows'
 interface AssetRow {
   id: string
   kind: string
+  name: string | null
   mime: string
   byte_size: number
   width: number | null
@@ -22,6 +23,7 @@ function toRecord(row: AssetRow): AssetRecord {
   return {
     id: row.id,
     kind: row.kind as AssetKind,
+    name: row.name,
     mime: row.mime,
     byteSize: row.byte_size,
     width: row.width,
@@ -35,8 +37,29 @@ function toRecord(row: AssetRow): AssetRecord {
   }
 }
 
+const NAME_LIMIT = 120
+
+export function sanitizeAssetName(value: string): string {
+  const base = value.split(/[\\/]/).pop() ?? ''
+  const cleaned = base.replace(/\p{Cc}/gu, '').trim()
+  return cleaned.slice(0, NAME_LIMIT) || 'upload'
+}
+
+export function uniqueAssetName(name: string): string {
+  const dot = name.lastIndexOf('.')
+  const stem = dot > 0 ? name.slice(0, dot) : name
+  const extension = dot > 0 ? name.slice(dot) : ''
+  return `${stem.slice(0, NAME_LIMIT - extension.length)}-${randomUUID()}${extension}`
+}
+
+export function assetNameTaken(name: string): boolean {
+  return Boolean(getDb().prepare('SELECT 1 FROM assets WHERE name = ?').get(name))
+}
+
 export interface CreateAssetInput {
   kind: AssetKind
+  name?: string | null
+  unique?: boolean
   mime: string
   byteSize: number
   width?: number | null
@@ -49,19 +72,24 @@ export interface CreateAssetInput {
 }
 
 export function createAsset(input: CreateAssetInput): AssetRecord {
-  const existing = findAssetBySha256(input.sha256)
-  if (existing) return existing
+  if (!input.unique) {
+    const existing = findAssetBySha256(input.sha256)
+    if (existing) return existing
+  }
 
+  const baseName = input.name ? sanitizeAssetName(input.name) : null
+  const name = baseName && assetNameTaken(baseName) ? uniqueAssetName(baseName) : baseName
   const id = randomUUID()
   getDb()
     .prepare(
       `INSERT INTO assets
-        (id, kind, mime, byte_size, width, height, duration, sha256, source, path, folder_id, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        (id, kind, name, mime, byte_size, width, height, duration, sha256, source, path, folder_id, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .run(
       id,
       input.kind,
+      name,
       input.mime,
       input.byteSize,
       input.width ?? null,
@@ -183,4 +211,13 @@ export function deleteAsset(id: string): boolean {
 export function moveAssetToFolder(id: string, folderId: string | null): boolean {
   const result = getDb().prepare('UPDATE assets SET folder_id = ? WHERE id = ?').run(folderId, id)
   return result.changes > 0
+}
+
+// User-facing studio uploads are the studio assets that are not avatar crops. Used by the
+// backfill script, which sees raw rows instead of the app connection.
+export function selectStudioUploads(
+  rows: ReadonlyArray<{ id: string; source: string }>,
+  cropIds: ReadonlySet<string>,
+): string[] {
+  return rows.filter((row) => row.source === 'studio' && !cropIds.has(row.id)).map((row) => row.id)
 }

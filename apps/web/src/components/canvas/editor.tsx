@@ -23,6 +23,7 @@ import {
   motionFade,
   motionMountRise,
   motionTransition,
+  toast,
 } from '@sunnygen/ui'
 import {
   Image as ImageIcon,
@@ -130,11 +131,16 @@ function CanvasInner({ latest, workflows }: WorkflowEditorProps) {
         })
         setWorkflowId(saved.id)
         setSaveState('saved')
-        if (options?.manual) setBanner(null)
+        if (options?.manual) {
+          setBanner(null)
+          toast('Pipeline saved', { tone: 'info' })
+        }
         window.setTimeout(() => setSaveState((state) => (state === 'saved' ? 'idle' : state)), 1800)
       } catch (error) {
+        const message = error instanceof Error ? error.message : 'Could not save the workflow'
         setSaveState('error')
-        setBanner(error instanceof Error ? error.message : 'Could not save the workflow')
+        setBanner(message)
+        toast(message, { tone: 'error' })
       }
     },
     [name, workflowId],
@@ -211,10 +217,16 @@ function CanvasInner({ latest, workflows }: WorkflowEditorProps) {
         const response = await fetch('/api/upload', { method: 'POST', body: form })
         if (!response.ok) {
           const payload = (await response.json().catch(() => null)) as { error?: string } | null
-          setBanner(payload?.error ?? `Upload failed (${response.status})`)
+          const message = payload?.error ?? `Upload failed (${response.status})`
+          setBanner(message)
+          toast(message, { tone: 'error' })
           continue
         }
-        const payload = (await response.json()) as { asset?: { id?: string } }
+        const payload = (await response.json()) as { asset?: { id?: string; name?: string | null } }
+        const uploadedName = payload.asset?.name ?? file.name
+        toast(uploadedName === file.name ? `Uploaded ${uploadedName}` : `Uploaded as ${uploadedName}`, {
+          tone: 'info',
+        })
         if (payload.asset?.id) uploaded.push(payload.asset.id)
       }
       if (uploaded.length === 0) return
@@ -302,8 +314,11 @@ function CanvasInner({ latest, workflows }: WorkflowEditorProps) {
       const node = nodesRef.current.find((entry) => entry.id === nodeId)
       if (!node) return
       setBanner(null)
+      toast('Generation started', { tone: 'info' })
       void executeNode(node, nodesRef.current).catch((error: unknown) => {
-        setBanner(error instanceof Error ? error.message : 'Generation failed')
+        const message = error instanceof Error ? error.message : 'Generation failed'
+        setBanner(message)
+        toast(message, { tone: 'error' })
       })
     },
     [executeNode],
@@ -317,6 +332,7 @@ function CanvasInner({ latest, workflows }: WorkflowEditorProps) {
       setBanner('Add a Generate node before running the canvas.')
       return
     }
+    toast(`Pipeline started (${order.length} ${order.length === 1 ? 'node' : 'nodes'})`, { tone: 'info' })
 
     for (const target of order) {
       const live = snapshot.find((node) => node.id === target.id)
@@ -329,6 +345,7 @@ function CanvasInner({ latest, workflows }: WorkflowEditorProps) {
         live.data.status = 'failed'
         live.data.error = error instanceof Error ? error.message : 'Generation failed'
         setBanner(live.data.error)
+        toast(live.data.error, { tone: 'error' })
         break
       }
     }

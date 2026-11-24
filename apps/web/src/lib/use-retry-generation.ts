@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { GenerationKind, GenerationParams, ProviderId } from '@sunnygen/core'
 import { getGenerationView, submitGeneration } from '~/server/generation.functions'
 import { deleteLibraryItemFn } from '~/server/library.functions'
+import { toast } from '@sunnygen/ui'
 
 export interface RetryableGeneration {
   id: string
@@ -56,11 +57,14 @@ export function useRetryGeneration() {
       return view
     },
     onSuccess: async () => {
+      toast('Retry started', { tone: 'info' })
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['home-generations'] }),
         queryClient.invalidateQueries({ queryKey: ['gallery'] }),
         queryClient.invalidateQueries({ queryKey: ['failures'] }),
       ])
     },
+    onError: (error) =>
+      toast(error instanceof Error ? error.message : 'Could not retry the generation', { tone: 'error' }),
   })
 }
