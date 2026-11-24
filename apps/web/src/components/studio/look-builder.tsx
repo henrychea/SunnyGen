@@ -314,6 +314,7 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
           updateResult(angle, { status: 'failed', error: 'Timed out' })
         }
         await queryClient.invalidateQueries({ queryKey: ['gallery'] })
+        await queryClient.invalidateQueries({ queryKey: ['studio-wall'] })
       }
     } catch (runError) {
       const message = runError instanceof Error ? runError.message : 'Could not run the look'

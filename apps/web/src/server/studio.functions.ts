@@ -287,7 +287,7 @@ async function prepImage(
       model: model.id,
       prompt,
       assetIds: [assetId],
-      params: { aspectRatio, quality: model.defaultQuality },
+      params: { aspectRatio, quality: model.defaultQuality, origin: 'studio', studioJob },
     },
   })
 
@@ -451,6 +451,8 @@ export const trainAvatarLora = createServerFn({ method: 'POST', strict: false })
           avatarId: avatar.id,
           version: (existing?.version ?? 0) + 1,
           baseModel: LORA_MODEL_ID,
+          origin: 'studio',
+          studioJob: 'lora-train',
         },
       },
     })

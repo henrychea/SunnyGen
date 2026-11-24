@@ -91,15 +91,25 @@ export interface GenerationWallItem {
 }
 
 export const loadGenerationWall = createServerFn({ method: 'GET', strict: false })
-  .validator(z.object({ kind: z.enum(['all', 'video']).default('all') }).optional())
+  .validator(
+    z
+      .object({
+        kind: z.enum(['all', 'video']).default('all'),
+        origin: z.enum(['all', 'studio']).default('all'),
+      })
+      .optional(),
+  )
   .handler(({ data }): GenerationWallItem[] => {
     const kind = data?.kind === 'video' ? 'video' : undefined
+    const origin = data?.origin === 'studio' ? 'studio' : undefined
     const generations = [
       ...listGenerations({ status: 'running', kind, limit: 30 }),
       ...listGenerations({ status: 'queued', kind, limit: 30 }),
       ...listGenerations({ status: 'failed', kind, limit: 20 }),
       ...listGenerations({ status: 'succeeded', kind, limit: 80 }),
-    ].filter((generation) => generation.kind !== 'lora')
+    ].filter(
+      (generation) => generation.kind !== 'lora' && (origin ? generation.params.origin === 'studio' : true),
+    )
     const outputIds = generations.flatMap((generation) => generation.outputAssetIds)
     const inputIds = generations.flatMap((generation) => generation.inputAssetIds)
     const assets = new Map(getAssetsByIds([...outputIds, ...inputIds]).map((asset) => [asset.id, asset]))

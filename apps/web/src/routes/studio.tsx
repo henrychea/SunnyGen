@@ -24,6 +24,8 @@ import { StudioLookBuilder } from '~/components/studio/look-builder'
 import { StudioModelsTab } from '~/components/studio/models-tab'
 import { StudioPreviewDialog } from '~/components/studio/preview-dialog'
 import { StudioTrainDialog } from '~/components/studio/train-dialog'
+import { StudioWall } from '~/components/studio/wall'
+import { loadFolders, loadGenerationWall } from '~/server/library.functions'
 import {
   deleteStudioItemFn,
   loadLoraRuns,
@@ -55,7 +57,14 @@ const TAB_KIND: Record<Exclude<Tab, 'look' | 'models'>, StudioKind> = {
 }
 
 export const Route = createFileRoute('/studio')({
-  loader: () => loadStudioLibrary(),
+  loader: async () => {
+    const [library, wall, folders] = await Promise.all([
+      loadStudioLibrary(),
+      loadGenerationWall({ data: { origin: 'studio' } }),
+      loadFolders(),
+    ])
+    return { library, wall, folders }
+  },
   component: StudioPage,
 })
 
@@ -98,7 +107,8 @@ function StudioSkeleton({ look }: { look: boolean }) {
 }
 
 function StudioPage() {
-  const initial = Route.useLoaderData()
+  const loaderData = Route.useLoaderData()
+  const initial = loaderData.library
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [tab, setTab] = useState<Tab>('look')
@@ -112,6 +122,22 @@ function StudioPage() {
   const [retryingId, setRetryingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [dir, setDir] = useState(0)
+
+  const wall = useQuery({
+    queryKey: ['studio-wall'],
+    queryFn: () => loadGenerationWall({ data: { origin: 'studio' } }),
+    initialData: loaderData.wall,
+    refetchInterval: (query) =>
+      (query.state.data ?? []).some((item) => item.status === 'queued' || item.status === 'running')
+        ? 3_000
+        : false,
+  })
+
+  const folders = useQuery({
+    queryKey: ['folders'],
+    queryFn: () => loadFolders(),
+    initialData: loaderData.folders,
+  })
 
   const runs = useQuery({
     queryKey: ['lora-runs'],
@@ -149,6 +175,7 @@ function StudioPage() {
     onSuccess: (saved) => {
       toast(saved.kind === 'scene' ? 'Scene prepared.' : 'Garment prepared.')
       void queryClient.invalidateQueries({ queryKey: ['studio'] })
+      void queryClient.invalidateQueries({ queryKey: ['studio-wall'] })
     },
     onError: (prepareError) => {
       const message = prepareError instanceof Error ? prepareError.message : 'Prep failed'
@@ -328,6 +355,8 @@ function StudioPage() {
             </motion.div>
           ) : null}
         </AnimatePresence>
+
+        <StudioWall generations={wall.data ?? []} folders={folders.data ?? []} />
 
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
