@@ -14,6 +14,7 @@ import {
   isLoraStepCount,
   identityKeywords,
   loraTrainingCost,
+  panelSizeError,
   parseAvatarLora,
   parseAvatarProfile,
   parseGarmentViews,
@@ -25,6 +26,7 @@ import {
 import {
   deleteGeneration,
   deleteStudioItem,
+  getAsset,
   getAssetsByIds,
   getStudioItem,
   listGenerations,
@@ -36,7 +38,12 @@ import {
 import sharp from 'sharp'
 import { getGenerationView, submitGeneration } from './generation.functions'
 import { assetUrl, readAssetBuffer, storeBuffer } from './media.server'
-import { ensureAvatarCrops } from './avatar-crops.server'
+import {
+  avatarCropsDto,
+  ensureAvatarCrops,
+  regenerateAvatarCrops,
+  type AvatarCropsDto,
+} from './avatar-crops.server'
 import { extractAvatarFromPrompt } from './avatar-profile.server'
 
 export interface StudioItemDto {
@@ -123,6 +130,12 @@ export const saveStudioItemFn = createServerFn({ method: 'POST', strict: false }
         throw new Error('Upload the character sheet first.')
       }
       if (!data.assetId) throw new Error('Upload the 4x4 panel sheet first.')
+      const previous = data.id ? getStudioItem(data.id) : null
+      if (!previous || previous.assetId !== data.assetId) {
+        const panel = getAsset(data.assetId)
+        const panelError = panelSizeError(panel?.width ?? null, panel?.height ?? null)
+        if (panelError) throw new Error(panelError)
+      }
       if (data.data.avatarProfile !== undefined) {
         const profile = parseAvatarProfile(data.data.avatarProfile)
         if (!profile) throw new Error('Avatar profiles must describe an adult aged 18 or older.')
@@ -162,6 +175,22 @@ export const saveStudioItemFn = createServerFn({ method: 'POST', strict: false }
       return toDto(getStudioItem(saved.id) ?? saved)
     }
     return toDto(saved)
+  })
+
+export const loadAvatarCropsFn = createServerFn({ method: 'GET' })
+  .validator(z.object({ avatarId: z.string().min(1) }))
+  .handler(({ data }): AvatarCropsDto => {
+    const item = getStudioItem(data.avatarId)
+    if (!item || item.kind !== 'avatar') throw new Error('Avatar not found')
+    return avatarCropsDto(item)
+  })
+
+export const regenerateAvatarCropsFn = createServerFn({ method: 'POST', strict: false })
+  .validator(z.object({ avatarId: z.string().min(1) }))
+  .handler(async ({ data }): Promise<AvatarCropsDto> => {
+    const item = getStudioItem(data.avatarId)
+    if (!item || item.kind !== 'avatar') throw new Error('Avatar not found')
+    return regenerateAvatarCrops(item)
   })
 
 const OPENROUTER_KEY_SETTING = 'assistant.openrouter.key'

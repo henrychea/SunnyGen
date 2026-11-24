@@ -4,6 +4,8 @@ import {
   AVATAR_CROP_ROLES,
   avatarCropPlan,
   avatarReferenceLimit,
+  panelCellSize,
+  panelSizeError,
   parseAvatarCrops,
   plannedAvatarAssets,
   qualifyAvatarCrops,
@@ -46,4 +48,24 @@ test('stored crops parse defensively', () => {
   assert.equal(parseAvatarCrops(undefined), undefined)
   assert.deepEqual(parseAvatarCrops(CROPS), CROPS)
   assert.deepEqual(parseAvatarCrops([{ role: 'unknown', assetId: 'x' }, { role: 'face-front' }]), [])
+})
+
+test('a panel must be 4K before it can be cropped', () => {
+  assert.equal(panelSizeError(4096, 4096), null)
+  assert.equal(panelSizeError(5000, 6000), null)
+  assert.equal(
+    panelSizeError(1254, 1254),
+    'The 4x4 panel must be at least 4096 x 4096 px (this one is 1254 x 1254).',
+  )
+  assert.match(String(panelSizeError(4096, 3000)), /4096 x 4096 px \(this one is 4096 x 3000\)/)
+  assert.match(String(panelSizeError(null, null)), /must be at least 4096 x 4096 px/)
+  assert.match(String(panelSizeError(0, 4096)), /must be at least 4096 x 4096 px/)
+})
+
+test('cell size decides whether the app can crop', () => {
+  assert.deepEqual(panelCellSize(4096, 4096), { cellWidth: 1024, cellHeight: 1024, usable: true })
+  assert.deepEqual(panelCellSize(5000, 4097), { cellWidth: 1250, cellHeight: 1024, usable: true })
+  assert.deepEqual(panelCellSize(1254, 1254), { cellWidth: 313, cellHeight: 313, usable: false })
+  assert.equal(panelCellSize(4095, 4096).usable, false)
+  assert.deepEqual(panelCellSize(null, null), { cellWidth: 0, cellHeight: 0, usable: false })
 })

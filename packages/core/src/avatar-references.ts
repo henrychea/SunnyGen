@@ -12,6 +12,33 @@ export interface AvatarCrop {
 
 export const PANEL_GRID = 4
 export const PANEL_CROP_MIN_SIDE = 1024
+export const PANEL_MIN_SIDE = PANEL_GRID * PANEL_CROP_MIN_SIDE
+
+export function panelSizeError(width: number | null, height: number | null): string | null {
+  if (!width || !height) {
+    return `The 4x4 panel must be at least ${PANEL_MIN_SIDE} x ${PANEL_MIN_SIDE} px and its pixel size must be known.`
+  }
+  if (width < PANEL_MIN_SIDE || height < PANEL_MIN_SIDE) {
+    return `The 4x4 panel must be at least ${PANEL_MIN_SIDE} x ${PANEL_MIN_SIDE} px (this one is ${width} x ${height}).`
+  }
+  return null
+}
+
+export interface PanelCellSize {
+  cellWidth: number
+  cellHeight: number
+  usable: boolean
+}
+
+export function panelCellSize(width: number | null, height: number | null): PanelCellSize {
+  const cellWidth = Math.floor((width ?? 0) / PANEL_GRID)
+  const cellHeight = Math.floor((height ?? 0) / PANEL_GRID)
+  return {
+    cellWidth,
+    cellHeight,
+    usable: cellWidth >= PANEL_CROP_MIN_SIDE && cellHeight >= PANEL_CROP_MIN_SIDE,
+  }
+}
 
 export const AVATAR_CROP_CELLS: Record<AvatarCropRole, { row: number; column: number; label: string }> = {
   // The panel prompt puts the four body angles in row 0 and the four faces in row 1.

@@ -5,12 +5,12 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useState } from 'react'
 import { saveStudioItemFn } from '~/server/studio.functions'
 import { PromptExtract } from './avatar-prompt-extract'
-import { AvatarSheetUploads } from './avatar-sheet-uploads'
+import { AvatarSheetUploads, type SlotAsset } from './avatar-sheet-uploads'
 
 export interface ImportedAvatar {
   profile: AvatarProfile
-  sheetId: string | null
-  panelId: string | null
+  sheet: SlotAsset | null
+  panel: SlotAsset | null
   name?: string
 }
 
@@ -27,17 +27,17 @@ export function ImportAvatarDialog({
 }) {
   const [name, setName] = useState('')
   const [profile, setProfile] = useState<AvatarProfile | null>(null)
-  const [sheetId, setSheetId] = useState<string | null>(null)
-  const [panelId, setPanelId] = useState<string | null>(null)
-  const [pickerOpen, setPickerOpen] = useState(false)
+  const [sheet, setSheet] = useState<SlotAsset | null>(null)
+  const [panel, setPanel] = useState<SlotAsset | null>(null)
+  const [picker, setPicker] = useState<'sheet' | 'panel' | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const canSave = Boolean(name.trim() && profile && sheetId && panelId)
+  const canSave = Boolean(name.trim() && profile && sheet && panel)
   const traits = profile ? identityKeywords(profile) : null
 
   const save = async () => {
-    if (!profile || !sheetId || !panelId) return
+    if (!profile || !sheet || !panel) return
     setBusy(true)
     setError(null)
     try {
@@ -45,11 +45,11 @@ export function ImportAvatarDialog({
         data: {
           kind: 'avatar',
           name: name.trim(),
-          assetId: panelId,
+          assetId: panel.id,
           cleanAssetId: null,
           data: {
             style: 'photoreal',
-            characterSheetAssetId: sheetId,
+            characterSheetAssetId: sheet.id,
             avatarProfile: profile,
           },
         },
@@ -65,7 +65,7 @@ export function ImportAvatarDialog({
   }
 
   return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange} disablePointerDismissal={pickerOpen}>
+    <Dialog.Root open={open} onOpenChange={onOpenChange} disablePointerDismissal={picker !== null}>
       <DialogSurface className="w-[min(96vw,640px)]">
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -111,11 +111,12 @@ export function ImportAvatarDialog({
           ) : null}
 
           <AvatarSheetUploads
-            sheetId={sheetId}
-            panelId={panelId}
-            onSheet={setSheetId}
-            onPanel={setPanelId}
-            onPickerOpenChange={setPickerOpen}
+            sheet={sheet}
+            panel={panel}
+            onSheet={setSheet}
+            onPanel={setPanel}
+            picker={picker}
+            onPicker={setPicker}
           />
         </div>
 
@@ -139,7 +140,7 @@ export function ImportAvatarDialog({
           <Button
             variant="ghost"
             onClick={() =>
-              onOpenInWizard({ profile: profile as AvatarProfile, sheetId, panelId, name: name.trim() })
+              onOpenInWizard({ profile: profile as AvatarProfile, sheet, panel, name: name.trim() })
             }
             disabled={!profile || busy}
             className="min-h-11 text-[11px] sm:min-h-10"

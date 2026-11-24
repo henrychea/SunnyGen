@@ -1,50 +1,65 @@
 import sharp from 'sharp'
 import {
   AVATAR_CROP_CELLS,
-  PANEL_CROP_MIN_SIDE,
-  PANEL_GRID,
+  panelCellSize,
+  panelSizeError,
   parseAvatarCrops,
   parseAvatarProfile,
   qualifyAvatarCrops,
   type AvatarCrop,
   type AvatarCropRole,
 } from '@sunnygen/core'
-import { saveStudioItem, type StudioItemRecord } from '@sunnygen/db'
-import { readAssetBuffer, storeBuffer } from './media.server'
+import { getAsset, saveStudioItem, type StudioItemRecord } from '@sunnygen/db'
+import { assetUrl, readAssetBuffer, storeBuffer } from './media.server'
 
 const ROLES = Object.keys(AVATAR_CROP_CELLS) as AvatarCropRole[]
 
-export async function ensureAvatarCrops(item: StudioItemRecord): Promise<AvatarCrop[] | undefined> {
-  if (item.kind !== 'avatar') return undefined
-  const stored = parseAvatarCrops(item.data.crops)
-  if (stored !== undefined) return stored
-  if (!parseAvatarProfile(item.data.avatarProfile) || !item.assetId) return undefined
+export interface AvatarAssetInfo {
+  assetId: string | null
+  url: string | null
+  name: string | null
+  width: number | null
+  height: number | null
+}
 
-  const panel = await readAssetBuffer(item.assetId)
-  if (!panel) return undefined
-  const metadata = await sharp(panel.buffer).metadata()
-  const cellWidth = Math.floor((metadata.width ?? 0) / PANEL_GRID)
-  const cellHeight = Math.floor((metadata.height ?? 0) / PANEL_GRID)
+export interface AvatarCropsDto {
+  crops: AvatarCrop[]
+  panel: AvatarAssetInfo
+  sheet: AvatarAssetInfo
+}
 
-  const cells: AvatarCrop[] = []
-  if (cellWidth >= PANEL_CROP_MIN_SIDE && cellHeight >= PANEL_CROP_MIN_SIDE) {
-    for (const role of ROLES) {
-      const cell = AVATAR_CROP_CELLS[role]
-      const buffer = await sharp(panel.buffer)
-        .extract({
-          left: cell.column * cellWidth,
-          top: cell.row * cellHeight,
-          width: cellWidth,
-          height: cellHeight,
-        })
-        .jpeg({ quality: 92, mozjpeg: true })
-        .toBuffer()
-      const asset = await storeBuffer({ buffer, mime: 'image/jpeg', kind: 'image', source: 'studio' })
-      cells.push({ role, assetId: asset.id, width: cellWidth, height: cellHeight })
-    }
+function assetInfo(assetId: string | null): AvatarAssetInfo {
+  const asset = assetId ? getAsset(assetId) : null
+  return {
+    assetId: asset?.id ?? null,
+    url: asset ? assetUrl(asset.id) : null,
+    name: asset?.name ?? null,
+    width: asset?.width ?? null,
+    height: asset?.height ?? null,
   }
+}
 
-  const crops = qualifyAvatarCrops(cells)
+export function avatarCropsDto(item: StudioItemRecord): AvatarCropsDto {
+  const sheetId = typeof item.data.characterSheetAssetId === 'string' ? item.data.characterSheetAssetId : null
+  return {
+    crops: parseAvatarCrops(item.data.crops) ?? [],
+    panel: assetInfo(item.assetId),
+    sheet: assetInfo(sheetId),
+  }
+}
+
+// A forced rebuild ignores the stored crops; otherwise an avatar that already has them keeps
+// them.
+export function existingCrops(item: StudioItemRecord, force: boolean): AvatarCrop[] | undefined {
+  return force ? undefined : parseAvatarCrops(item.data.crops)
+}
+
+export function assertCropPanelSize(width: number | null, height: number | null): void {
+  const message = panelSizeError(width, height)
+  if (message) throw new Error(message)
+}
+
+function storeCrops(item: StudioItemRecord, crops: AvatarCrop[]): AvatarCrop[] {
   saveStudioItem({
     id: item.id,
     kind: item.kind,
@@ -54,4 +69,53 @@ export async function ensureAvatarCrops(item: StudioItemRecord): Promise<AvatarC
     data: { ...item.data, crops },
   })
   return crops
+}
+
+async function cropCells(panel: Buffer, cellWidth: number, cellHeight: number): Promise<AvatarCrop[]> {
+  const cells: AvatarCrop[] = []
+  for (const role of ROLES) {
+    const cell = AVATAR_CROP_CELLS[role]
+    const buffer = await sharp(panel)
+      .extract({
+        left: cell.column * cellWidth,
+        top: cell.row * cellHeight,
+        width: cellWidth,
+        height: cellHeight,
+      })
+      .jpeg({ quality: 92, mozjpeg: true })
+      .toBuffer()
+    const asset = await storeBuffer({ buffer, mime: 'image/jpeg', kind: 'image', source: 'studio' })
+    cells.push({ role, assetId: asset.id, width: cellWidth, height: cellHeight })
+  }
+  return qualifyAvatarCrops(cells)
+}
+
+export async function ensureAvatarCrops(
+  item: StudioItemRecord,
+  options: { force?: boolean } = {},
+): Promise<AvatarCrop[] | undefined> {
+  if (item.kind !== 'avatar') return undefined
+  const stored = existingCrops(item, options.force === true)
+  if (stored !== undefined) return stored
+  if (!parseAvatarProfile(item.data.avatarProfile) || !item.assetId) return undefined
+
+  const panel = await readAssetBuffer(item.assetId)
+  if (!panel) return undefined
+  const metadata = await sharp(panel.buffer).metadata()
+  const cell = panelCellSize(metadata.width ?? null, metadata.height ?? null)
+  if (!cell.usable) return stored
+
+  return storeCrops(item, await cropCells(panel.buffer, cell.cellWidth, cell.cellHeight))
+}
+
+export async function regenerateAvatarCrops(item: StudioItemRecord): Promise<AvatarCropsDto> {
+  if (item.kind !== 'avatar') throw new Error('Avatar not found')
+  if (!item.assetId) throw new Error('This avatar has no 4x4 panel to crop.')
+  const panel = await readAssetBuffer(item.assetId)
+  if (!panel) throw new Error('The 4x4 panel image is missing from disk.')
+  const metadata = await sharp(panel.buffer).metadata()
+  assertCropPanelSize(metadata.width ?? null, metadata.height ?? null)
+  const cell = panelCellSize(metadata.width ?? null, metadata.height ?? null)
+  const crops = await cropCells(panel.buffer, cell.cellWidth, cell.cellHeight)
+  return avatarCropsDto({ ...item, data: { ...item.data, crops: storeCrops(item, crops) } })
 }

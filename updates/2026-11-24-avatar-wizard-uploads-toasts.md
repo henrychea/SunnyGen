@@ -66,6 +66,17 @@ happened.
 - Sources: `/api/studio-upload` and the user-provided images imported from a studio pack now
   store with source `upload`, so they appear in Assets. Avatar crops in
   `apps/web/src/server/avatar-crops.server.ts` stay `studio`.
+- Crops: a 4x4 panel must be at least 4096 x 4096 px. The Review panel slot and the Import
+  avatar panel slot reject a smaller file with an inline error and the message
+  "The 4x4 panel must be at least 4096 x 4096 px (this one is W x H).", show the file name and
+  pixel size under each slot, and Save avatar stays blocked until a valid panel is picked. The
+  server refuses a new or changed panel under 4096 in `saveStudioItemFn` using the stored asset
+  size; an avatar that already has a smaller panel still loads and saves as before. Review also
+  has a Crops section for saved avatars: each crop with its role label, pixel size and panel
+  cell, a source panel preview with the three cells outlined, and a Regenerate crops button
+  (`regenerateAvatarCropsFn`) that re-extracts from the current panel. Regenerate is disabled
+  with the reason when the panel is missing or under 4096, and the empty state offers replacing
+  the panel.
 - `scripts/backfill-studio-uploads.ts`: re-lists old studio uploads (`source = 'studio'` and
   not referenced as an avatar crop) as `upload`. Usage:
   `pnpm tsx scripts/backfill-studio-uploads.ts --db <path to sunnygen.db> --dry-run` prints
@@ -109,8 +120,9 @@ folders on Assets and Gallery, and check each action toasts.
   missing-key path; the live model reply is only covered by hand.
 - Assets created before migration 4 have no stored name, so they keep the old source, size
   and date label until they are re-uploaded.
-- Avatar crops are only produced when a panel cell is at least 1024 px
-  (`PANEL_CROP_MIN_SIDE`), so a panel smaller than 4096 x 4096 saves with no crop tiles.
+- Avatar crops need a 4096 x 4096 px panel (1024 px per cell). Avatars saved before this rule
+  keep their smaller panel, cannot regenerate crops, and only get crops after the panel is
+  replaced.
 - Delete all in the wall lightbox still uses `window.confirm`, not an app dialog.
 - Re-uploading the same bytes is now intentional duplication: the sha index is no longer
   unique, so the library can hold several identical files with different names.

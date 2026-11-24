@@ -26,12 +26,19 @@ import {
   motionSwap,
   toast,
 } from '@sunnygen/ui'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Check, ClipboardCopy, ClipboardPaste, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AvatarSheetUploads } from '~/components/studio/avatar-sheet-uploads'
+import { AvatarCropsPanel } from '~/components/studio/avatar-crops-panel'
+import { AvatarSheetUploads, type SlotAsset } from '~/components/studio/avatar-sheet-uploads'
 import { PromptExtract } from '~/components/studio/avatar-prompt-extract'
-import { saveStudioItemFn, type StudioItemDto } from '~/server/studio.functions'
+import {
+  loadAvatarCropsFn,
+  regenerateAvatarCropsFn,
+  saveStudioItemFn,
+  type StudioItemDto,
+} from '~/server/studio.functions'
 
 type WizardStep = 1 | 2 | 3 | 4 | 5 | 6
 
@@ -89,23 +96,57 @@ export function AvatarWizard({
   open: boolean
   onOpenChange: (open: boolean) => void
   item?: StudioItemDto | null
-  initial?: { profile: AvatarProfile; sheetId: string | null; panelId: string | null; name?: string } | null
+  initial?: { profile: AvatarProfile; sheet: SlotAsset | null; panel: SlotAsset | null; name?: string } | null
   onSaved: () => void
 }) {
   const stored = useMemo(() => parseAvatarProfile(item?.data.avatarProfile), [item])
   const [step, setStep] = useState<WizardStep>(1)
   const [name, setName] = useState(item?.name ?? initial?.name ?? '')
   const [profile, setProfile] = useState<AvatarProfile>(stored ?? initial?.profile ?? DEFAULT_AVATAR_PROFILE)
-  const [sheetId, setSheetId] = useState<string | null>(
-    stringData(item, 'characterSheetAssetId') ?? initial?.sheetId ?? null,
-  )
-  const [panelId, setPanelId] = useState<string | null>(item?.assetId ?? initial?.panelId ?? null)
+  const [sheetChoice, setSheetChoice] = useState<SlotAsset | null | undefined>(undefined)
+  const [panelChoice, setPanelChoice] = useState<SlotAsset | null | undefined>(undefined)
   const [sheetEdit, setSheetEdit] = useState<string | null>(null)
   const [panelEdit, setPanelEdit] = useState<string | null>(null)
-  const [pickerOpen, setPickerOpen] = useState(false)
+  const [picker, setPicker] = useState<'sheet' | 'panel' | null>(null)
   const [pasteOpen, setPasteOpen] = useState(false)
   const [busy, setBusy] = useState<'save' | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const queryClient = useQueryClient()
+
+  const cropsQuery = useQuery({
+    queryKey: ['avatar-crops', item?.id],
+    queryFn: () => loadAvatarCropsFn({ data: { avatarId: item?.id as string } }),
+    enabled: Boolean(item?.id),
+  })
+  const cropsDto = cropsQuery.data
+
+  const baseSheet = stringData(item, 'characterSheetAssetId')
+  const sheet =
+    sheetChoice !== undefined
+      ? sheetChoice
+      : (dtoSlot(cropsDto?.sheet) ??
+        initial?.sheet ??
+        (baseSheet ? { id: baseSheet, name: null, width: null, height: null } : null))
+  const panel =
+    panelChoice !== undefined
+      ? panelChoice
+      : (dtoSlot(cropsDto?.panel) ??
+        initial?.panel ??
+        (item?.assetId ? { id: item.assetId, name: null, width: null, height: null } : null))
+
+  const regenerate = useMutation({
+    mutationFn: () => regenerateAvatarCropsFn({ data: { avatarId: item?.id as string } }),
+    onSuccess: (dto) => {
+      queryClient.setQueryData(['avatar-crops', item?.id], dto)
+      toast(dto.crops.length > 0 ? 'Crops regenerated' : 'This panel produced no crops', {
+        tone: dto.crops.length > 0 ? 'info' : 'warning',
+      })
+    },
+    onError: (regenerateError) =>
+      toast(regenerateError instanceof Error ? regenerateError.message : 'Could not regenerate crops', {
+        tone: 'error',
+      }),
+  })
 
   const sheetPrompt = sheetEdit ?? buildReferenceSheetPrompt(profile)
   const panelPrompt = panelEdit ?? buildPanelSheetPrompt(profile)
@@ -125,7 +166,7 @@ export function AvatarWizard({
       setError('Name the avatar first.')
       return
     }
-    if (!profileOnly && (!sheetId || !panelId)) {
+    if (!profileOnly && (!sheet || !panel)) {
       setError('Both the reference sheet and the 4×4 panel are required.')
       return
     }
@@ -137,12 +178,12 @@ export function AvatarWizard({
           id: item?.id,
           kind: 'avatar',
           name: name.trim(),
-          assetId: profileOnly ? (item?.assetId ?? null) : panelId,
+          assetId: profileOnly ? (item?.assetId ?? null) : (panel?.id ?? null),
           cleanAssetId: item?.cleanAssetId ?? null,
           data: {
             ...item?.data,
             style: item?.data.style ?? 'photoreal',
-            characterSheetAssetId: sheetId,
+            characterSheetAssetId: sheet?.id ?? null,
             avatarProfile: profile,
           },
         },
@@ -168,12 +209,16 @@ export function AvatarWizard({
     }
   }
 
-  const canSave = Boolean(sheetId && panelId && name.trim())
+  const canSave = Boolean(sheet && panel && name.trim())
   const canSaveProfile = Boolean(name.trim())
 
   return (
     <>
-      <Dialog.Root open={open} onOpenChange={onOpenChange} disablePointerDismissal={pickerOpen || pasteOpen}>
+      <Dialog.Root
+        open={open}
+        onOpenChange={onOpenChange}
+        disablePointerDismissal={picker !== null || pasteOpen}
+      >
         <DialogSurface className="h-[calc(100dvh-2rem)] w-[min(96vw,720px)]">
           <div className="flex h-full min-h-0 flex-col">
             <div className="flex items-start justify-between gap-3">
@@ -738,12 +783,23 @@ export function AvatarWizard({
                         onCopy={() => void copy(panelPrompt)}
                       />
                       <AvatarSheetUploads
-                        sheetId={sheetId}
-                        panelId={panelId}
-                        onSheet={setSheetId}
-                        onPanel={setPanelId}
-                        onPickerOpenChange={setPickerOpen}
+                        sheet={sheet}
+                        panel={panel}
+                        onSheet={setSheetChoice}
+                        onPanel={setPanelChoice}
+                        picker={picker}
+                        onPicker={setPicker}
                       />
+                      {item ? (
+                        <AvatarCropsPanel
+                          crops={cropsDto?.crops ?? []}
+                          panel={cropsDto?.panel ?? null}
+                          pending={cropsQuery.isPending}
+                          regenerating={regenerate.isPending}
+                          onRegenerate={() => regenerate.mutate()}
+                          onReplacePanel={() => setPicker('panel')}
+                        />
+                      ) : null}
                     </div>
                   ) : null}
                 </motion.div>
@@ -841,6 +897,15 @@ export function AvatarWizard({
       </Dialog.Root>
     </>
   )
+}
+
+function dtoSlot(
+  info:
+    | { assetId: string | null; name: string | null; width: number | null; height: number | null }
+    | undefined,
+): SlotAsset | null {
+  if (!info?.assetId) return null
+  return { id: info.assetId, name: info.name, width: info.width, height: info.height }
 }
 
 function toggleIn<T extends string>(items: T[], key: T): T[] {
