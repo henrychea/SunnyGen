@@ -72,8 +72,12 @@ test('one walk collects every asset id a studio item keeps, at any depth', () =>
 
 test('the asset library hides one studio asset per kind and keeps an unrelated upload', () => {
   const folder = createFolder({ name: 'Shoots' })
+  const avatarPanel = asset('upload', folder.id)
   const avatarSheet = asset('upload', folder.id)
-  const garmentPhoto = asset('upload', folder.id)
+  const avatarFace = asset('upload', folder.id)
+  const avatarBoard = asset('upload', folder.id)
+  const garmentFront = asset('upload', folder.id)
+  const garmentBack = asset('upload', folder.id)
   const posePhoto = asset('upload', folder.id)
   const scenePhoto = asset('upload', folder.id)
   const unrelated = asset('upload', folder.id)
@@ -81,14 +85,32 @@ test('the asset library hides one studio asset per kind and keeps an unrelated u
   saveStudioItem({
     kind: 'avatar',
     name: 'Mina',
-    assetId: avatarSheet.id,
-    data: { characterSheetAssetId: avatarSheet.id },
+    assetId: avatarPanel.id,
+    data: {
+      characterSheetAssetId: avatarSheet.id,
+      facePanelAssetId: avatarFace.id,
+      boards: [{ role: 'face', assetId: avatarBoard.id }],
+    },
   })
-  saveStudioItem({ kind: 'garment', name: 'Linen shirt', assetId: garmentPhoto.id })
+  saveStudioItem({
+    kind: 'garment',
+    name: 'Linen shirt',
+    assetId: garmentFront.id,
+    data: { views: [{ angle: 'back', assetId: garmentBack.id, cleanAssetId: null }] },
+  })
   saveStudioItem({ kind: 'pose', name: 'Hands in pockets', assetId: posePhoto.id })
   saveStudioItem({ kind: 'scene', name: 'Loft', assetId: scenePhoto.id })
 
-  const hidden = [avatarSheet.id, garmentPhoto.id, posePhoto.id, scenePhoto.id]
+  const hidden = [
+    avatarPanel.id,
+    avatarSheet.id,
+    avatarFace.id,
+    avatarBoard.id,
+    garmentFront.id,
+    garmentBack.id,
+    posePhoto.id,
+    scenePhoto.id,
+  ]
   const all = listAssets({ limit: 1000 }).map((entry) => entry.id)
   const visible = listAssets({ limit: 1000, excludeStudioAssets: true }).map((entry) => entry.id)
 
