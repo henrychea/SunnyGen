@@ -17,7 +17,6 @@ import {
   panelSizeError,
   parseAvatarLora,
   parseAvatarProfile,
-  parseCropRegions,
   parseGarmentViews,
   scenePrepPrompt,
   type GarmentSlot,
@@ -40,18 +39,8 @@ import {
 import sharp from 'sharp'
 import { getGenerationView, submitGeneration } from './generation.functions'
 import { assetUrl, readAssetBuffer, storeBuffer } from './media.server'
-import {
-  assertSheetSize,
-  avatarRegionsDto,
-  clampRegions,
-  dataForPanelChange,
-  deleteDerivedAssets,
-  saveAvatarRegions,
-  type AvatarRegionsDto,
-} from './avatar-crops.server'
+import { assertSheetSize, dataForPanelChange, deleteDerivedAssets } from './avatar-derived.server'
 import { extractAvatarFromPrompt } from './avatar-profile.server'
-
-export type { AvatarRegionsDto } from './avatar-crops.server'
 
 export interface StudioItemDto {
   id: string
@@ -138,7 +127,7 @@ export const saveStudioItemFn = createServerFn({ method: 'POST', strict: false }
       if (typeof characterSheet !== 'string' || !characterSheet) {
         throw new Error('Upload the character sheet first.')
       }
-      if (!data.assetId) throw new Error('Upload the 4x4 panel sheet first.')
+      if (!data.assetId) throw new Error('Upload the body panel first.')
       const previous = data.id ? getStudioItem(data.id) : null
       previousItem = previous
       const panelChanged = !previous || previous.assetId !== data.assetId
@@ -150,8 +139,8 @@ export const saveStudioItemFn = createServerFn({ method: 'POST', strict: false }
       const facePanelId = typeof data.data.facePanelAssetId === 'string' ? data.data.facePanelAssetId : null
       const previousFace =
         previous && typeof previous.data.facePanelAssetId === 'string' ? previous.data.facePanelAssetId : null
-      // Swapping the two panels changes both ids, and either change invalidates the crops, boxes
-      // and boards cut from the old images.
+      // Swapping the two panels changes both ids, and either change invalidates every file derived
+      // from the old images.
       const faceChanged = !previous || (facePanelId ?? null) !== (previousFace ?? null)
       if (facePanelId && facePanelId !== previousFace) {
         const facePanel = getAsset(facePanelId)
@@ -208,31 +197,11 @@ export const saveStudioItemFn = createServerFn({ method: 'POST', strict: false }
       data: data.data,
     })
     if (saved.kind === 'avatar') {
-      // The images changed, so the crops and boards cut from the old ones are orphans now.
+      // The images changed, so the files derived from the old ones are orphans now.
       if (derivedDropped && previousItem) await deleteDerivedAssets(saved.id, previousItem.data)
       return toDto(getStudioItem(saved.id) ?? saved)
     }
     return toDto(saved)
-  })
-
-export const loadAvatarRegionsFn = createServerFn({ method: 'GET' })
-  .validator(z.object({ avatarId: z.string().min(1) }))
-  .handler(({ data }): AvatarRegionsDto => {
-    const item = getStudioItem(data.avatarId)
-    if (!item || item.kind !== 'avatar') throw new Error('Avatar not found')
-    return avatarRegionsDto(item)
-  })
-
-export const saveAvatarRegionsFn = createServerFn({ method: 'POST', strict: false })
-  .validator(z.object({ avatarId: z.string().min(1), regions: z.unknown() }))
-  .handler(async ({ data }): Promise<AvatarRegionsDto> => {
-    const item = getStudioItem(data.avatarId)
-    if (!item || item.kind !== 'avatar') throw new Error('Avatar not found')
-    const regions = clampRegions(data.regions)
-    if (!regions || !parseCropRegions(regions)) {
-      throw new Error('Every crop region needs one box inside its own image, at least 256 px a side.')
-    }
-    return saveAvatarRegions(item, regions)
   })
 
 const OPENROUTER_KEY_SETTING = 'assistant.openrouter.key'

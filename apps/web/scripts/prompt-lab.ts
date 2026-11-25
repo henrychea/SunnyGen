@@ -18,9 +18,7 @@ import {
   PROVIDERS,
   avatarModelFamily,
   editProfile,
-  parseAvatarCrops,
   parseAvatarProfile,
-  type AvatarCrop,
   type AvatarProfile,
   type GenerationParams,
   type ImageModelDefinition,
@@ -170,7 +168,6 @@ interface AvatarItem {
   name: string
   assetId: string | null
   profile: AvatarProfile
-  crops: AvatarCrop[]
 }
 
 function loadAvatar(db: DatabaseSync, name: string): AvatarItem {
@@ -194,7 +191,6 @@ function loadAvatar(db: DatabaseSync, name: string): AvatarItem {
     name: row.name,
     assetId: row.assetId,
     profile,
-    crops: parseAvatarCrops(data.crops) ?? [],
   }
 }
 
@@ -222,7 +218,7 @@ function planFor(
   args: Args,
 ): Plan {
   const references = editReferencePlan(
-    [{ id: avatar.assetId ?? avatar.id, avatar: true, profile: avatar.profile, crops: avatar.crops }],
+    [{ id: avatar.assetId ?? avatar.id, avatar: true, profile: avatar.profile }],
     model.key,
   )
   const profile = editProfile(model.key)

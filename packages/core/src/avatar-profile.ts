@@ -1,4 +1,3 @@
-import { PANEL_CANVAS, PANEL_QUADRANT, SHEET_CANVAS, SHEET_REGION_BOXES } from './avatar-regions'
 import type { EditPromptFamily } from './edit-prompt-profiles'
 
 export const SHEET_SECTION_IDS = [
@@ -592,8 +591,23 @@ function bansClause(profile: AvatarProfile): string {
   return bans.length > 0 ? `, ${bans.join(', ')}` : ''
 }
 
-// The crop regions read these boxes, so the sheet is a fixed grid: a section that is switched
+// The sheet prompt fixes these boxes, so the sheet is a fixed grid: a section that is switched
 // off leaves its region empty white instead of moving its neighbours.
+const SHEET_CANVAS = { width: 4096, height: 3072 } as const
+
+const SHEET_REGION_BOXES = {
+  'body-angles': { x: 0, y: 0, w: 2048, h: 1024 },
+  'face-angles': { x: 2048, y: 0, w: 1024, h: 1024 },
+  expressions: { x: 3072, y: 0, w: 1024, h: 1024 },
+  hair: { x: 0, y: 1024, w: 1024, h: 1024 },
+  features: { x: 1024, y: 1024, w: 1024, h: 1024 },
+  skin: { x: 2048, y: 1024, w: 1024, h: 1024 },
+  hands: { x: 3072, y: 1024, w: 1024, h: 1024 },
+  'body-details': { x: 0, y: 2048, w: 2048, h: 1024 },
+  outfits: { x: 2048, y: 2048, w: 1024, h: 1024 },
+  basic: { x: 3072, y: 2048, w: 1024, h: 1024 },
+} as const
+
 function layoutLine(profile: AvatarProfile): string {
   const background = profile.sheet.background === 'white' ? 'plain white' : 'white to light beige'
   const labels =
@@ -686,8 +700,10 @@ export function buildReferenceSheetPrompt(profile: AvatarProfile): string {
   return lines.join('\n')
 }
 
-// The crop regions read these exact layouts, so the panels are fixed grids: a 2x2 panel is
-// four equal quadrants and nothing may cross a cell. Resolution is still honoured.
+// The panel prompts fix these layouts, so the panels are fixed grids: a 2x2 panel is four equal
+// quadrants and nothing may cross a cell. Resolution is still honoured.
+const PANEL_CANVAS = { width: 4096, height: 4096 } as const
+const PANEL_QUADRANT = 2048
 const PANEL_MARGIN = 96
 
 export function buildBodyPanelPrompt(profile: AvatarProfile): string {
