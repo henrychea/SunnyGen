@@ -419,8 +419,7 @@ export const prepareAvatarTrainingSet = createServerFn({ method: 'POST', strict:
     if (!avatar || avatar.kind !== 'avatar') throw new Error('Avatar not found')
     const sheetId =
       typeof avatar.data.characterSheetAssetId === 'string' ? avatar.data.characterSheetAssetId : null
-    const facePanelId =
-      typeof avatar.data.facePanelAssetId === 'string' ? avatar.data.facePanelAssetId : null
+    const facePanelId = typeof avatar.data.facePanelAssetId === 'string' ? avatar.data.facePanelAssetId : null
     const panels = avatarTrainingPanels({ bodyPanelAssetId: avatar.assetId, facePanelAssetId: facePanelId })
     if (panels.length === 0) throw new Error('This avatar has no panel image to train on.')
 
