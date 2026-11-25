@@ -7,6 +7,8 @@ export interface ReferenceItem {
   kind?: 'image' | 'video'
   assetIds?: string[]
   sheetAssetId?: string | null
+  facePanelAssetId?: string | null
+  bodyPanelAssetId?: string | null
   avatar?: boolean
   avatarId?: string
   lora?: AvatarLora | null

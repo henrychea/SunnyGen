@@ -18,9 +18,7 @@ import {
   PROVIDERS,
   avatarModelFamily,
   editProfile,
-  parseAvatarCrops,
   parseAvatarProfile,
-  type AvatarCrop,
   type AvatarProfile,
   type GenerationParams,
   type ImageModelDefinition,
@@ -168,9 +166,10 @@ function loadTarget(db: DatabaseSync, source: string): LoadedAsset {
 interface AvatarItem {
   id: string
   name: string
-  assetId: string | null
+  sheetAssetId: string | null
+  facePanelAssetId: string | null
+  bodyPanelAssetId: string | null
   profile: AvatarProfile
-  crops: AvatarCrop[]
 }
 
 function loadAvatar(db: DatabaseSync, name: string): AvatarItem {
@@ -192,9 +191,10 @@ function loadAvatar(db: DatabaseSync, name: string): AvatarItem {
   return {
     id: row.id,
     name: row.name,
-    assetId: row.assetId,
+    sheetAssetId: text(data.characterSheetAssetId),
+    facePanelAssetId: text(data.facePanelAssetId),
+    bodyPanelAssetId: row.assetId,
     profile,
-    crops: parseAvatarCrops(data.crops) ?? [],
   }
 }
 
@@ -222,7 +222,16 @@ function planFor(
   args: Args,
 ): Plan {
   const references = editReferencePlan(
-    [{ id: avatar.assetId ?? avatar.id, avatar: true, profile: avatar.profile, crops: avatar.crops }],
+    [
+      {
+        id: avatar.sheetAssetId ?? avatar.bodyPanelAssetId ?? avatar.id,
+        avatar: true,
+        profile: avatar.profile,
+        sheetAssetId: avatar.sheetAssetId,
+        facePanelAssetId: avatar.facePanelAssetId,
+        bodyPanelAssetId: avatar.bodyPanelAssetId,
+      },
+    ],
     model.key,
   )
   const profile = editProfile(model.key)

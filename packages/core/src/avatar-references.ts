@@ -106,33 +106,50 @@ export function parseAvatarCropCells(
   return cells
 }
 
-// Models weight earlier images, and a second face adds little next to a frontal crop, so the
-// body lands second and the side profile third: 3-ref families name those and demote the
-// three-quarter face to a supporting image, which is the trade the body shape wants.
-const REFERENCE_ORDER: readonly AvatarCropRole[] = [
-  'face-front',
-  'body-front',
-  'body-side',
-  'face-three-quarter',
-]
+export const AVATAR_IMAGE_ROLES = ['face-panel', 'body-panel', 'sheet'] as const
+export type AvatarImageRole = (typeof AVATAR_IMAGE_ROLES)[number]
 
-const FAMILY_CROPS: Record<AvatarModelFamily, readonly AvatarCropRole[]> = {
-  qwen: ['face-front', 'body-front'],
-  'nano-banana': REFERENCE_ORDER,
-  seedream: REFERENCE_ORDER,
-  flux: REFERENCE_ORDER,
-  'gpt-image': REFERENCE_ORDER,
-  grok: REFERENCE_ORDER,
-  wan: REFERENCE_ORDER,
-  generic: REFERENCE_ORDER,
+/** An avatar's three whole images, as stored on the studio item. */
+export interface AvatarImageSource {
+  facePanelAssetId?: string | null
+  bodyPanelAssetId?: string | null
+  sheetAssetId?: string | null
 }
 
-export function avatarReferenceLimit(family: AvatarModelFamily): number {
-  return family === 'qwen' ? 2 : 4
+export interface AvatarImageSlot {
+  role: AvatarImageRole
+  assetId: string
 }
 
-export function avatarCropPlan(family: AvatarModelFamily): AvatarCropRole[] {
-  return [...FAMILY_CROPS[family]]
+function presentAssetId(value: string | null | undefined): string | null {
+  return typeof value === 'string' && value.length > 0 ? value : null
+}
+
+/**
+ * qwen truncates long prompts and names two avatar images, so it takes the two panels and drops
+ * the sheet; every other family takes all three.
+ */
+export function avatarImageLimit(family: AvatarModelFamily): number {
+  return family === 'qwen' ? 2 : 3
+}
+
+/**
+ * The three whole images an avatar is sent as, in send order: face panel, body panel, sheet.
+ * They leave the disk at their own size and are resized only at send time. An avatar saved
+ * before the split has no face panel, so this returns nothing and the caller sends the sheet
+ * and the old panel whole, as it always did.
+ */
+export function avatarImagePlan(source: AvatarImageSource, family: AvatarModelFamily): AvatarImageSlot[] {
+  const face = presentAssetId(source.facePanelAssetId)
+  if (!face) return []
+  const body = presentAssetId(source.bodyPanelAssetId)
+  const sheet = presentAssetId(source.sheetAssetId)
+  const slots: AvatarImageSlot[] = [
+    { role: 'face-panel', assetId: face },
+    ...(body ? [{ role: 'body-panel' as const, assetId: body }] : []),
+    ...(sheet ? [{ role: 'sheet' as const, assetId: sheet }] : []),
+  ]
+  return slots.slice(0, avatarImageLimit(family))
 }
 
 export function parseAvatarCrops(value: unknown): AvatarCrop[] | undefined {
@@ -155,19 +172,4 @@ export function parseAvatarCrops(value: unknown): AvatarCrop[] | undefined {
     })
   }
   return crops
-}
-
-export function plannedAvatarAssets(crops: AvatarCrop[], family: AvatarModelFamily): string[] {
-  const plan = avatarCropPlan(family)
-  const byRole = new Map(crops.map((crop) => [crop.role, crop]))
-  return plan.flatMap((role) => {
-    const crop = byRole.get(role)
-    return crop ? [crop.assetId] : []
-  })
-}
-
-export function qualifyAvatarCrops(
-  cells: Array<{ role: AvatarCropRole; assetId: string; width: number; height: number }>,
-): AvatarCrop[] {
-  return cells.filter((cell) => Math.min(cell.width, cell.height) >= PANEL_CROP_MIN_SIDE)
 }

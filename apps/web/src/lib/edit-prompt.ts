@@ -191,32 +191,24 @@ function bodyFacts(avatarProfile: AvatarProfile): string {
 function bodyDirective(
   avatarProfile: AvatarProfile,
   targetIndex: number,
-  bodyIndex: number | undefined,
-  bodyIsBoard: boolean,
   detail: BodyDetail,
   negatives: EditPromptProfile['negatives'],
   ref: (index: number) => string,
 ): string {
   const base = `Replace ${ref(targetIndex)}'s body with the avatar's: ${bodyFacts(avatarProfile)}.`
   if (detail === 'facts') return base
-  const source = bodyIndex
-    ? `${ref(bodyIndex)} (${bodyIsBoard ? 'body board' : 'full body'})`
-    : 'the avatar reference images'
-  const curves = bodyIsBoard
-    ? ` Take the bust, waist, hip, buttock and leg curves from the same side profile tile.`
-    : ''
-  if (detail === 'compact') return `${base} Take the body proportions from ${source}.${curves}`
-  const features = `Take shoulder width, chest, waist, hips and thigh width from ${source}.`
+  if (detail === 'compact') return `${base} Take the body proportions from the avatar reference images.`
+  const features = 'Take shoulder width, chest, waist, hips and thigh width from the avatar reference images.'
   // Gemini reads "the body belongs to the avatar" better than "the target's hips must not survive".
   if (negatives === 'avoid') {
-    return `${base} ${features}${curves} The body, proportions and figure belong to the avatar; the pose, clothing, framing, lighting and camera belong to ${ref(targetIndex)}.`
+    return `${base} ${features} The body, proportions and figure belong to the avatar; the pose, clothing, framing, lighting and camera belong to ${ref(targetIndex)}.`
   }
-  return `${base} ${features}${curves} ${ref(targetIndex)}'s own hips, thighs and waist must not survive.`
+  return `${base} ${features} ${ref(targetIndex)}'s own hips, thighs and waist must not survive.`
 }
 
-// The board path writes the prompt as short labelled sections, task first: a generic "swap the
+// The panel path writes the prompt as short labelled sections, task first: a generic "swap the
 // identity" line was not enough to move the face and body, and the integration step was missing.
-type BoardTier = {
+type PanelTier = {
   supporting: boolean
   integrate: 'full' | 'short'
   body: 'full' | 'core'
@@ -226,11 +218,11 @@ type BoardTier = {
 }
 
 /** Everything a family template needs. Templates differ in shape, never in facts. */
-interface BoardFacts {
+interface PanelFacts {
   target: string
   face?: { token: string; role: string }
   body?: { token: string; role: string }
-  details?: { token: string; role: string }
+  sheet?: { token: string; role: string }
   supporting: string[]
   positives: boolean
   bodyEarly: boolean
@@ -250,7 +242,7 @@ function capitalised(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1)
 }
 
-function boardSection(label: string, text: string): string {
+function section(label: string, text: string): string {
   return `${label}: ${text}`
 }
 
@@ -259,7 +251,7 @@ function humanList(items: string[]): string {
   return `${items.slice(0, -1).join(', ')} and ${items.at(-1)}`
 }
 
-function faceFeatures(profile: AvatarProfile, level: BoardTier['features']): string {
+function faceFeatures(profile: AvatarProfile, level: PanelTier['features']): string {
   const face = profile.face
   const eye = [face.eyeSize, face.eyeShape].filter(Boolean).join(' ')
   if (level === 'core') {
@@ -294,7 +286,7 @@ function hairFeatures(profile: AvatarProfile): string {
     .join(', ')
 }
 
-function bodyFeatures(profile: AvatarProfile, level: BoardTier['body']): string {
+function bodyFeatures(profile: AvatarProfile, level: PanelTier['body']): string {
   const identity = profile.identity
   const base = [
     `${identity.heightCm} cm`,
@@ -310,22 +302,22 @@ function bodyFeatures(profile: AvatarProfile, level: BoardTier['body']): string 
   ].join(', ')
 }
 
-function boardFacts(
+function panelFacts(
   promptProfile: EditPromptProfile,
   avatarProfile: AvatarProfile,
   targetIndex: number,
   ref: (index: number) => string,
-  boards: { face?: EditSlot; body?: EditSlot; details?: EditSlot },
+  panels: { face?: EditSlot; body?: EditSlot; sheet?: EditSlot },
   supportingIds: string[],
-): BoardFacts {
+): PanelFacts {
   const target = ref(targetIndex)
+  const entry = (slot: EditSlot | undefined) =>
+    slot ? { token: ref(slot.index), role: slot.role } : undefined
   return {
     target,
-    face: boards.face ? { token: ref(boards.face.index), role: boards.face.role as string } : undefined,
-    body: boards.body ? { token: ref(boards.body.index), role: boards.body.role as string } : undefined,
-    details: boards.details
-      ? { token: ref(boards.details.index), role: boards.details.role as string }
-      : undefined,
+    face: entry(panels.face),
+    body: entry(panels.body),
+    sheet: entry(panels.sheet),
     supporting: supportingIds,
     positives: promptProfile.negatives === 'avoid',
     bodyEarly: promptProfile.bodyPlacement === 'early',
@@ -343,73 +335,74 @@ function boardFacts(
   }
 }
 
-function faceLine(facts: BoardFacts, tier: BoardTier, label = 'Face'): string {
+function faceLine(facts: PanelFacts, tier: PanelTier, label = 'Face'): string {
   const source = facts.face?.token ?? 'the avatar references'
   const rule = facts.positives
     ? `Every facial feature comes from ${source}`
     : `None of ${facts.target}'s facial structure may remain`
-  return boardSection(
+  return section(
     label,
     `Replace the face completely with the avatar's from ${source}: ${tier.features === 'core' ? facts.faceCore : facts.faceFull}. ${rule}.`,
   )
 }
 
-function hairLine(facts: BoardFacts, tier: BoardTier): string {
-  const sources = facts.details
-    ? `${facts.face?.token ?? 'the avatar'} and ${facts.details.token}`
-    : (facts.face?.token ?? 'the avatar')
+function hairLine(facts: PanelFacts, tier: PanelTier): string {
+  // Hair, skin and hands live on the sheet; without it the face panel is the closest source.
+  const source = facts.sheet?.token ?? facts.face?.token ?? 'the avatar'
   const restyle = tier.compact ? '' : ', restyled to fit the scene (wind, pose)'
-  return boardSection('Hair', `Replace the hair with the avatar's from ${sources}: ${facts.hair}${restyle}.`)
-}
-
-function bodyLine(facts: BoardFacts, tier: BoardTier): string {
-  const source = facts.body?.token ?? 'the avatar references'
-  const factsText = tier.body === 'core' ? facts.bodyCore : facts.bodyFull
-  if (tier.body === 'core') {
-    return boardSection('Body', `Replace the body with the avatar's from ${source}: ${factsText}.`)
-  }
-  return boardSection(
-    'Body',
-    `Replace the body with the avatar's from ${source}: ${factsText}. Take the widths from the front tile and the curves from the side profile tile. The clothing is refitted to the new body, same garment.`,
+  const details = facts.sheet ? ` Skin, hands and smaller details come from ${facts.sheet.token} too.` : ''
+  return section(
+    'Hair',
+    `Replace the hair with the avatar's from ${source}: ${facts.hair}${restyle}.${details}`,
   )
 }
 
-function keepLine(facts: BoardFacts, tier: BoardTier): string {
-  return boardSection(`Keep from ${facts.target}`, `${tier.compact ? facts.keepCompact : facts.keepFull}.`)
+function bodyLine(facts: PanelFacts, tier: PanelTier): string {
+  const source = facts.body?.token ?? 'the avatar'
+  const list = tier.body === 'core' ? facts.bodyCore : facts.bodyFull
+  if (tier.body === 'core') {
+    return section('Body', `Replace the body with the avatar's from ${source}: ${list}.`)
+  }
+  return section(
+    'Body',
+    `Replace the body with the avatar's from ${source}: ${list}. Take the widths from the front cell and the curves from its side profile cell. The clothing is refitted to the new body, same garment.`,
+  )
 }
 
-function integrateLine(facts: BoardFacts, tier: BoardTier): string {
-  return boardSection(
+function keepLine(facts: PanelFacts, tier: PanelTier): string {
+  return section(`Keep from ${facts.target}`, `${tier.compact ? facts.keepCompact : facts.keepFull}.`)
+}
+
+function integrateLine(facts: PanelFacts, tier: PanelTier): string {
+  return section(
     'Integrate',
     tier.integrate === 'short'
       ? `${facts.integrateShort}.`
-      : `${facts.integrateFull}. Ignore the white studio background, flat lighting and layout of the boards.`,
+      : `${facts.integrateFull}. Ignore the white studio background, flat lighting and layout of the panels.`,
   )
 }
 
-function referencesLine(facts: BoardFacts, tier: BoardTier): string {
+function referencesLine(facts: PanelFacts, tier: PanelTier): string {
   const refs = [
-    facts.face ? `${facts.face.token} is the ${tier.compact ? 'face board' : facts.face.role}.` : '',
-    facts.body ? `${facts.body.token} is the ${tier.compact ? 'body board' : facts.body.role}.` : '',
-    facts.details
-      ? `${facts.details.token} is the ${tier.compact ? 'details board' : facts.details.role}.`
-      : '',
+    facts.face ? `${facts.face.token} is the ${tier.compact ? 'face panel' : facts.face.role}.` : '',
+    facts.body ? `${facts.body.token} is the ${tier.compact ? 'body panel' : facts.body.role}.` : '',
+    facts.sheet ? `${facts.sheet.token} is the ${tier.compact ? 'reference sheet' : facts.sheet.role}.` : '',
   ].filter(Boolean)
   const supporting =
     tier.supporting && facts.supporting.length
       ? ` ${humanList(facts.supporting)} ${facts.supporting.length === 1 ? 'is a supporting reference' : 'are supporting references'} only.`
       : ''
-  return boardSection('References', refs.join(' ') + supporting)
+  return section('References', refs.join(' ') + supporting)
 }
 
-const ONE_PHOTO = 'Output one single photo, not a board or collage.'
+const ONE_PHOTO = 'Output one single photo, not a collage or a panel grid.'
 
 // --- one template per family: same facts, different vendor-recommended shape ------------------
 
 /** Google: detailed, positive framing, integration spelled out. See docs/edit-prompts.md. */
-function googleTemplate(facts: BoardFacts, tier: BoardTier): string {
+function googleTemplate(facts: PanelFacts, tier: PanelTier): string {
   const lines = [
-    boardSection('Task', `Edit ${facts.target} into a new photo of the avatar. ${ONE_PHOTO}`),
+    section('Task', `Edit ${facts.target} into a new photo of the avatar. ${ONE_PHOTO}`),
     referencesLine(facts, tier),
     faceLine(facts, tier),
     hairLine(facts, tier),
@@ -425,7 +418,7 @@ function googleTemplate(facts: BoardFacts, tier: BoardTier): string {
 }
 
 /** OpenAI: direct, imperative, numbered requirements and an explicit single-image output. */
-function openaiTemplate(facts: BoardFacts, tier: BoardTier): string {
+function openaiTemplate(facts: PanelFacts, tier: PanelTier): string {
   const steps = [
     `Replace the person in ${facts.target} with the avatar. ${ONE_PHOTO}`,
     referencesLine(facts, tier),
@@ -436,7 +429,7 @@ function openaiTemplate(facts: BoardFacts, tier: BoardTier): string {
     integrateLine(facts, tier),
   ]
   return [
-    boardSection('Task', `Edit ${facts.target}.`),
+    section('Task', `Edit ${facts.target}.`),
     ...steps.map((line, index) => `${index + 1}. ${line}`),
     facts.restate
       ? `The result is one photo that keeps ${facts.target}'s pose and the avatar's body proportions.`
@@ -447,13 +440,15 @@ function openaiTemplate(facts: BoardFacts, tier: BoardTier): string {
 }
 
 /** Black Forest Labs: narrative, positive only, no negative prompts. */
-function fluxTemplate(facts: BoardFacts, tier: BoardTier): string {
+function fluxTemplate(facts: PanelFacts, tier: PanelTier): string {
   const source = facts.face?.token ?? 'the avatar references'
+  const hairSource = facts.sheet?.token ?? source
+  const details = facts.sheet ? ` Skin, hands and smaller details come from ${facts.sheet.token}.` : ''
   return [
     `A photorealistic photo of the avatar from ${source}, replacing the person in ${facts.target}. ${ONE_PHOTO}`,
     `The face comes entirely from ${source}: ${tier.features === 'core' ? facts.faceCore : facts.faceFull}.`,
-    `The hair is the avatar's: ${facts.hair}${tier.compact ? '' : ', restyled for the scene'}.`,
-    `The body is the avatar's from ${facts.body?.token ?? source}: ${tier.body === 'core' ? facts.bodyCore : facts.bodyFull}${tier.body === 'core' ? '' : ', widths from the front tile, curves from the side profile tile, the same garment refitted'}.`,
+    `The hair is the avatar's from ${hairSource}: ${facts.hair}${tier.compact ? '' : ', restyled for the scene'}.${details}`,
+    `The body is the avatar's from ${facts.body?.token ?? source}: ${tier.body === 'core' ? facts.bodyCore : facts.bodyFull}${tier.body === 'core' ? '' : ', widths from the front cell, curves from the side profile cell, the same garment refitted'}.`,
     `Keep ${facts.target}'s ${tier.compact ? facts.keepCompact : facts.keepFull}.`,
     `Light and grade it like ${facts.target}: ${capitalised(facts.integrateShort)}.`,
     facts.restate ? `One photo, ${facts.target}'s pose, the avatar's body proportions.` : '',
@@ -463,18 +458,14 @@ function fluxTemplate(facts: BoardFacts, tier: BoardTier): string {
 }
 
 /** ByteDance Seedream: state the change, then what stays fixed. */
-function seedreamTemplate(facts: BoardFacts, tier: BoardTier): string {
+function seedreamTemplate(facts: PanelFacts, tier: PanelTier): string {
   const change = [faceLine(facts, tier), hairLine(facts, tier), bodyLine(facts, tier)]
   const fixed = [keepLine(facts, tier), integrateLine(facts, tier)]
-  const middle = facts.bodyEarly ? change : [...change]
   return [
-    boardSection(
-      'Task',
-      `Edit ${facts.target} into one single new photo of the avatar, not a board or collage.`,
-    ),
+    section('Task', `Edit ${facts.target} into one single new photo of the avatar, not a collage.`),
     referencesLine(facts, tier),
     'Change:',
-    ...middle,
+    ...change,
     'Keep fixed:',
     ...fixed,
     facts.restate
@@ -486,11 +477,11 @@ function seedreamTemplate(facts: BoardFacts, tier: BoardTier): string {
 }
 
 /** Alibaba Qwen-Image-Edit: terse, hard 800 character cap, no wasted words. */
-function qwenTemplate(facts: BoardFacts, tier: BoardTier): string {
+function qwenTemplate(facts: PanelFacts, tier: PanelTier): string {
   const source = facts.face?.token ?? 'the avatar'
   return [
     `Edit ${facts.target} into one photo of the avatar.`,
-    `${facts.face ? facts.face.token : source} is the face board, ${facts.body?.token ?? 'the avatar'} the body board.`,
+    `${facts.face ? facts.face.token : source} is the face panel, ${facts.body?.token ?? 'the avatar'} the body panel.`,
     `Face from ${source}: ${tier.features === 'core' ? facts.faceCore : facts.faceFull}.`,
     `Hair: ${facts.hair}.`,
     `Body: ${tier.body === 'core' ? facts.bodyCore : facts.bodyFull}.`,
@@ -500,11 +491,13 @@ function qwenTemplate(facts: BoardFacts, tier: BoardTier): string {
 }
 
 /** Alibaba Wan image edit: short direct instruction, one change per sentence. */
-function wanTemplate(facts: BoardFacts, tier: BoardTier): string {
-  const source = facts.face?.token ?? 'the avatar'
+function wanTemplate(facts: PanelFacts, tier: PanelTier): string {
+  const face = facts.face?.token ?? 'the avatar'
+  const body = facts.body?.token ?? face
+  const hair = facts.sheet?.token ?? face
   return [
     `Edit ${facts.target} into a photo of the avatar. ${ONE_PHOTO}`,
-    `Use ${source} for the face and hair, ${facts.body?.token ?? source} for the body.`,
+    `Use ${face} for the face, ${body} for the body and ${hair} for hair, skin and hands.`,
     `Face: ${tier.features === 'core' ? facts.faceCore : facts.faceFull}.`,
     `Body: ${tier.body === 'core' ? facts.bodyCore : facts.bodyFull}.`,
     `Keep ${tier.compact ? facts.keepCompact : facts.keepFull}.`,
@@ -513,22 +506,24 @@ function wanTemplate(facts: BoardFacts, tier: BoardTier): string {
 }
 
 /** xAI Grok: short and direct, no long lists. */
-function grokTemplate(facts: BoardFacts, tier: BoardTier): string {
-  const source = facts.face?.token ?? 'the avatar'
+function grokTemplate(facts: PanelFacts, tier: PanelTier): string {
+  const face = facts.face?.token ?? 'the avatar'
+  const hair = facts.sheet?.token ?? face
   return [
-    `Edit ${facts.target} into a photo of the avatar from ${source}. ${ONE_PHOTO}`,
-    `Face and hair from ${source}: ${tier.features === 'core' ? facts.faceCore : facts.faceFull}; ${facts.hair}.`,
-    `Body from ${facts.body?.token ?? source}: ${tier.body === 'core' ? facts.bodyCore : facts.bodyFull}.`,
+    `Edit ${facts.target} into a photo of the avatar from ${face}. ${ONE_PHOTO}`,
+    `Face from ${face}: ${tier.features === 'core' ? facts.faceCore : facts.faceFull}.`,
+    `Hair from ${hair}: ${facts.hair}.`,
+    `Body from ${facts.body?.token ?? face}: ${tier.body === 'core' ? facts.bodyCore : facts.bodyFull}.`,
     `Keep ${tier.compact ? facts.keepCompact : facts.keepFull}. ${facts.integrateShort}.`,
   ].join(' ')
 }
 
 /** Undocumented endpoints: the Google shape, slightly shorter. */
-function genericTemplate(facts: BoardFacts, tier: BoardTier): string {
+function genericTemplate(facts: PanelFacts, tier: PanelTier): string {
   return googleTemplate(facts, tier)
 }
 
-const BOARD_TEMPLATES: Record<AvatarModelFamily, (facts: BoardFacts, tier: BoardTier) => string> = {
+const PANEL_TEMPLATES: Record<AvatarModelFamily, (facts: PanelFacts, tier: PanelTier) => string> = {
   'nano-banana': googleTemplate,
   'gpt-image': openaiTemplate,
   flux: fluxTemplate,
@@ -539,7 +534,7 @@ const BOARD_TEMPLATES: Record<AvatarModelFamily, (facts: BoardFacts, tier: Board
   generic: genericTemplate,
 }
 
-const BOARD_TIERS: BoardTier[] = [
+const PANEL_TIERS: PanelTier[] = [
   { supporting: true, integrate: 'full', body: 'full', features: 'full', compact: false },
   { supporting: false, integrate: 'full', body: 'full', features: 'full', compact: false },
   { supporting: false, integrate: 'short', body: 'full', features: 'full', compact: false },
@@ -548,21 +543,21 @@ const BOARD_TIERS: BoardTier[] = [
   { supporting: false, integrate: 'short', body: 'core', features: 'core', compact: true },
 ]
 
-function buildBoardEditPrompt(
+function buildPanelEditPrompt(
   detail: string,
   promptProfile: EditPromptProfile,
   family: AvatarModelFamily,
   avatarProfile: AvatarProfile,
   targetIndex: number,
   ref: (index: number) => string,
-  boards: { face?: EditSlot; body?: EditSlot; details?: EditSlot },
+  panels: { face?: EditSlot; body?: EditSlot; sheet?: EditSlot },
   supportingIds: string[],
 ): EditPromptResult {
-  const facts = boardFacts(promptProfile, avatarProfile, targetIndex, ref, boards, supportingIds)
-  const template = BOARD_TEMPLATES[family] ?? genericTemplate
+  const facts = panelFacts(promptProfile, avatarProfile, targetIndex, ref, panels, supportingIds)
+  const template = PANEL_TEMPLATES[family] ?? genericTemplate
   const maxChars = promptProfile.maxChars
   let best = ''
-  for (const tier of BOARD_TIERS) {
+  for (const tier of PANEL_TIERS) {
     const block = template(facts, tier)
     best = detail ? `${block}${INSTRUCTIONS_HEADER}${detail}` : block
     if (maxChars === undefined || best.length <= maxChars) return { prompt: best, overflow: null }
@@ -587,11 +582,6 @@ function buildKeywordEditPrompt(
   const extras = slots.filter((slot) => !slot.avatar && slot !== target)
   const identityAvatars = avatars.slice(0, promptProfile.maxRefs)
   const demoted = avatars.slice(promptProfile.maxRefs)
-  const bodySlot = (identityAvatars.length > 0 ? identityAvatars : avatars).find(
-    (slot) => slot.role === 'full body' || Boolean(slot.role?.startsWith('body board')),
-  )
-  const bodyIndex = bodySlot?.index
-  const bodyIsBoard = Boolean(bodySlot?.role?.startsWith('body board'))
 
   const roles = identityAvatars.map((slot) => `${ref(slot.index)} (${slot.role})`).join(', ')
   const identity = (clause: string) =>
@@ -607,20 +597,20 @@ function buildKeywordEditPrompt(
   const swap = `Replace the person in ${ref(target.index)} with the avatar: copy the face, facial features, skin tone and hair from ${identityAvatars.length === 0 ? 'the avatar description' : identityTokens}.`
   const keep = `Keep ${ref(target.index)}'s pose, clothing, background, lighting and camera.`
   const restate = `The result keeps ${ref(target.index)}'s pose and the avatar's body proportions.`
-  const boardSlots = {
-    face: identityAvatars.find((slot) => Boolean(slot.role?.startsWith('face board'))),
-    body: identityAvatars.find((slot) => Boolean(slot.role?.startsWith('body board'))),
-    details: identityAvatars.find((slot) => Boolean(slot.role?.startsWith('details board'))),
+  const panels = {
+    face: identityAvatars.find((slot) => slot.role.startsWith('face panel')),
+    body: identityAvatars.find((slot) => slot.role.startsWith('body panel')),
+    sheet: identityAvatars.find((slot) => slot.role.startsWith('character reference sheet')),
   }
-  if (boardSlots.face || boardSlots.body) {
-    return buildBoardEditPrompt(
+  if (panels.face || panels.body) {
+    return buildPanelEditPrompt(
       detail,
       promptProfile,
       family,
       avatarProfile,
       target.index,
       ref,
-      boardSlots,
+      panels,
       [...demoted, ...extras].map((slot) => ref(slot.index)),
     )
   }
@@ -631,15 +621,7 @@ function buildKeywordEditPrompt(
     : ''
 
   const compose = (tier: { supporting: boolean; bodyDetail: BodyDetail }, clause: string): string => {
-    const body = bodyDirective(
-      avatarProfile,
-      target.index,
-      bodyIndex,
-      bodyIsBoard,
-      tier.bodyDetail,
-      promptProfile.negatives,
-      ref,
-    )
+    const body = bodyDirective(avatarProfile, target.index, tier.bodyDetail, promptProfile.negatives, ref)
     const head = [
       `${ref(target.index)} is the target photo.`,
       identity(clause),
