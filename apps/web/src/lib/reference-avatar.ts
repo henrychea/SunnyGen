@@ -1,13 +1,4 @@
-import {
-  parseAvatarBoards,
-  parseAvatarCrops,
-  parseAvatarLora,
-  parseAvatarProfile,
-  type AvatarBoard,
-  type AvatarCrop,
-  type AvatarLora,
-  type AvatarProfile,
-} from '@sunnygen/core'
+import { parseAvatarLora, parseAvatarProfile, type AvatarLora, type AvatarProfile } from '@sunnygen/core'
 
 export interface AvatarReference {
   id: string
@@ -17,8 +8,6 @@ export interface AvatarReference {
   sheetAssetId: string | null
   lora: AvatarLora | null
   profile: AvatarProfile | null
-  crops: AvatarCrop[] | undefined
-  boards: AvatarBoard[] | undefined
 }
 
 export interface ReferenceAvatar extends AvatarReference {
@@ -37,7 +26,7 @@ export interface AvatarSource {
 
 /**
  * Turns a saved avatar into a generation reference. Both the clean character
- * sheet and the uploaded 4x4 panel are required: the sheet drives face and
+ * sheet and the uploaded panel are required: the sheet drives face and
  * identity, the panel drives body proportions and alternate angles. The id is
  * the sheet asset id used for the picker preview.
  */
@@ -54,7 +43,5 @@ export function referenceAvatar(source: AvatarSource): AvatarReference | null {
     sheetAssetId: cleanSheet,
     lora: parseAvatarLora(source.data.lora),
     profile: parseAvatarProfile(source.data.avatarProfile),
-    crops: parseAvatarCrops(source.data.crops),
-    boards: parseAvatarBoards(source.data.boards),
   }
 }

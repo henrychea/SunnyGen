@@ -18,8 +18,6 @@ test('avatar references send both the clean sheet and the 4x4 panel', () => {
       sheetAssetId: 'sheet-asset-id',
       lora: null,
       profile: null,
-      crops: undefined,
-      boards: undefined,
     },
   )
 })
@@ -40,8 +38,6 @@ test('avatar references dedupe the sheet and panel when they are the same asset'
       sheetAssetId: 'sheet-asset-id',
       lora: null,
       profile: null,
-      crops: undefined,
-      boards: undefined,
     },
   )
 })
@@ -62,8 +58,6 @@ test('avatar references fall back to the uploaded asset id', () => {
       sheetAssetId: null,
       lora: null,
       profile: null,
-      crops: undefined,
-      boards: undefined,
     },
   )
 })
@@ -91,7 +85,7 @@ test('a trained avatar carries its LoRA', () => {
   assert.equal(reference?.avatarId, 'studio-item-id')
 })
 
-test('a stored profile and its crops travel with the reference', () => {
+test('a stored profile travels with the reference', () => {
   const reference = referenceAvatar({
     id: 'studio-item-id',
     name: 'Mina',
@@ -99,14 +93,10 @@ test('a stored profile and its crops travel with the reference', () => {
     data: {
       characterSheetAssetId: 'sheet-asset-id',
       avatarProfile: { identity: { age: 29, ethnicity: 'Black' } },
-      crops: [{ role: 'face-front', assetId: 'face-front', width: 1200, height: 1200 }],
     },
   })
   assert.equal(reference?.profile?.identity.age, 29)
   assert.equal(reference?.profile?.identity.ethnicity, 'Black')
-  assert.deepEqual(reference?.crops, [
-    { role: 'face-front', assetId: 'face-front', width: 1200, height: 1200 },
-  ])
 })
 
 test('avatars without assets yield no reference', () => {
