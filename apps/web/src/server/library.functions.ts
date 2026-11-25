@@ -230,6 +230,8 @@ export const loadAssets = createServerFn({ method: 'GET' })
       source: data.source === 'all' ? undefined : data.source,
       sources: data.source === 'all' ? ['upload', 'social'] : undefined,
       excludeKind: 'lora',
+      // A file a studio item owns is shown in the Studio, not in the library.
+      excludeStudioAssets: true,
       folderId: data.folderId,
       limit: data.limit,
       offset: data.offset,

@@ -113,3 +113,47 @@ export function deleteStudioItem(id: string): boolean {
   const result = getDb().prepare('DELETE FROM studio_items WHERE id = ?').run(id)
   return result.changes > 0
 }
+
+/**
+ * Every asset id a studio item owns: its two columns plus every `assetId`, `cleanAssetId` or
+ * `...AssetId` field nested in its data (profiles, garment views, crops, tiles, boards, the LoRA).
+ * One walk, so a new kind cannot forget to list its files.
+ */
+export function studioItemAssetIds(
+  item: Pick<StudioItemRecord, 'assetId' | 'cleanAssetId' | 'data'>,
+): string[] {
+  const ids = new Set<string>()
+  const add = (value: unknown) => {
+    if (typeof value === 'string' && value.length > 0) ids.add(value)
+  }
+  add(item.assetId)
+  add(item.cleanAssetId)
+
+  const walk = (value: unknown): void => {
+    if (Array.isArray(value)) {
+      for (const entry of value) walk(entry)
+      return
+    }
+    if (!value || typeof value !== 'object') return
+    for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+      if (/assetid$/i.test(key)) {
+        if (Array.isArray(entry)) entry.forEach(add)
+        else add(entry)
+      } else {
+        walk(entry)
+      }
+    }
+  }
+  walk(item.data)
+
+  return [...ids]
+}
+
+/** Every asset id any studio item owns. The asset library leaves those files to the Studio. */
+export function studioAssetIds(): string[] {
+  const ids = new Set<string>()
+  for (const item of listStudioItems()) {
+    for (const id of studioItemAssetIds(item)) ids.add(id)
+  }
+  return [...ids]
+}

@@ -45,6 +45,8 @@ export interface InputAsset {
   url: string
   width: number | null
   height: number | null
+  /** The row is gone, but a generation still lists it as an input. */
+  missing?: boolean
 }
 
 export interface PublicAsset {
@@ -81,9 +83,13 @@ export function toInputAssets(ids: string[], assets: Map<string, AssetRecord>): 
   const result: InputAsset[] = []
   for (const id of ids) {
     if (seen.has(id)) continue
-    const asset = assets.get(id)
-    if (!asset) continue
     seen.add(id)
+    const asset = assets.get(id)
+    // Deleting a studio item takes its files with it; the generation still owns the reference.
+    if (!asset) {
+      result.push({ id, kind: 'image', url: assetUrl(id), width: null, height: null, missing: true })
+      continue
+    }
     result.push(toInputAsset(asset))
   }
   return result
