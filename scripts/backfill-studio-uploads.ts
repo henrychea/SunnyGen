@@ -3,15 +3,14 @@
  *
  * Studio uploads used to be stored with source 'studio', which the Assets page does not list
  * (it shows upload and social). Anything the user uploaded through the studio dialogs or a pack
- * import is an upload; only avatar crops are internal. This rewrites the source for every studio
- * asset that no studio item references as a crop.
+ * import is an upload; only the crops and boards an avatar cut for itself are internal. This
+ * rewrites the source for every studio asset that no studio item references as a crop.
  *
  *   pnpm tsx scripts/backfill-studio-uploads.ts --db <path to sunnygen.db>
  *   ... --dry-run
  */
 import { resolve } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
-import { parseAvatarCrops } from '../packages/core/src/avatar-references.ts'
 import { selectStudioUploads } from '../packages/db/src/repositories/assets.ts'
 
 interface Args {
@@ -47,7 +46,14 @@ function cropIdsFrom(db: DatabaseSync): Set<string> {
     } catch {
       data = {}
     }
-    for (const crop of parseAvatarCrops(data.crops) ?? []) ids.add(crop.assetId)
+    for (const key of ['crops', 'cropTiles', 'boards']) {
+      const entries = data[key]
+      if (!Array.isArray(entries)) continue
+      for (const entry of entries) {
+        const assetId = (entry as { assetId?: unknown } | null)?.assetId
+        if (typeof assetId === 'string' && assetId) ids.add(assetId)
+      }
+    }
   }
   return ids
 }

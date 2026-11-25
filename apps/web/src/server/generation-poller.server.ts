@@ -9,7 +9,8 @@ import {
   saveJob,
   updateGeneration,
 } from '@sunnygen/db'
-import { adapterFor, providerContext, storeProviderOutputs } from './generation.server'
+import { getProviderModule } from '@sunnygen/providers'
+import { adapterFor, loadProviderAssets, providerContext, storeProviderOutputs } from './generation.server'
 import { completeLoraGeneration } from './lora.server'
 
 const POLL_INTERVAL_MS = 3_000
@@ -62,6 +63,21 @@ function resumePending(): void {
   }
 }
 
+/**
+ * The provider could not fetch an input we uploaded (a stale or oversized copy): drop the stored
+ * upload URL so a retry uploads the input again instead of reusing the same dead link.
+ */
+async function forgetStaleInputs(generation: GenerationRecord): Promise<void> {
+  const forget = getProviderModule(generation.provider).forgetUploads
+  if (!forget || generation.inputAssetIds.length === 0) return
+  try {
+    const assets = await loadProviderAssets(generation.inputAssetIds)
+    await forget(providerContext(generation.provider), assets)
+  } catch {
+    // The retry reloads the inputs anyway; a missing asset is reported there.
+  }
+}
+
 async function recoverFailedJobs(): Promise<void> {
   const state = getState()
   if (state.recovering) return
@@ -96,6 +112,7 @@ async function recoverFailedJobs(): Promise<void> {
           }
           console.info(`[generation-poller] recovered ${generation.id}`)
         } else if (result.status === 'failed') {
+          if (result.inputsStale) await forgetStaleInputs(generation)
           updateGeneration(generation.id, {
             status: 'failed',
             error: result.error ?? generation.error ?? 'Generation failed',
@@ -189,6 +206,7 @@ export async function processGenerationJobs(): Promise<void> {
           }
           deleteJob(job.taskId)
         } else if (result.status === 'failed') {
+          if (result.inputsStale) await forgetStaleInputs(generation)
           const message = result.error ?? 'Generation failed'
           const transientAuth = /401|invalid .*api key|rejected the request \(401\)/i.test(message)
           if (transientAuth && job.attempts < 10) {

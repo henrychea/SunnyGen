@@ -71,7 +71,7 @@ test('no targets is rejected', () => {
   assert.deepEqual(jobs, [])
 })
 
-test('avatar references expand to their crops and add the identity clause', () => {
+test('avatar references expand to their images and add the identity clause', () => {
   const avatar: ReferenceItem = {
     id: 'sheet',
     name: 'avatar',

@@ -158,7 +158,11 @@ export function StudioLibraryGrid({
                           <button
                             type="button"
                             onClick={() => {
-                              if (window.confirm(`Delete "${item.name}"?`)) onDelete(item)
+                              if (
+                                window.confirm(`Delete "${item.name}"? Its images are deleted from disk too.`)
+                              ) {
+                                onDelete(item)
+                              }
                             }}
                             className="text-ink/40 hover:bg-error/10 hover:text-error grid size-7 place-items-center rounded-md transition-[color,background-color,scale] duration-150 ease-out active:scale-[0.92] motion-reduce:active:scale-100"
                             aria-label={`Delete ${item.name}`}

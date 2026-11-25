@@ -1,4 +1,4 @@
-import type { AvatarCrop, AvatarLora, AvatarProfile } from '@sunnygen/core'
+import type { AvatarLora, AvatarProfile } from '@sunnygen/core'
 
 export interface ReferenceItem {
   id: string
@@ -7,11 +7,12 @@ export interface ReferenceItem {
   kind?: 'image' | 'video'
   assetIds?: string[]
   sheetAssetId?: string | null
+  facePanelAssetId?: string | null
+  bodyPanelAssetId?: string | null
   avatar?: boolean
   avatarId?: string
   lora?: AvatarLora | null
   profile?: AvatarProfile | null
-  crops?: AvatarCrop[]
   byteSize?: number
   width?: number | null
   height?: number | null

@@ -18,11 +18,14 @@ const K4: AvatarProfile = {
   body: { build: 'slim', legs: 'long', bust: 'slight' },
 }
 
-const CROPS = [
-  { role: 'face-front' as const, assetId: 'face-front', width: 1200, height: 1200 },
-  { role: 'face-three-quarter' as const, assetId: 'face-3q', width: 1200, height: 1200 },
-  { role: 'body-front' as const, assetId: 'body', width: 1200, height: 1600 },
-]
+// An avatar with no face panel keeps the legacy prompt: the sheet and the old 4x4 panel, whole.
+const LEGACY = {
+  id: 'sheet',
+  assetIds: ['sheet', 'panel'],
+  sheetAssetId: 'sheet',
+  avatar: true,
+  profile: K4,
+}
 
 const INSTRUCTION = 'keep the same expression and make the light warmer and softer'
 
@@ -35,6 +38,7 @@ const EDIT_MODELS = [
   'sunra:google/gemini-3-pro-image',
   'sunra:google/gemini-nano-banana-2.1',
   'sunra:qwen/qwen-image-2.1',
+  'fal:fal-ai/wan/v2.7/image-edit',
   'fal:fal-ai/qwen-image-edit-2509',
   'sunra:bytedance/seedream-5-lite',
   'sunra:bytedance/seedream-5-pro',
@@ -59,6 +63,7 @@ const CANONICAL: Record<AvatarModelFamily, string> = {
   seedream: 'sunra:bytedance/seedream-5.5',
   'gpt-image': 'sunra:openai/gpt-image-2',
   grok: 'sunra:xai/grok-imagine-image',
+  wan: 'fal:fal-ai/wan/v2.7/image-edit',
   generic: 'fal:custom/endpoint',
 }
 
@@ -66,7 +71,7 @@ const NEGATIVE = /\b(?:do not|don't|must not|never)\b/i
 const BODY_FACTS = "with the avatar's: 165 cm, 49 kg, slim build, slight bust, long legs"
 
 function build(modelId: string, instruction = INSTRUCTION) {
-  const references = editReferencePlan([{ id: 'avatar', avatar: true, profile: K4, crops: CROPS }], modelId)
+  const references = editReferencePlan([LEGACY], modelId)
   const profile = editProfile(modelId)
   return {
     references,
@@ -176,13 +181,17 @@ test('the legacy prompt is unchanged when no avatar profile is attached', () => 
   assert.deepEqual(buildEditPromptResult('Make the jacket red.', []).overflow, null)
 })
 
-/** One locked snapshot per family: any change to the prompt shape shows up as an exact diff. */
+/**
+ * One locked snapshot per family for the legacy two-image avatar: any change to the keyword
+ * prompt shape shows up as an exact diff. The panel templates are locked in
+ * edit-prompt.panels.test.ts.
+ */
 const SNAPSHOTS: Record<AvatarModelFamily, string> = {
   'nano-banana': [
     'image 1 is the target photo.',
-    'image 2 (front face), image 3 (full body), image 4 (three-quarter face) are identity references of the same avatar: 24yo East Asian woman, soft oval face, slender jaw, petite chin, slim bridge, dainty tip, full lips, large almond eyes, visible crease, slender arched brows, fair skin, dark brown near-black long hair, slightly wavy, natural center-parted fringe.',
-    'Replace the person in image 1 with the avatar: copy the face, facial features, skin tone and hair from image 2 (front face), image 3 (full body), image 4 (three-quarter face).',
-    "Replace image 1's body with the avatar's: 165 cm, 49 kg, slim build, slight bust, long legs. Take shoulder width, chest, waist, hips and thigh width from image 3 (full body). The body, proportions and figure belong to the avatar; the pose, clothing, framing, lighting and camera belong to image 1.",
+    'image 2 (reference sheet), image 3 (4x4 panel) are identity references of the same avatar: 24yo East Asian woman, soft oval face, slender jaw, petite chin, slim bridge, dainty tip, full lips, large almond eyes, visible crease, slender arched brows, fair skin, dark brown near-black long hair, slightly wavy, natural center-parted fringe.',
+    'Replace the person in image 1 with the avatar: copy the face, facial features, skin tone and hair from image 2, image 3.',
+    "Replace image 1's body with the avatar's: 165 cm, 49 kg, slim build, slight bust, long legs. Take shoulder width, chest, waist, hips and thigh width from the avatar reference images. The body, proportions and figure belong to the avatar; the pose, clothing, framing, lighting and camera belong to image 1.",
     "Keep image 1's pose, clothing, background, lighting and camera.",
     "The result keeps image 1's pose and the avatar's body proportions.",
     '',
@@ -191,9 +200,9 @@ const SNAPSHOTS: Record<AvatarModelFamily, string> = {
   ].join('\n'),
   qwen: [
     'image 1 is the target photo.',
-    'image 2 (front face), image 3 (full body) are identity references of the same avatar: 24yo East Asian woman, soft oval face, slender jaw, petite chin, slim bridge, dainty tip, full lips, large almond eyes, visible crease, slender arched brows, fair skin, dark brown near-black long hair, slightly wavy.',
-    'Replace the person in image 1 with the avatar: copy the face, facial features, skin tone and hair from image 2 (front face), image 3 (full body).',
-    "Replace image 1's body with the avatar's: 165 cm, 49 kg, slim build, slight bust, long legs. Take the body proportions from image 3 (full body).",
+    'image 2 (reference sheet), image 3 (4x4 panel) are identity references of the same avatar: 24yo East Asian woman, soft oval face, slender jaw, petite chin, slim bridge, dainty tip, full lips, large almond eyes, visible crease, slender arched brows, fair skin, dark brown near-black long hair, slightly wavy, natural center-parted fringe.',
+    'Replace the person in image 1 with the avatar: copy the face, facial features, skin tone and hair from image 2, image 3.',
+    "Replace image 1's body with the avatar's: 165 cm, 49 kg, slim build, slight bust, long legs. Take the body proportions from the avatar reference images.",
     "Keep image 1's pose, clothing, background, lighting and camera.",
     '',
     'Additional instructions:',
@@ -201,51 +210,60 @@ const SNAPSHOTS: Record<AvatarModelFamily, string> = {
   ].join('\n'),
   flux: [
     'image 1 is the target photo.',
-    'image 2 (front face), image 3 (full body), image 4 (three-quarter face) are identity references of the same avatar: 24yo East Asian woman, soft oval face, slender jaw, petite chin, slim bridge, dainty tip, full lips, large almond eyes, visible crease, slender arched brows, fair skin, dark brown near-black long hair, slightly wavy, natural center-parted fringe.',
-    'Replace the person in image 1 with the avatar: copy the face, facial features, skin tone and hair from image 2 (front face), image 3 (full body), image 4 (three-quarter face).',
+    'image 2 (reference sheet), image 3 (4x4 panel) are identity references of the same avatar: 24yo East Asian woman, soft oval face, slender jaw, petite chin, slim bridge, dainty tip, full lips, large almond eyes, visible crease, slender arched brows, fair skin, dark brown near-black long hair, slightly wavy, natural center-parted fringe.',
+    'Replace the person in image 1 with the avatar: copy the face, facial features, skin tone and hair from image 2, image 3.',
     "Keep image 1's pose, clothing, background, lighting and camera.",
-    "Replace image 1's body with the avatar's: 165 cm, 49 kg, slim build, slight bust, long legs. Take shoulder width, chest, waist, hips and thigh width from image 3 (full body). image 1's own hips, thighs and waist must not survive.",
+    "Replace image 1's body with the avatar's: 165 cm, 49 kg, slim build, slight bust, long legs. Take shoulder width, chest, waist, hips and thigh width from the avatar reference images. image 1's own hips, thighs and waist must not survive.",
     '',
     'Additional instructions:',
     'keep the same expression and make the light warmer and softer',
   ].join('\n'),
   seedream: [
     'image 1 is the target photo.',
-    'image 2 (front face), image 3 (full body), image 4 (three-quarter face) are identity references of the same avatar: 24yo East Asian woman, soft oval face, slender jaw, petite chin, slim bridge, dainty tip, full lips, large almond eyes, visible crease, slender arched brows, fair skin, dark brown near-black long hair, slightly wavy, natural center-parted fringe.',
-    'Replace the person in image 1 with the avatar: copy the face, facial features, skin tone and hair from image 2 (front face), image 3 (full body), image 4 (three-quarter face).',
+    'image 2 (reference sheet), image 3 (4x4 panel) are identity references of the same avatar: 24yo East Asian woman, soft oval face, slender jaw, petite chin, slim bridge, dainty tip, full lips, large almond eyes, visible crease, slender arched brows, fair skin, dark brown near-black long hair, slightly wavy, natural center-parted fringe.',
+    'Replace the person in image 1 with the avatar: copy the face, facial features, skin tone and hair from image 2, image 3.',
     "Keep image 1's pose, clothing, background, lighting and camera.",
-    "Replace image 1's body with the avatar's: 165 cm, 49 kg, slim build, slight bust, long legs. Take shoulder width, chest, waist, hips and thigh width from image 3 (full body). image 1's own hips, thighs and waist must not survive.",
+    "Replace image 1's body with the avatar's: 165 cm, 49 kg, slim build, slight bust, long legs. Take shoulder width, chest, waist, hips and thigh width from the avatar reference images. image 1's own hips, thighs and waist must not survive.",
     '',
     'Additional instructions:',
     'keep the same expression and make the light warmer and softer',
   ].join('\n'),
   'gpt-image': [
     'image 1 is the target photo.',
-    'image 2 (front face), image 3 (full body), image 4 (three-quarter face) are identity references of the same avatar: 24yo East Asian woman, soft oval face, slender jaw, petite chin, slim bridge, dainty tip, full lips, large almond eyes, visible crease, slender arched brows, fair skin, dark brown near-black long hair, slightly wavy, natural center-parted fringe.',
-    'Replace the person in image 1 with the avatar: copy the face, facial features, skin tone and hair from image 2 (front face), image 3 (full body), image 4 (three-quarter face).',
+    'image 2 (reference sheet), image 3 (4x4 panel) are identity references of the same avatar: 24yo East Asian woman, soft oval face, slender jaw, petite chin, slim bridge, dainty tip, full lips, large almond eyes, visible crease, slender arched brows, fair skin, dark brown near-black long hair, slightly wavy, natural center-parted fringe.',
+    'Replace the person in image 1 with the avatar: copy the face, facial features, skin tone and hair from image 2, image 3.',
     "Keep image 1's pose, clothing, background, lighting and camera.",
-    "Replace image 1's body with the avatar's: 165 cm, 49 kg, slim build, slight bust, long legs. Take the body proportions from image 3 (full body).",
+    "Replace image 1's body with the avatar's: 165 cm, 49 kg, slim build, slight bust, long legs. Take the body proportions from the avatar reference images.",
     '',
     'Additional instructions:',
     'keep the same expression and make the light warmer and softer',
   ].join('\n'),
   grok: [
     'image 1 is the target photo.',
-    'image 2 (front face), image 3 (full body) are identity references of the same avatar: 24yo East Asian woman, soft oval face, slender jaw, petite chin, slim bridge, dainty tip, full lips, large almond eyes, visible crease, slender arched brows, fair skin, dark brown near-black long hair, slightly wavy, natural center-parted fringe.',
-    'Replace the person in image 1 with the avatar: copy the face, facial features, skin tone and hair from image 2 (front face), image 3 (full body).',
-    "Replace image 1's body with the avatar's: 165 cm, 49 kg, slim build, slight bust, long legs. Take the body proportions from image 3 (full body).",
+    'image 2 (reference sheet), image 3 (4x4 panel) are identity references of the same avatar: 24yo East Asian woman, soft oval face, slender jaw, petite chin, slim bridge, dainty tip, full lips, large almond eyes, visible crease, slender arched brows, fair skin, dark brown near-black long hair, slightly wavy, natural center-parted fringe.',
+    'Replace the person in image 1 with the avatar: copy the face, facial features, skin tone and hair from image 2, image 3.',
+    "Replace image 1's body with the avatar's: 165 cm, 49 kg, slim build, slight bust, long legs. Take the body proportions from the avatar reference images.",
     "Keep image 1's pose, clothing, background, lighting and camera.",
-    'image 4 is a supporting reference only.',
+    '',
+    'Additional instructions:',
+    'keep the same expression and make the light warmer and softer',
+  ].join('\n'),
+  wan: [
+    'image 3 is the target photo.',
+    'image 1 (reference sheet), image 2 (4x4 panel) are identity references of the same avatar: 24yo East Asian woman, soft oval face, slender jaw, petite chin, slim bridge, dainty tip, full lips, large almond eyes, visible crease, slender arched brows, fair skin, dark brown near-black long hair, slightly wavy, natural center-parted fringe.',
+    'Replace the person in image 3 with the avatar: copy the face, facial features, skin tone and hair from image 1, image 2.',
+    "Replace image 3's body with the avatar's: 165 cm, 49 kg, slim build, slight bust, long legs. Take the body proportions from the avatar reference images.",
+    "Keep image 3's pose, clothing, background, lighting and camera.",
     '',
     'Additional instructions:',
     'keep the same expression and make the light warmer and softer',
   ].join('\n'),
   generic: [
-    'image 4 is the target photo.',
-    'image 1 (front face), image 2 (full body), image 3 (three-quarter face) are identity references of the same avatar: 24yo East Asian woman, soft oval face, slender jaw, petite chin, slim bridge, dainty tip, full lips, large almond eyes, visible crease, slender arched brows, fair skin, dark brown near-black long hair, slightly wavy, natural center-parted fringe.',
-    'Replace the person in image 4 with the avatar: copy the face, facial features, skin tone and hair from image 1 (front face), image 2 (full body), image 3 (three-quarter face).',
-    "Keep image 4's pose, clothing, background, lighting and camera.",
-    "Replace image 4's body with the avatar's: 165 cm, 49 kg, slim build, slight bust, long legs. Take shoulder width, chest, waist, hips and thigh width from image 2 (full body). image 4's own hips, thighs and waist must not survive.",
+    'image 3 is the target photo.',
+    'image 1 (reference sheet), image 2 (4x4 panel) are identity references of the same avatar: 24yo East Asian woman, soft oval face, slender jaw, petite chin, slim bridge, dainty tip, full lips, large almond eyes, visible crease, slender arched brows, fair skin, dark brown near-black long hair, slightly wavy, natural center-parted fringe.',
+    'Replace the person in image 3 with the avatar: copy the face, facial features, skin tone and hair from image 1, image 2.',
+    "Keep image 3's pose, clothing, background, lighting and camera.",
+    "Replace image 3's body with the avatar's: 165 cm, 49 kg, slim build, slight bust, long legs. Take shoulder width, chest, waist, hips and thigh width from the avatar reference images. image 3's own hips, thighs and waist must not survive.",
     '',
     'Additional instructions:',
     'keep the same expression and make the light warmer and softer',

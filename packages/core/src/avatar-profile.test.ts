@@ -2,7 +2,8 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
   DEFAULT_AVATAR_PROFILE,
-  buildPanelSheetPrompt,
+  buildBodyPanelPrompt,
+  buildFacePanelPrompt,
   buildReferenceSheetPrompt,
   identityClause,
   identityKeywords,
@@ -20,45 +21,45 @@ const WITH_PORTRAIT: AvatarProfile = {
 }
 
 const GOLDEN_SHEET = normalize(`
-Create a professional-grade original character reference sheet. Use the attached portrait only as a 70% likeness guide, not as an identity to copy.
-
-Likeness rule: The finished character must read as a different person with a strong family resemblance to the reference — about 70% similar. Keep the ethnicity, age range, skin tone, hair color and texture, general face-shape family, and body proportions. Change the specific identity features: eye shape and eyelid crease, nose bridge and tip, lip contour, jawline and chin, cheekbones, eyebrow shape, ear shape, facial proportions, and makeup. Do not copy, trace, face-swap, or reproduce the reference person's exact face, expression, pose, lighting, or facial geometry. The result must be an original face, not a clone. Side by side, they should look like close relatives, not the same person.
-
-Core Requirements: All images in the entire sheet must depict the same original adult East Asian woman, maintaining consistent face shape, facial feature proportions, eyes, eyebrows, nose, mouth, skin tone, hair color, hairstyle, and body type—do not swap faces between panels, do not stylize as anime, do not add a CG feel, do not overdo skin smoothing.
-
-Character Features: Adult East Asian female, 168 cm tall, soft oval face, slender jawline, petite chin, large and natural almond-shaped eyes, slender naturally arched eyebrows, slim nose bridge, dainty nose tip, soft and full lip shape, fair and natural skin tone, dark brown near-black long hair, slightly wavy, natural center-parted fringe, very slim and hourglass figure, long legs, large bust.
-
-Basic Attire: Black fitted long-sleeved square-neck short skirt, black stockings, black high heels.
-
-Layout: White to light beige clean background, professional reference sheet, grid layout, English annotations: content section and section names only, clear and easy to read.
-
-Content Sections:
-1. Basic Settings / Basic Profile
-2. Full-Body Angles: Front, Side, Back, Diagonal Front, Diagonal Back
-3. Face Angles: Front, 45 Degrees, Side Profile, Diagonal Upper, Diagonal Lower
-4. Expressions: Neutral, Natural Smile, Serious, Surprised, Troubled
-5. Hair Details: Front, Side, Back
-6. Hands: Rest, Side, Palm
-7. Facial Features: Eyes, Eyebrows, Nose, Mouth, Ears
-8. Skin Texture: Facial Skin, Body Skin
-9. Body Details: Shoulders, Abdomen, Back, Legs, Hands
-10. Everyday Outfit & Scene Examples: Loungewear, Casual Wear, Coffee Shop, Work/School, Travel
-
-Overall Style: Realistic Photography Feel, Natural Light, Realistic Skin Texture, Realistic Hair Strands, Realistic Human Proportions, High-Quality Character Consistency Reference Table.
-
-Identity lock for every panel: same new face, same body, same hair, same outfit. Do not revert to the attached portrait's face in any panel. 4K res with Ratio 4:3. Remove the profile text and keep only the category ones. Remove the background so it is plain white. No box outlines. No text at the bottom.
+Create a professional-grade original character reference sheet. Use the attached portrait only as a 70% likeness guide, not as an identity to copy. Likeness rule: The finished character must read as a different person with a strong family resemblance to the reference — about 70% similar. Keep the ethnicity, age range, skin tone, hair color and texture, general face-shape family, and body proportions. Change the specific identity features: eye shape and eyelid crease, nose bridge and tip, lip contour, jawline and chin, cheekbones, eyebrow shape, ear shape, facial proportions, and makeup. Do not copy, trace, face-swap, or reproduce the reference person's exact face, expression, pose, lighting, or facial geometry. The result must be an original face, not a clone. Side by side, they should look like close relatives, not the same person. Core Requirements: All images in the entire sheet must depict the same original adult East Asian woman, maintaining consistent face shape, facial feature proportions, eyes, eyebrows, nose, mouth, skin tone, hair color, hairstyle, and body type—do not swap faces between panels, do not stylize as anime, do not add a CG feel, do not overdo skin smoothing. Character Features: Adult East Asian female, 168 cm tall, soft oval face, slender jawline, petite chin, large and natural almond-shaped eyes, slender naturally arched eyebrows, slim nose bridge, dainty nose tip, soft and full lip shape, fair and natural skin tone, dark brown near-black long hair, slightly wavy, natural center-parted fringe, very slim and hourglass figure, long legs, large bust. Basic Attire: Black fitted long-sleeved square-neck short skirt, black stockings, black high heels. Layout: a canvas of exactly 4096 x 3072 px, white to light beige background, split into fixed regions - basic: x = 3072 to 4095, y = 2048 to 3071; body angles: x = 0 to 2047, y = 0 to 1023; face angles: x = 2048 to 3071, y = 0 to 1023; expressions: x = 3072 to 4095, y = 0 to 1023; hair: x = 0 to 1023, y = 1024 to 2047; hands: x = 3072 to 4095, y = 1024 to 2047; features: x = 1024 to 2047, y = 1024 to 2047; skin: x = 2048 to 3071, y = 1024 to 2047; body details: x = 0 to 2047, y = 2048 to 3071; outfits: x = 2048 to 3071, y = 2048 to 3071. Keep every region in its own box and the layout fixed whether a section is filled or empty, English annotations: content section and section names only, clear and easy to read. Content Sections: 1. Basic Settings / Basic Profile 2. Full-Body Angles: Front, Side, Back, Diagonal Front, Diagonal Back 3. Face Angles: Front, 45 Degrees, Side Profile, Diagonal Upper, Diagonal Lower 4. Expressions: Neutral, Natural Smile, Serious, Surprised, Troubled 5. Hair Details: Front, Side, Back 6. Hands: Rest, Side, Palm 7. Facial Features: Eyes, Eyebrows, Nose, Mouth, Ears 8. Skin Texture: Facial Skin, Body Skin 9. Body Details: Shoulders, Abdomen, Back, Legs, Hands 10. Everyday Outfit & Scene Examples: Loungewear, Casual Wear, Coffee Shop, Work/School, Travel Overall Style: Realistic Photography Feel, Natural Light, Realistic Skin Texture, Realistic Hair Strands, Realistic Human Proportions, High-Quality Character Consistency Reference Table. Identity lock for every panel: same new face, same body, same hair, same outfit. Do not revert to the attached portrait's face in any panel. 4K res with Ratio 4:3. Remove the profile text and keep only the category ones. Remove the background so it is plain white. No box outlines. No text at the bottom.
 `)
 
-const GOLDEN_PANEL = normalize(
-  'Reference the sheet and make a 4 by 4 reference sheet, sixteen panels of the same original character, front, back, sides, four expressions, four poses, four detail crops, flat white background. 4K quality, no text and borders.',
+const GOLDEN_BODY = normalize(
+  'Reference the sheet and make a 2 by 2 body panel of the same original character on a canvas of exactly 4096 x 4096 px, flat pure white, split into 4 equal cells of 2048 x 2048 px. Each cell is 2048 px wide and 2048 px tall: the top-left cell spans x = 0 to 2047 and y = 0 to 2047, and the four cells tile the canvas with no gaps. Every figure stays entirely inside its own cell with at least 96 px of white margin on all four sides; nothing (hair, hands, feet, shadows) crosses into a neighbouring cell. Top-left front full body, top-right right side profile full body, bottom-left back full body, bottom-right three-quarter full body. Each figure is full body head to toe with the feet fully visible, centred and scaled to fill its cell. The same person, outfit and lighting in every cell, photoreal, 4K quality.',
+)
+
+const GOLDEN_FACE = normalize(
+  'Reference the sheet and make a 2 by 2 face panel of the same original character on a canvas of exactly 4096 x 4096 px, flat pure white, split into 4 equal cells of 2048 x 2048 px. Each cell is 2048 px wide and 2048 px tall: the top-left cell spans x = 0 to 2047 and y = 0 to 2047, and the four cells tile the canvas with no gaps. Every subject stays entirely inside its own cell with at least 96 px of white margin on all four sides; nothing crosses into a neighbouring cell. Top-left front face, head and shoulders cropped at the collarbone with the face centred; top-right three-quarter face; bottom-left side profile face; bottom-right both hands, front and back of the hand, skin texture visible. The same person and lighting in every cell, photoreal, 4K quality.',
 )
 
 test('the default profile reproduces the reference sheet prompt', () => {
   assert.equal(normalize(buildReferenceSheetPrompt(WITH_PORTRAIT)), GOLDEN_SHEET)
 })
 
-test('the default profile reproduces the 4x4 panel prompt', () => {
-  assert.equal(normalize(buildPanelSheetPrompt(DEFAULT_AVATAR_PROFILE)), GOLDEN_PANEL)
+test('the default profile reproduces the body and face panel prompts', () => {
+  assert.equal(normalize(buildBodyPanelPrompt(DEFAULT_AVATAR_PROFILE)), GOLDEN_BODY)
+  assert.equal(normalize(buildFacePanelPrompt(DEFAULT_AVATAR_PROFILE)), GOLDEN_FACE)
+})
+
+test('both panel prompts pin the 2x2 canvas, the cell grid and the white margin', () => {
+  for (const prompt of [
+    buildBodyPanelPrompt(DEFAULT_AVATAR_PROFILE),
+    buildFacePanelPrompt(DEFAULT_AVATAR_PROFILE),
+  ]) {
+    assert.match(prompt, /exactly 4096 x 4096 px/)
+    assert.match(prompt, /4 equal cells of 2048 x 2048 px/)
+    assert.match(prompt, /x = 0 to 2047 and y = 0 to 2047/)
+    assert.match(prompt, /at least 96 px of white margin on all four sides/)
+  }
+  // The crop regions read these quadrants, so the wording and the defaults cannot drift apart.
+  assert.match(
+    buildBodyPanelPrompt(DEFAULT_AVATAR_PROFILE),
+    /Top-left front full body, top-right right side profile full body, bottom-left back full body, bottom-right three-quarter full body/,
+  )
+  assert.match(
+    buildFacePanelPrompt(DEFAULT_AVATAR_PROFILE),
+    /Top-left front face, head and shoulders cropped at the collarbone.*bottom-right both hands/,
+  )
 })
 
 test('the likeness section disappears when no portrait is attached', () => {
@@ -126,7 +127,7 @@ test('sheet toggles drive the layout, borders, labels and footer text', () => {
     },
   }
   const prompt = buildReferenceSheetPrompt(profile)
-  assert.match(prompt, /Plain white clean background/)
+  assert.match(prompt, /4096 x 3072 px, plain white background, split into fixed regions/)
   assert.match(prompt, /2K res with Ratio 3:4/)
   assert.match(prompt, /Keep thin box outlines\./)
   assert.match(prompt, /Add the section names at the bottom\./)
@@ -135,22 +136,21 @@ test('sheet toggles drive the layout, borders, labels and footer text', () => {
   assert.match(prompt, /8\. Body Details/)
 })
 
-test('panel counts drive the panel prompt', () => {
-  const profile: AvatarProfile = {
+test('the sheet keeps its fixed region grid when a section is switched off', () => {
+  const off = {
     ...DEFAULT_AVATAR_PROFILE,
-    panel: {
-      ...DEFAULT_AVATAR_PROFILE.panel,
-      views: 3,
-      expressions: 2,
-      poses: 2,
-      detailCrops: 2,
-      text: true,
+    sheet: {
+      ...DEFAULT_AVATAR_PROFILE.sheet,
+      sections: { ...DEFAULT_AVATAR_PROFILE.sheet.sections, expressions: false },
     },
   }
-  const prompt = buildPanelSheetPrompt(profile)
-  assert.match(prompt, /three views, two expressions, two poses, two detail crops/)
-  assert.match(prompt, /nine panels/)
-  assert.match(prompt, /with text, no borders/)
+  const prompt = buildReferenceSheetPrompt(off)
+  assert.match(prompt, /canvas of exactly 4096 x 3072 px/)
+  assert.match(prompt, /body angles: x = 0 to 2047, y = 0 to 1023/)
+  assert.match(prompt, /expressions: x = 3072 to 4095, y = 0 to 1023, leave this region empty white/)
+  assert.match(prompt, /Keep every region in its own box and the layout fixed/)
+  // A switched-on section still lists its content.
+  assert.match(prompt, /Hair Details|Hair/)
 })
 
 test('keywords group face geometry, hair, body and outfit', () => {

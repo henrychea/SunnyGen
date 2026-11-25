@@ -6,7 +6,8 @@ import {
   LIKENESS_KEEP_LABELS,
   LIKENESS_KEEP_TRAITS,
   SHEET_SECTIONS,
-  buildPanelSheetPrompt,
+  buildBodyPanelPrompt,
+  buildFacePanelPrompt,
   buildReferenceSheetPrompt,
   parseAvatarProfile,
   type AvatarProfile,
@@ -26,14 +27,17 @@ import {
   motionSwap,
   toast,
 } from '@sunnygen/ui'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Check, ClipboardCopy, ClipboardPaste, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AvatarCropsPanel } from '~/components/studio/avatar-crops-panel'
-import { AvatarSheetUploads, type SlotAsset } from '~/components/studio/avatar-sheet-uploads'
+import { withoutDerived } from '~/lib/avatar-derived'
+import {
+  AvatarSheetUploads,
+  type AvatarSlotKind,
+  type SlotAsset,
+} from '~/components/studio/avatar-sheet-uploads'
 import { PromptExtract } from '~/components/studio/avatar-prompt-extract'
-import { loadAvatarCropsFn, saveStudioItemFn, type StudioItemDto } from '~/server/studio.functions'
+import { saveStudioItemFn, type StudioItemDto } from '~/server/studio.functions'
 
 type WizardStep = 1 | 2 | 3 | 4 | 5 | 6
 
@@ -100,39 +104,44 @@ export function AvatarWizard({
   const [profile, setProfile] = useState<AvatarProfile>(stored ?? initial?.profile ?? DEFAULT_AVATAR_PROFILE)
   const [sheetChoice, setSheetChoice] = useState<SlotAsset | null | undefined>(undefined)
   const [panelChoice, setPanelChoice] = useState<SlotAsset | null | undefined>(undefined)
+  const [faceChoice, setFaceChoice] = useState<SlotAsset | null | undefined>(undefined)
   const [sheetEdit, setSheetEdit] = useState<string | null>(null)
-  const [panelEdit, setPanelEdit] = useState<string | null>(null)
-  const [picker, setPicker] = useState<'sheet' | 'panel' | null>(null)
+  const [bodyPanelEdit, setBodyPanelEdit] = useState<string | null>(null)
+  const [facePanelEdit, setFacePanelEdit] = useState<string | null>(null)
+  const [picker, setPicker] = useState<AvatarSlotKind | null>(null)
   const [pasteOpen, setPasteOpen] = useState(false)
   const [busy, setBusy] = useState<'save' | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [savedId, setSavedId] = useState<string | null>(null)
-  const queryClient = useQueryClient()
-  const activeId = item?.id ?? savedId
+  // A new image in any slot makes every file derived from the old ones stale.
+  const [slotsChanged, setSlotsChanged] = useState(false)
+  const chooseSlot =
+    <T,>(setter: (next: T) => void) =>
+    (next: T) => {
+      setter(next)
+      setSlotsChanged(true)
+    }
 
-  const cropsQuery = useQuery({
-    queryKey: ['avatar-crops', activeId],
-    queryFn: () => loadAvatarCropsFn({ data: { avatarId: activeId as string } }),
-    enabled: Boolean(activeId),
-  })
-  const cropsDto = cropsQuery.data
-
+  const baseFace = stringData(item, 'facePanelAssetId')
+  const face =
+    faceChoice !== undefined
+      ? faceChoice
+      : baseFace
+        ? { id: baseFace, name: null, width: null, height: null }
+        : null
   const baseSheet = stringData(item, 'characterSheetAssetId')
   const sheet =
     sheetChoice !== undefined
       ? sheetChoice
-      : (dtoSlot(cropsDto?.sheet) ??
-        initial?.sheet ??
-        (baseSheet ? { id: baseSheet, name: null, width: null, height: null } : null))
+      : (initial?.sheet ?? (baseSheet ? { id: baseSheet, name: null, width: null, height: null } : null))
   const panel =
     panelChoice !== undefined
       ? panelChoice
-      : (dtoSlot(cropsDto?.panel) ??
-        initial?.panel ??
+      : (initial?.panel ??
         (item?.assetId ? { id: item.assetId, name: null, width: null, height: null } : null))
 
   const sheetPrompt = sheetEdit ?? buildReferenceSheetPrompt(profile)
-  const panelPrompt = panelEdit ?? buildPanelSheetPrompt(profile)
+  const bodyPanelPrompt = bodyPanelEdit ?? buildBodyPanelPrompt(profile)
+  const facePanelPrompt = facePanelEdit ?? buildFacePanelPrompt(profile)
 
   const patch = <K extends keyof AvatarProfile>(group: K, values: Partial<AvatarProfile[K]>) => {
     setProfile((current) => ({ ...current, [group]: { ...current[group], ...values } }))
@@ -149,14 +158,14 @@ export function AvatarWizard({
       setError('Name the avatar first.')
       return
     }
-    if (!profileOnly && (!sheet || !panel)) {
-      setError('Both the reference sheet and the 4×4 panel are required.')
+    if (!profileOnly && (!sheet || !panel || !face)) {
+      setError('The reference sheet, the body panel and the face panel are required.')
       return
     }
     setBusy('save')
     setError(null)
     try {
-      const saved = await saveStudioItemFn({
+      await saveStudioItemFn({
         data: {
           id: item?.id,
           kind: 'avatar',
@@ -164,24 +173,18 @@ export function AvatarWizard({
           assetId: profileOnly ? (item?.assetId ?? null) : (panel?.id ?? null),
           cleanAssetId: item?.cleanAssetId ?? null,
           data: {
-            ...item?.data,
+            ...(slotsChanged ? withoutDerived(item?.data) : item?.data),
             style: item?.data.style ?? 'photoreal',
             characterSheetAssetId: sheet?.id ?? null,
-            facePanelAssetId: item?.data.facePanelAssetId ?? null,
+            facePanelAssetId: profileOnly ? (item?.data.facePanelAssetId ?? null) : (face?.id ?? null),
             avatarProfile: profile,
           },
         },
       })
-      const panelChanged = !item || item.assetId !== (profileOnly ? item.assetId : (panel?.id ?? null))
+      setSlotsChanged(false)
       onSaved()
-      if (panelChanged) {
-        setSavedId(saved.id)
-        setStep(6)
-        toast('Panel saved. Pick the crop regions below.', { tone: 'info' })
-      } else {
-        onOpenChange(false)
-        toast(profileOnly ? 'Profile saved' : 'Avatar saved', { tone: 'info' })
-      }
+      onOpenChange(false)
+      toast(profileOnly ? 'Profile saved' : 'Avatar saved', { tone: 'info' })
     } catch (saveError) {
       const message = saveError instanceof Error ? saveError.message : 'Could not save'
       setError(message)
@@ -218,8 +221,8 @@ export function AvatarWizard({
                   {item ? `Edit profile · ${item.name}` : 'New avatar'}
                 </Dialog.Title>
                 <p className="text-ink/65 mt-0.5 text-[11px]">
-                  Fill in the profile, run the two prompts in your image AI, then upload the sheet and the 4×4
-                  panel.
+                  Fill in the profile, run the three prompts in your image AI, then upload the sheet, the body
+                  panel and the face panel.
                 </p>
               </div>
               <button
@@ -692,40 +695,11 @@ export function AvatarWizard({
                         />
                       </div>
                       <div className="border-line rounded-xl border p-3">
-                        <p className="text-ink/75 text-[11px] font-medium">4×4 panel</p>
+                        <p className="text-ink/75 text-[11px] font-medium">Body and face panels</p>
                         <p className="text-ink/65 mt-1 text-[10.5px]">
-                          Each count becomes a phrase in the panel prompt.
+                          Two fixed 2 by 2 panels: the body panel carries the four body angles, the face panel
+                          the faces and the hands. Each view gets a 2048 px cell.
                         </p>
-                        <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                          <CountField
-                            label="Views"
-                            value={profile.panel.views}
-                            min={1}
-                            max={6}
-                            onChange={(value) => patch('panel', { views: value })}
-                          />
-                          <CountField
-                            label="Expressions"
-                            value={profile.panel.expressions}
-                            min={0}
-                            max={8}
-                            onChange={(value) => patch('panel', { expressions: value })}
-                          />
-                          <CountField
-                            label="Poses"
-                            value={profile.panel.poses}
-                            min={0}
-                            max={8}
-                            onChange={(value) => patch('panel', { poses: value })}
-                          />
-                          <CountField
-                            label="Detail crops"
-                            value={profile.panel.detailCrops}
-                            min={0}
-                            max={8}
-                            onChange={(value) => patch('panel', { detailCrops: value })}
-                          />
-                        </div>
                         <div className="mt-2 flex flex-wrap items-center gap-2">
                           <Field
                             label="Panel resolution"
@@ -758,8 +732,8 @@ export function AvatarWizard({
                   {step === 6 ? (
                     <div className="flex flex-col gap-4">
                       <p className="text-ink/65 text-[10.5px]">
-                        Copy each prompt into your image AI, then upload the two images here. Both prompts are
-                        saved with the profile.
+                        Copy each prompt into your image AI, then upload the three images here. The prompts
+                        are saved with the profile.
                       </p>
                       <PromptEditor
                         label="Reference sheet prompt"
@@ -768,33 +742,40 @@ export function AvatarWizard({
                         onCopy={() => void copy(sheetPrompt)}
                       />
                       <PromptEditor
-                        label="4×4 panel prompt"
-                        value={panelPrompt}
-                        onChange={setPanelEdit}
-                        onCopy={() => void copy(panelPrompt)}
+                        label="Body panel prompt"
+                        value={bodyPanelPrompt}
+                        onChange={setBodyPanelEdit}
+                        onCopy={() => void copy(bodyPanelPrompt)}
+                      />
+                      <PromptEditor
+                        label="Face panel prompt"
+                        value={facePanelPrompt}
+                        onChange={setFacePanelEdit}
+                        onCopy={() => void copy(facePanelPrompt)}
                       />
                       <AvatarSheetUploads
                         sheet={sheet}
                         panel={panel}
-                        onSheet={setSheetChoice}
-                        onPanel={setPanelChoice}
+                        face={face}
+                        onSheet={chooseSlot(setSheetChoice)}
+                        onPanel={chooseSlot(setPanelChoice)}
+                        onFace={chooseSlot(setFaceChoice)}
                         picker={picker}
                         onPicker={setPicker}
+                        onSwapPanels={() => {
+                          chooseSlot(setPanelChoice)(face)
+                          chooseSlot(setFaceChoice)(panel)
+                        }}
+                        onCopy={(kind) =>
+                          void copy(
+                            kind === 'sheet'
+                              ? sheetPrompt
+                              : kind === 'body-panel'
+                                ? bodyPanelPrompt
+                                : facePanelPrompt,
+                          )
+                        }
                       />
-                      {activeId ? (
-                        <AvatarCropsPanel
-                          avatarId={activeId}
-                          crops={cropsDto?.crops ?? []}
-                          cropCells={cropsDto?.cropCells ?? null}
-                          panel={cropsDto?.panel ?? null}
-                          pending={cropsQuery.isPending}
-                          onReplacePanel={() => setPicker('panel')}
-                          onSaved={(dto) => {
-                            queryClient.setQueryData(['avatar-crops', activeId], dto)
-                            onSaved()
-                          }}
-                        />
-                      ) : null}
                     </div>
                   ) : null}
                 </motion.div>
@@ -894,15 +875,6 @@ export function AvatarWizard({
   )
 }
 
-function dtoSlot(
-  info:
-    | { assetId: string | null; name: string | null; width: number | null; height: number | null }
-    | undefined,
-): SlotAsset | null {
-  if (!info?.assetId) return null
-  return { id: info.assetId, name: info.name, width: info.width, height: info.height }
-}
-
 function toggleIn<T extends string>(items: T[], key: T): T[] {
   return items.includes(key) ? items.filter((item) => item !== key) : [...items, key]
 }
@@ -942,35 +914,6 @@ function Field({
         />
       ) : null}
     </div>
-  )
-}
-
-function CountField({
-  label,
-  value,
-  min,
-  max,
-  onChange,
-}: {
-  label: string
-  value: number
-  min: number
-  max: number
-  onChange: (value: number) => void
-}) {
-  return (
-    <label className="flex flex-col gap-1">
-      <span className="text-ink/70 text-[10.5px]">{label}</span>
-      <Input
-        type="number"
-        min={min}
-        max={max}
-        value={value}
-        aria-label={label}
-        className="h-11 sm:h-9"
-        onChange={(event) => onChange(Math.min(max, Math.max(min, Number(event.target.value) || 0)))}
-      />
-    </label>
   )
 }
 

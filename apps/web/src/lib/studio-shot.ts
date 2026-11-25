@@ -36,7 +36,7 @@ export interface StudioShot {
 }
 
 /**
- * Prompt and reference order for one looked shot. The identity crops come first,
+ * Prompt and reference order for one looked shot. The avatar images come first,
  * then one garment view per piece, then pose and scene, matching buildStudioPrompt.
  */
 export function studioShot(input: StudioShotInput): StudioShot {

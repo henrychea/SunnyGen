@@ -1,27 +1,33 @@
 import {
-  avatarCropPlan,
+  avatarImagePlan,
   avatarModelFamily,
   identityClause,
-  type AvatarCrop,
-  type AvatarCropRole,
+  type AvatarImageRole,
   type AvatarProfile,
 } from '@sunnygen/core'
 import type { EditReference } from './edit-prompt'
 
-export const CROP_ROLE_LABELS: Record<AvatarCropRole, string> = {
-  'face-front': 'front face',
-  'face-three-quarter': 'three-quarter face',
-  'body-front': 'full body',
-  'body-side': 'side profile',
+// The role text rides into the edit prompt verbatim, so each image names what it holds.
+const IMAGE_SLOT_ROLES: Record<AvatarImageRole, string> = {
+  'face-panel':
+    'face panel: top-left front, top-right three-quarter, bottom-left side profile, bottom-right hands',
+  'body-panel':
+    'body panel: top-left front, top-right side profile, bottom-left back, bottom-right three-quarter',
+  sheet:
+    'character reference sheet: expressions, hair, hands, skin texture, facial features and body details',
 }
+
+// An avatar saved before the two-panel split has one 4x4 panel holding the body and faces.
+const LEGACY_PANEL_ROLE = '4x4 panel'
 
 export interface AvatarReferenceInfo {
   id: string
   assetIds?: string[]
   sheetAssetId?: string | null
+  facePanelAssetId?: string | null
+  bodyPanelAssetId?: string | null
   avatar?: boolean
   profile?: AvatarProfile | null
-  crops?: AvatarCrop[]
   role?: string
 }
 
@@ -30,22 +36,22 @@ export interface AvatarAssetSlot {
   role: string
 }
 
+function referenceAssets(reference: AvatarReferenceInfo): string[] {
+  return reference.assetIds && reference.assetIds.length > 0 ? reference.assetIds : [reference.id]
+}
+
 export function avatarAssetSlots(reference: AvatarReferenceInfo, modelId: string): AvatarAssetSlot[] {
-  const assets = reference.assetIds && reference.assetIds.length > 0 ? reference.assetIds : [reference.id]
-  const crops = reference.crops ?? []
-  if (crops.length === 0) {
-    // The sheet drives face and identity, the panel body proportions: naming both
-    // "reference sheet" leaves the model guessing which is which.
-    return assets.map((id) => ({
-      id,
-      role: id === reference.sheetAssetId ? 'reference sheet' : '4x4 panel',
-    }))
+  const family = avatarModelFamily(modelId)
+  const plan = avatarImagePlan(reference, family)
+  if (plan.length > 0) {
+    return plan.map((slot) => ({ id: slot.assetId, role: IMAGE_SLOT_ROLES[slot.role] }))
   }
-  const byRole = new Map(crops.map((crop) => [crop.role, crop]))
-  return avatarCropPlan(avatarModelFamily(modelId)).flatMap((role) => {
-    const crop = byRole.get(role)
-    return crop ? [{ id: crop.assetId, role: CROP_ROLE_LABELS[role] }] : []
-  })
+  // No face panel: the avatar holds whole images already, so its id list goes as it stands.
+  const assets = referenceAssets(reference)
+  return assets.map((id) => ({
+    id,
+    role: id === reference.sheetAssetId ? 'reference sheet' : LEGACY_PANEL_ROLE,
+  }))
 }
 
 export function avatarReferenceAssets(reference: AvatarReferenceInfo, modelId: string): string[] {

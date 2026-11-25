@@ -15,7 +15,6 @@ import {
   identityKeywords,
   loraTrainingCost,
   panelSizeError,
-  parseAvatarCropCells,
   parseAvatarLora,
   parseAvatarProfile,
   parseGarmentViews,
@@ -27,7 +26,6 @@ import {
 } from '@sunnygen/core'
 import {
   deleteGeneration,
-  deleteStudioItem,
   getAsset,
   getAssetsByIds,
   getStudioItem,
@@ -38,17 +36,12 @@ import {
   type StudioItemRecord,
 } from '@sunnygen/db'
 import sharp from 'sharp'
+import { avatarTrainingPanels } from '~/lib/avatar-training'
 import { getGenerationView, submitGeneration } from './generation.functions'
 import { assetUrl, readAssetBuffer, storeBuffer } from './media.server'
-import {
-  avatarCropsDto,
-  dataForPanelChange,
-  saveAvatarCrops,
-  type AvatarCropsDto,
-} from './avatar-crops.server'
+import { assertSheetSize, dataForPanelChange, deleteDerivedAssets } from './avatar-derived.server'
 import { extractAvatarFromPrompt } from './avatar-profile.server'
-
-export type { AvatarCropsDto } from './avatar-crops.server'
+import { deleteStudioItemWithAssets } from './studio-assets.server'
 
 export interface StudioItemDto {
   id: string
@@ -128,20 +121,48 @@ const saveSchema = z.object({
 export const saveStudioItemFn = createServerFn({ method: 'POST', strict: false })
   .validator(saveSchema)
   .handler(async ({ data }): Promise<StudioItemDto> => {
+    let previousItem: StudioItemRecord | null = null
+    let derivedDropped = false
     if (data.kind === 'avatar') {
       const characterSheet = data.data.characterSheetAssetId
       if (typeof characterSheet !== 'string' || !characterSheet) {
         throw new Error('Upload the character sheet first.')
       }
-      if (!data.assetId) throw new Error('Upload the 4x4 panel sheet first.')
+      if (!data.assetId) throw new Error('Upload the body panel first.')
       const previous = data.id ? getStudioItem(data.id) : null
+      previousItem = previous
       const panelChanged = !previous || previous.assetId !== data.assetId
       if (panelChanged) {
         const panel = getAsset(data.assetId)
         const panelError = panelSizeError(panel?.width ?? null, panel?.height ?? null)
         if (panelError) throw new Error(panelError)
       }
-      data.data = dataForPanelChange(data.data, panelChanged)
+      const facePanelId = typeof data.data.facePanelAssetId === 'string' ? data.data.facePanelAssetId : null
+      const previousFace =
+        previous && typeof previous.data.facePanelAssetId === 'string' ? previous.data.facePanelAssetId : null
+      // Swapping the two panels changes both ids, and either change invalidates every file derived
+      // from the old images.
+      const faceChanged = !previous || (facePanelId ?? null) !== (previousFace ?? null)
+      if (facePanelId && facePanelId !== previousFace) {
+        const facePanel = getAsset(facePanelId)
+        if (panelSizeError(facePanel?.width ?? null, facePanel?.height ?? null)) {
+          throw new Error(
+            `The face panel must be at least 4096 x 4096 px (this one is ${facePanel?.width ?? '?'} x ${facePanel?.height ?? '?'}).`,
+          )
+        }
+      }
+      const sheetId =
+        typeof data.data.characterSheetAssetId === 'string' ? data.data.characterSheetAssetId : null
+      const previousSheet =
+        previous && typeof previous.data.characterSheetAssetId === 'string'
+          ? previous.data.characterSheetAssetId
+          : null
+      if (sheetId && sheetId !== previousSheet) {
+        const sheet = getAsset(sheetId)
+        assertSheetSize(sheet?.width ?? null, sheet?.height ?? null)
+      }
+      derivedDropped = Boolean(previous) && (panelChanged || faceChanged)
+      data.data = dataForPanelChange(data.data, panelChanged || faceChanged)
       if (data.data.avatarProfile !== undefined) {
         const profile = parseAvatarProfile(data.data.avatarProfile)
         if (!profile) throw new Error('Avatar profiles must describe an adult aged 18 or older.')
@@ -176,26 +197,12 @@ export const saveStudioItemFn = createServerFn({ method: 'POST', strict: false }
       cleanAssetId: data.cleanAssetId ?? null,
       data: data.data,
     })
-    if (saved.kind === 'avatar') return toDto(getStudioItem(saved.id) ?? saved)
+    if (saved.kind === 'avatar') {
+      // The images changed, so the files derived from the old ones are orphans now.
+      if (derivedDropped && previousItem) await deleteDerivedAssets(saved.id, previousItem.data)
+      return toDto(getStudioItem(saved.id) ?? saved)
+    }
     return toDto(saved)
-  })
-
-export const loadAvatarCropsFn = createServerFn({ method: 'GET' })
-  .validator(z.object({ avatarId: z.string().min(1) }))
-  .handler(({ data }): AvatarCropsDto => {
-    const item = getStudioItem(data.avatarId)
-    if (!item || item.kind !== 'avatar') throw new Error('Avatar not found')
-    return avatarCropsDto(item)
-  })
-
-export const saveAvatarCropsFn = createServerFn({ method: 'POST', strict: false })
-  .validator(z.object({ avatarId: z.string().min(1), cells: z.unknown() }))
-  .handler(async ({ data }): Promise<AvatarCropsDto> => {
-    const item = getStudioItem(data.avatarId)
-    if (!item || item.kind !== 'avatar') throw new Error('Avatar not found')
-    const cells = parseAvatarCropCells(data.cells)
-    if (!cells) throw new Error('Pick one cell for every crop role inside the 4x4 grid.')
-    return saveAvatarCrops(item, cells)
   })
 
 const OPENROUTER_KEY_SETTING = 'assistant.openrouter.key'
@@ -216,11 +223,11 @@ export const extractAvatarFromPromptFn = createServerFn({ method: 'POST', strict
 
 export const deleteStudioItemFn = createServerFn({ method: 'POST' })
   .validator(z.object({ id: z.string() }))
-  .handler(({ data }) => {
+  .handler(async ({ data }) => {
     const item = getStudioItem(data.id)
     if (!item) return { ok: true }
     if (item.builtin) throw new Error('The built-in white studio cannot be deleted.')
-    deleteStudioItem(data.id)
+    await deleteStudioItemWithAssets(data.id)
     return { ok: true }
   })
 
@@ -375,45 +382,50 @@ export interface AvatarTrainingSet {
   images: TrainingImage[]
 }
 
-const PANEL_GRID = 4
+const MIN_CELL_SIDE = 32
+
+/** Cuts one panel into its grid of cells, storing each cell as a training image. */
+async function panelCells(
+  panelId: string,
+  label: string,
+  grid: number,
+  images: TrainingImage[],
+): Promise<void> {
+  const panel = await readAssetBuffer(panelId)
+  if (!panel) throw new Error(`The ${label.toLowerCase()} is missing from disk.`)
+  const metadata = await sharp(panel.buffer).metadata()
+  const cellWidth = Math.floor((metadata.width ?? 0) / grid)
+  const cellHeight = Math.floor((metadata.height ?? 0) / grid)
+  if (cellWidth < MIN_CELL_SIDE || cellHeight < MIN_CELL_SIDE) {
+    throw new Error(`The ${label.toLowerCase()} is too small to cut into ${grid} x ${grid} cells.`)
+  }
+
+  for (let row = 0; row < grid; row += 1) {
+    for (let column = 0; column < grid; column += 1) {
+      const cell = await sharp(panel.buffer)
+        .extract({ left: column * cellWidth, top: row * cellHeight, width: cellWidth, height: cellHeight })
+        .jpeg({ quality: 92, mozjpeg: true })
+        .toBuffer()
+      const asset = await storeBuffer({ buffer: cell, mime: 'image/jpeg', kind: 'image', source: 'training' })
+      images.push({ id: asset.id, url: assetUrl(asset.id), label: `${label} ${row + 1}.${column + 1}` })
+    }
+  }
+}
 
 export const prepareAvatarTrainingSet = createServerFn({ method: 'POST', strict: false })
   .validator(z.object({ avatarId: z.string().min(1) }))
   .handler(async ({ data }): Promise<AvatarTrainingSet> => {
     const avatar = getStudioItem(data.avatarId)
     if (!avatar || avatar.kind !== 'avatar') throw new Error('Avatar not found')
-    const panelId = avatar.assetId
-    if (!panelId) throw new Error('This avatar has no 4x4 panel sheet to train on.')
     const sheetId =
       typeof avatar.data.characterSheetAssetId === 'string' ? avatar.data.characterSheetAssetId : null
-
-    const panel = await readAssetBuffer(panelId)
-    if (!panel) throw new Error('The 4x4 panel sheet is missing from disk.')
-    const metadata = await sharp(panel.buffer).metadata()
-    const width = metadata.width ?? 0
-    const height = metadata.height ?? 0
-    const cellWidth = Math.floor(width / PANEL_GRID)
-    const cellHeight = Math.floor(height / PANEL_GRID)
-    if (cellWidth < 32 || cellHeight < 32) throw new Error('The 4x4 panel sheet is too small to crop.')
+    const facePanelId = typeof avatar.data.facePanelAssetId === 'string' ? avatar.data.facePanelAssetId : null
+    const panels = avatarTrainingPanels({ bodyPanelAssetId: avatar.assetId, facePanelAssetId: facePanelId })
+    if (panels.length === 0) throw new Error('This avatar has no panel image to train on.')
 
     const images: TrainingImage[] = []
     if (sheetId) images.push({ id: sheetId, url: assetUrl(sheetId), label: 'Character sheet' })
-
-    for (let row = 0; row < PANEL_GRID; row += 1) {
-      for (let column = 0; column < PANEL_GRID; column += 1) {
-        const crop = await sharp(panel.buffer)
-          .extract({ left: column * cellWidth, top: row * cellHeight, width: cellWidth, height: cellHeight })
-          .jpeg({ quality: 92, mozjpeg: true })
-          .toBuffer()
-        const asset = await storeBuffer({
-          buffer: crop,
-          mime: 'image/jpeg',
-          kind: 'image',
-          source: 'training',
-        })
-        images.push({ id: asset.id, url: assetUrl(asset.id), label: `Panel ${row + 1}.${column + 1}` })
-      }
-    }
+    for (const panel of panels) await panelCells(panel.assetId, panel.label, panel.grid, images)
 
     return { avatarId: avatar.id, name: avatar.name, images }
   })

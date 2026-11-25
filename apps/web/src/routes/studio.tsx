@@ -157,9 +157,9 @@ function StudioPage() {
   })
 
   const remove = useMutation({
-    mutationFn: (id: string) => deleteStudioItemFn({ data: { id } }),
-    onSuccess: async () => {
-      toast('Deleted', { tone: 'info' })
+    mutationFn: (item: StudioItemDto) => deleteStudioItemFn({ data: { id: item.id } }),
+    onSuccess: async (_result, item) => {
+      toast(`${item.name} deleted`, { tone: 'info' })
       await queryClient.invalidateQueries({ queryKey: ['studio'] })
     },
     onError: (error) =>
@@ -408,7 +408,7 @@ function StudioPage() {
                   onEdit={(item) =>
                     tab === 'avatars' ? setWizard({ item }) : setDialog({ kind: TAB_KIND[tab], item })
                   }
-                  onDelete={(item) => remove.mutate(item.id)}
+                  onDelete={(item) => remove.mutate(item)}
                   onPrepare={
                     tab === 'wardrobe' || tab === 'scenes' ? (item) => prepare.mutate(item) : undefined
                   }

@@ -3,7 +3,8 @@ import type { ImageModelDefinition } from './models'
 
 export const LORA_MODEL_ID = 'flux-lora'
 export const LORA_TRAINER_ID = 'flux-lora-fast-training'
-export const LORA_MIN_IMAGES = 10
+// Four cells from each of the two panels is the smallest set a two-panel avatar offers.
+export const LORA_MIN_IMAGES = 8
 export const LORA_MAX_IMAGES = 40
 export const LORA_PRICE_PER_1000_STEPS = 2
 export const LORA_SCALE_MIN = 0.6

@@ -1,6 +1,7 @@
 import type { GenerationKind } from '@sunnygen/core'
 import { downloadOutput, errorMessage, responseError, responseFailure } from '../http'
 import { normalizeAsset } from '../normalize'
+import { SUNRA_IMAGE_LIMITS } from './limits'
 import {
   DECLINED_ERROR,
   DECLINED_FAILURE,
@@ -31,6 +32,14 @@ export function resetSunraUploadCache(): void {
   uploadCache.clear()
 }
 
+/** Forget both layers of the upload cache: the in-process map and the stored URL. */
+export async function forgetSunraUploads(context: AdapterContext, assets: ProviderAsset[]): Promise<void> {
+  for (const asset of assets) {
+    uploadCache.delete(assetSha256(await normalizeAsset(asset, SUNRA_IMAGE_LIMITS)))
+  }
+  await forgetUploads(context, 'sunra', assets, SUNRA_IMAGE_LIMITS)
+}
+
 export function requireSunraKey(context: AdapterContext): string {
   if (!context.apiKey) {
     throw new ProviderError('sunra', 'No Sunra.ai API key configured. Add one in Settings.')
@@ -47,9 +56,31 @@ function failureDetail(error: unknown): ProviderFailure {
   }
 }
 
+const INPUT_TOO_LARGE =
+  'An input image was too large for Sunra. It has been resized for next time; press Retry.'
+
+interface SunraFailure {
+  error: string
+  failure: ProviderFailure
+  inputsStale: boolean
+}
+
+/** Sunra rejects an oversized input URL with a fetch failure; that one is fixable on our side. */
+function sunraFailure(error: unknown, fallback = 'Generation failed'): SunraFailure {
+  const failure = failureDetail(error)
+  const message = errorMessage(error, fallback)
+  // Whatever the cause, a fetch failure means the URL we cached is useless to Sunra: drop it so
+  // the retry uploads the input again instead of looping on the same dead link.
+  const inputsStale = failure.reason === 'input_fetch_failed'
+  if (inputsStale && /exceeds the download size limit/i.test(message)) {
+    return { error: INPUT_TOO_LARGE, failure: { ...failure, retryable: true }, inputsStale }
+  }
+  return { error: message, failure, inputsStale }
+}
+
 export async function uploadSunraAsset(context: AdapterContext, asset: ProviderAsset): Promise<string> {
   const key = requireSunraKey(context)
-  const normalized = await normalizeAsset(asset)
+  const normalized = await normalizeAsset(asset, SUNRA_IMAGE_LIMITS)
   const hash = assetSha256(normalized)
   const cached = uploadCache.get(hash)
   if (cached) return cached
@@ -127,7 +158,7 @@ export async function submitSunraQueue(
       response.status,
       failure.declined ? DECLINED_FAILURE : null,
     )
-    if (isUrlRejection(error)) await forgetUploads(context, 'sunra', assets)
+    if (isUrlRejection(error)) await forgetSunraUploads(context, assets)
     throw error
   }
 
@@ -179,11 +210,7 @@ export async function pollSunra(context: AdapterContext, job: ProviderJob): Prom
 
   if (state === 'COMPLETED' || state === 'SUCCEEDED' || state === 'SUCCESS') {
     if (status.success === false) {
-      return {
-        status: 'failed',
-        error: errorMessage(status.error, 'Generation failed'),
-        failure: failureDetail(status.error),
-      }
+      return { status: 'failed', ...sunraFailure(status.error) }
     }
     const resultResponse = await context.fetch(
       `${SUNRA_BASE}/queue/requests/${encodeURIComponent(job.providerJobId)}`,
@@ -201,17 +228,12 @@ export async function pollSunra(context: AdapterContext, job: ProviderJob): Prom
           : (payload?.error ?? payload?.message ?? payload?.detail)
       return {
         status: 'failed',
-        error: errorMessage(source, `Could not load result (HTTP ${resultResponse.status})`),
-        failure: failureDetail(source),
+        ...sunraFailure(source, `Could not load result (HTTP ${resultResponse.status})`),
       }
     }
     const result = (await resultResponse.json()) as Record<string, unknown>
     if (result.error) {
-      return {
-        status: 'failed',
-        error: errorMessage(result.error, 'Generation failed'),
-        failure: failureDetail(result.error),
-      }
+      return { status: 'failed', ...sunraFailure(result.error) }
     }
     const urls = extractUrls(result, job.kind)
     if (urls.length === 0) return { status: 'failed', error: 'Generation returned no output' }
@@ -227,11 +249,7 @@ export async function pollSunra(context: AdapterContext, job: ProviderJob): Prom
     }
   }
   if (state === 'FAILED' || state === 'ERROR') {
-    return {
-      status: 'failed',
-      error: errorMessage(status.error, 'Generation failed'),
-      failure: failureDetail(status.error),
-    }
+    return { status: 'failed', ...sunraFailure(status.error) }
   }
   return { status: 'running' }
 }

@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import type { AssetKind, AssetRecord, AssetSource } from '@sunnygen/core'
 import { getDb } from '../database'
 import { asRows } from '../rows'
+import { studioAssetIds } from './studio'
 
 interface AssetRow {
   id: string
@@ -132,14 +133,26 @@ export interface ListAssetsFilter {
   sources?: AssetSource[]
   excludeSource?: AssetSource
   excludeKind?: AssetKind
+  excludeStudioAssets?: boolean
   folderId?: string | null
   limit?: number
   offset?: number
 }
 
-export function countAssets(filter: { kind?: AssetKind; source?: AssetSource } = {}): number {
+// Hidden studio files are filtered in SQL, so the page size, the offset and the total count
+// describe the same visible list.
+function excludeStudioCondition(values: Array<string | number | null>): string | null {
+  const owned = studioAssetIds()
+  if (owned.length === 0) return null
+  values.push(...owned)
+  return `id NOT IN (${owned.map(() => '?').join(', ')})`
+}
+
+export function countAssets(
+  filter: { kind?: AssetKind; source?: AssetSource; excludeStudioAssets?: boolean } = {},
+): number {
   const conditions: string[] = []
-  const values: string[] = []
+  const values: Array<string | number | null> = []
   if (filter.kind) {
     conditions.push('kind = ?')
     values.push(filter.kind)
@@ -147,6 +160,10 @@ export function countAssets(filter: { kind?: AssetKind; source?: AssetSource } =
   if (filter.source) {
     conditions.push('source = ?')
     values.push(filter.source)
+  }
+  if (filter.excludeStudioAssets) {
+    const condition = excludeStudioCondition(values)
+    if (condition) conditions.push(condition)
   }
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''
   const row = getDb()
@@ -188,6 +205,10 @@ export function listAssets(filter: ListAssetsFilter = {}): AssetRecord[] {
       conditions.push('folder_id = ?')
       values.push(filter.folderId)
     }
+  }
+  if (filter.excludeStudioAssets) {
+    const condition = excludeStudioCondition(values)
+    if (condition) conditions.push(condition)
   }
 
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''

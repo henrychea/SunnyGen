@@ -72,7 +72,7 @@ export const loadDashboard = createServerFn({ method: 'GET' }).handler((): Dashb
     renders: countGenerations({ status: 'succeeded' }),
     images: countGenerations({ status: 'succeeded', kind: 'image' }),
     videos: countGenerations({ status: 'succeeded', kind: 'video' }),
-    assets: countAssets(),
+    assets: countAssets({ excludeStudioAssets: true }),
     avatars: countStudioItems('avatar'),
     garments: countStudioItems('garment'),
     poses: countStudioItems('pose'),
