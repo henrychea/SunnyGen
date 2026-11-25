@@ -172,7 +172,7 @@ export function StudioTrainDialog({
                   <div className="flex items-center gap-2">
                     <p className="text-ink/45 text-[11px]">
                       {images === null
-                        ? 'Cutting the 4×4 panel into training crops…'
+                        ? 'Cutting the panels into training images…'
                         : `${selected.length} of ${candidates.length} images selected`}
                     </p>
                     {images !== null && !enough ? (

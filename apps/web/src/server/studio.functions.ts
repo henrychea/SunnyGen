@@ -36,6 +36,7 @@ import {
   type StudioItemRecord,
 } from '@sunnygen/db'
 import sharp from 'sharp'
+import { avatarTrainingPanels } from '~/lib/avatar-training'
 import { getGenerationView, submitGeneration } from './generation.functions'
 import { assetUrl, readAssetBuffer, storeBuffer } from './media.server'
 import { assertSheetSize, dataForPanelChange, deleteDerivedAssets } from './avatar-derived.server'
@@ -381,45 +382,51 @@ export interface AvatarTrainingSet {
   images: TrainingImage[]
 }
 
-const PANEL_GRID = 4
+const MIN_CELL_SIDE = 32
+
+/** Cuts one panel into its grid of cells, storing each cell as a training image. */
+async function panelCells(
+  panelId: string,
+  label: string,
+  grid: number,
+  images: TrainingImage[],
+): Promise<void> {
+  const panel = await readAssetBuffer(panelId)
+  if (!panel) throw new Error(`The ${label.toLowerCase()} is missing from disk.`)
+  const metadata = await sharp(panel.buffer).metadata()
+  const cellWidth = Math.floor((metadata.width ?? 0) / grid)
+  const cellHeight = Math.floor((metadata.height ?? 0) / grid)
+  if (cellWidth < MIN_CELL_SIDE || cellHeight < MIN_CELL_SIDE) {
+    throw new Error(`The ${label.toLowerCase()} is too small to cut into ${grid} x ${grid} cells.`)
+  }
+
+  for (let row = 0; row < grid; row += 1) {
+    for (let column = 0; column < grid; column += 1) {
+      const cell = await sharp(panel.buffer)
+        .extract({ left: column * cellWidth, top: row * cellHeight, width: cellWidth, height: cellHeight })
+        .jpeg({ quality: 92, mozjpeg: true })
+        .toBuffer()
+      const asset = await storeBuffer({ buffer: cell, mime: 'image/jpeg', kind: 'image', source: 'training' })
+      images.push({ id: asset.id, url: assetUrl(asset.id), label: `${label} ${row + 1}.${column + 1}` })
+    }
+  }
+}
 
 export const prepareAvatarTrainingSet = createServerFn({ method: 'POST', strict: false })
   .validator(z.object({ avatarId: z.string().min(1) }))
   .handler(async ({ data }): Promise<AvatarTrainingSet> => {
     const avatar = getStudioItem(data.avatarId)
     if (!avatar || avatar.kind !== 'avatar') throw new Error('Avatar not found')
-    const panelId = avatar.assetId
-    if (!panelId) throw new Error('This avatar has no 4x4 panel sheet to train on.')
     const sheetId =
       typeof avatar.data.characterSheetAssetId === 'string' ? avatar.data.characterSheetAssetId : null
-
-    const panel = await readAssetBuffer(panelId)
-    if (!panel) throw new Error('The 4x4 panel sheet is missing from disk.')
-    const metadata = await sharp(panel.buffer).metadata()
-    const width = metadata.width ?? 0
-    const height = metadata.height ?? 0
-    const cellWidth = Math.floor(width / PANEL_GRID)
-    const cellHeight = Math.floor(height / PANEL_GRID)
-    if (cellWidth < 32 || cellHeight < 32) throw new Error('The 4x4 panel sheet is too small to crop.')
+    const facePanelId =
+      typeof avatar.data.facePanelAssetId === 'string' ? avatar.data.facePanelAssetId : null
+    const panels = avatarTrainingPanels({ bodyPanelAssetId: avatar.assetId, facePanelAssetId: facePanelId })
+    if (panels.length === 0) throw new Error('This avatar has no panel image to train on.')
 
     const images: TrainingImage[] = []
     if (sheetId) images.push({ id: sheetId, url: assetUrl(sheetId), label: 'Character sheet' })
-
-    for (let row = 0; row < PANEL_GRID; row += 1) {
-      for (let column = 0; column < PANEL_GRID; column += 1) {
-        const crop = await sharp(panel.buffer)
-          .extract({ left: column * cellWidth, top: row * cellHeight, width: cellWidth, height: cellHeight })
-          .jpeg({ quality: 92, mozjpeg: true })
-          .toBuffer()
-        const asset = await storeBuffer({
-          buffer: crop,
-          mime: 'image/jpeg',
-          kind: 'image',
-          source: 'training',
-        })
-        images.push({ id: asset.id, url: assetUrl(asset.id), label: `Panel ${row + 1}.${column + 1}` })
-      }
-    }
+    for (const panel of panels) await panelCells(panel.assetId, panel.label, panel.grid, images)
 
     return { avatarId: avatar.id, name: avatar.name, images }
   })
