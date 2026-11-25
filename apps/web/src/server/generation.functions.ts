@@ -22,6 +22,7 @@ import {
   saveJob,
   updateGeneration,
 } from '@sunnygen/db'
+import { ProviderError } from '@sunnygen/providers'
 import { toPublicAsset, type PublicAsset } from './media.server'
 import { adapterFor, prepareGeneration, providerContext, storeProviderOutputs } from './generation.server'
 import { ensurePoller } from './generation-poller.server'
@@ -167,8 +168,15 @@ export const submitGeneration = createServerFn({ method: 'POST', strict: false }
       ensurePoller()
       return { generation: updated, outputs: [] }
     } catch (error) {
+      const failure = error instanceof ProviderError ? error.failure : null
       const message = error instanceof Error ? error.message : 'Generation failed'
-      const failed = updateGeneration(generation.id, { status: 'failed', error: message }) as GenerationRecord
+      const failed = updateGeneration(generation.id, {
+        status: 'failed',
+        error: message,
+        errorCode: failure?.code ?? null,
+        errorReason: failure?.reason ?? null,
+        errorRetryable: failure?.retryable ?? null,
+      }) as GenerationRecord
       return { generation: failed, outputs: [] }
     }
   })

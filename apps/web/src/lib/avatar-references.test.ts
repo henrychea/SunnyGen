@@ -19,6 +19,7 @@ const CROPS = [
 const PROFILED = {
   id: 'sheet',
   assetIds: ['sheet', 'panel'],
+  sheetAssetId: 'sheet',
   avatar: true,
   profile: DEFAULT_AVATAR_PROFILE,
   crops: CROPS,
@@ -33,14 +34,14 @@ test('crops replace the collage sheets and are labelled by role', () => {
   assert.deepEqual(avatarReferenceAssets(PROFILED, 'fal:fal-ai/qwen-image-edit-2509'), ['face-front', 'body'])
 })
 
-test('avatars without crops keep the sheet and the panel', () => {
+test('avatars without crops keep the sheet and the panel, each labelled for what it is', () => {
   assert.deepEqual(avatarAssetSlots({ ...PROFILED, crops: [] }, 'fal:fal-ai/qwen-image-edit-2509'), [
     { id: 'sheet', role: 'reference sheet' },
-    { id: 'panel', role: 'reference sheet' },
+    { id: 'panel', role: '4x4 panel' },
   ])
   assert.deepEqual(avatarAssetSlots({ ...PROFILED, crops: undefined }, 'fal:fal-ai/flux-2-pro'), [
     { id: 'sheet', role: 'reference sheet' },
-    { id: 'panel', role: 'reference sheet' },
+    { id: 'panel', role: '4x4 panel' },
   ])
 })
 

@@ -1,11 +1,14 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
+  AVATAR_CROP_CELLS,
   AVATAR_CROP_ROLES,
   avatarCropPlan,
   avatarReferenceLimit,
+  defaultAvatarCropCells,
   panelCellSize,
   panelSizeError,
+  parseAvatarCropCells,
   parseAvatarCrops,
   plannedAvatarAssets,
   qualifyAvatarCrops,
@@ -15,12 +18,19 @@ const CROPS = [
   { role: 'face-front' as const, assetId: 'face-front', width: 1200, height: 1200 },
   { role: 'face-three-quarter' as const, assetId: 'face-3q', width: 1200, height: 1200 },
   { role: 'body-front' as const, assetId: 'body', width: 1200, height: 1600 },
+  { role: 'body-side' as const, assetId: 'body-side', width: 1200, height: 1600 },
 ]
 
 test('Qwen takes the frontal face and the full body, other families take every crop', () => {
   assert.deepEqual(avatarCropPlan('qwen'), ['face-front', 'body-front'])
-  // The body crop leads the second face so the body reference is the second image of an edit.
-  assert.deepEqual(avatarCropPlan('nano-banana'), ['face-front', 'body-front', 'face-three-quarter'])
+  // The body crops lead the second face so the body references are the second and third images
+  // of an edit: 3-ref families name those and demote the three-quarter face.
+  assert.deepEqual(avatarCropPlan('nano-banana'), [
+    'face-front',
+    'body-front',
+    'body-side',
+    'face-three-quarter',
+  ])
   assert.equal(avatarReferenceLimit('qwen'), 2)
   assert.equal(avatarReferenceLimit('seedream'), 4)
   for (const crop of avatarCropPlan('nano-banana')) {
@@ -28,8 +38,37 @@ test('Qwen takes the frontal face and the full body, other families take every c
   }
 })
 
+test('the default cells read from the layout the panel prompt draws', () => {
+  assert.deepEqual(defaultAvatarCropCells(), {
+    'face-front': { row: 1, column: 0 },
+    'face-three-quarter': { row: 1, column: 1 },
+    'body-front': { row: 0, column: 0 },
+    'body-side': { row: 0, column: 1 },
+  })
+  // Row 0 is the full-body row of the panel prompt, row 1 the faces.
+  assert.equal(AVATAR_CROP_CELLS['body-side'].row, 0)
+  assert.equal(AVATAR_CROP_CELLS['body-side'].column, 1)
+})
+
+test('a stored cell selection needs one in-grid cell per role', () => {
+  const saved = defaultAvatarCropCells()
+  assert.deepEqual(parseAvatarCropCells(saved), saved)
+  assert.deepEqual(parseAvatarCropCells({ ...saved, 'body-side': { row: 3, column: 3 } }), {
+    ...saved,
+    'body-side': { row: 3, column: 3 },
+  })
+  const { 'body-side': _dropped, ...missing } = saved
+  assert.equal(parseAvatarCropCells(missing), null)
+  assert.equal(parseAvatarCropCells({ ...saved, 'body-side': { row: 4, column: 0 } }), null)
+  assert.equal(parseAvatarCropCells({ ...saved, 'body-side': { row: 0, column: -1 } }), null)
+  assert.equal(parseAvatarCropCells({ ...saved, 'body-side': { row: 0.5, column: 1 } }), null)
+  assert.equal(parseAvatarCropCells({ ...saved, 'body-side': 'row 0, column 1' }), null)
+  assert.equal(parseAvatarCropCells(null), null)
+  assert.equal(parseAvatarCropCells([]), null)
+})
+
 test('planned assets follow the plan, not the stored order', () => {
-  assert.deepEqual(plannedAvatarAssets(CROPS, 'nano-banana'), ['face-front', 'body', 'face-3q'])
+  assert.deepEqual(plannedAvatarAssets(CROPS, 'nano-banana'), ['face-front', 'body', 'body-side', 'face-3q'])
   assert.deepEqual(plannedAvatarAssets([...CROPS].reverse(), 'qwen'), ['face-front', 'body'])
   assert.deepEqual(plannedAvatarAssets([CROPS[0]!], 'nano-banana'), ['face-front'])
 })

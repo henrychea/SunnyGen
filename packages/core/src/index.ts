@@ -1,6 +1,7 @@
 export * from './assistant'
 export * from './avatar-profile'
 export * from './avatar-references'
+export * from './avatar-regions'
 export * from './domain'
 export * from './edit-prompt-profiles'
 export * from './edit-references'

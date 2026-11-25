@@ -26,19 +26,14 @@ import {
   motionSwap,
   toast,
 } from '@sunnygen/ui'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Check, ClipboardCopy, ClipboardPaste, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { AvatarCropsPanel } from '~/components/studio/avatar-crops-panel'
 import { AvatarSheetUploads, type SlotAsset } from '~/components/studio/avatar-sheet-uploads'
 import { PromptExtract } from '~/components/studio/avatar-prompt-extract'
-import {
-  loadAvatarCropsFn,
-  regenerateAvatarCropsFn,
-  saveStudioItemFn,
-  type StudioItemDto,
-} from '~/server/studio.functions'
+import { loadAvatarCropsFn, saveStudioItemFn, type StudioItemDto } from '~/server/studio.functions'
 
 type WizardStep = 1 | 2 | 3 | 4 | 5 | 6
 
@@ -111,12 +106,14 @@ export function AvatarWizard({
   const [pasteOpen, setPasteOpen] = useState(false)
   const [busy, setBusy] = useState<'save' | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [savedId, setSavedId] = useState<string | null>(null)
   const queryClient = useQueryClient()
+  const activeId = item?.id ?? savedId
 
   const cropsQuery = useQuery({
-    queryKey: ['avatar-crops', item?.id],
-    queryFn: () => loadAvatarCropsFn({ data: { avatarId: item?.id as string } }),
-    enabled: Boolean(item?.id),
+    queryKey: ['avatar-crops', activeId],
+    queryFn: () => loadAvatarCropsFn({ data: { avatarId: activeId as string } }),
+    enabled: Boolean(activeId),
   })
   const cropsDto = cropsQuery.data
 
@@ -133,20 +130,6 @@ export function AvatarWizard({
       : (dtoSlot(cropsDto?.panel) ??
         initial?.panel ??
         (item?.assetId ? { id: item.assetId, name: null, width: null, height: null } : null))
-
-  const regenerate = useMutation({
-    mutationFn: () => regenerateAvatarCropsFn({ data: { avatarId: item?.id as string } }),
-    onSuccess: (dto) => {
-      queryClient.setQueryData(['avatar-crops', item?.id], dto)
-      toast(dto.crops.length > 0 ? 'Crops regenerated' : 'This panel produced no crops', {
-        tone: dto.crops.length > 0 ? 'info' : 'warning',
-      })
-    },
-    onError: (regenerateError) =>
-      toast(regenerateError instanceof Error ? regenerateError.message : 'Could not regenerate crops', {
-        tone: 'error',
-      }),
-  })
 
   const sheetPrompt = sheetEdit ?? buildReferenceSheetPrompt(profile)
   const panelPrompt = panelEdit ?? buildPanelSheetPrompt(profile)
@@ -173,7 +156,7 @@ export function AvatarWizard({
     setBusy('save')
     setError(null)
     try {
-      await saveStudioItemFn({
+      const saved = await saveStudioItemFn({
         data: {
           id: item?.id,
           kind: 'avatar',
@@ -184,13 +167,21 @@ export function AvatarWizard({
             ...item?.data,
             style: item?.data.style ?? 'photoreal',
             characterSheetAssetId: sheet?.id ?? null,
+            facePanelAssetId: item?.data.facePanelAssetId ?? null,
             avatarProfile: profile,
           },
         },
       })
+      const panelChanged = !item || item.assetId !== (profileOnly ? item.assetId : (panel?.id ?? null))
       onSaved()
-      onOpenChange(false)
-      toast(profileOnly ? 'Profile saved' : 'Avatar saved', { tone: 'info' })
+      if (panelChanged) {
+        setSavedId(saved.id)
+        setStep(6)
+        toast('Panel saved. Pick the crop regions below.', { tone: 'info' })
+      } else {
+        onOpenChange(false)
+        toast(profileOnly ? 'Profile saved' : 'Avatar saved', { tone: 'info' })
+      }
     } catch (saveError) {
       const message = saveError instanceof Error ? saveError.message : 'Could not save'
       setError(message)
@@ -790,14 +781,18 @@ export function AvatarWizard({
                         picker={picker}
                         onPicker={setPicker}
                       />
-                      {item ? (
+                      {activeId ? (
                         <AvatarCropsPanel
+                          avatarId={activeId}
                           crops={cropsDto?.crops ?? []}
+                          cropCells={cropsDto?.cropCells ?? null}
                           panel={cropsDto?.panel ?? null}
                           pending={cropsQuery.isPending}
-                          regenerating={regenerate.isPending}
-                          onRegenerate={() => regenerate.mutate()}
                           onReplacePanel={() => setPicker('panel')}
+                          onSaved={(dto) => {
+                            queryClient.setQueryData(['avatar-crops', activeId], dto)
+                            onSaved()
+                          }}
                         />
                       ) : null}
                     </div>

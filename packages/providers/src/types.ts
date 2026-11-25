@@ -35,6 +35,16 @@ export interface ProviderFailure {
   retryable: boolean | null
 }
 
+/** The model refused the prompt or the images: a decision, not a transient fault. */
+export const DECLINED_FAILURE: ProviderFailure = {
+  code: 'invalid_request',
+  reason: 'declined',
+  retryable: false,
+}
+
+export const DECLINED_ERROR =
+  'The model declined this request (no charge). Try a different target photo or model.'
+
 export interface ProviderPoll {
   status: 'running' | 'succeeded' | 'failed'
   outputs?: ProviderOutput[]
@@ -121,11 +131,18 @@ export function createAdapterFromFlows(
 export class ProviderError extends Error {
   readonly provider: ProviderId
   readonly status: number | null
+  readonly failure: ProviderFailure | null
 
-  constructor(provider: ProviderId, message: string, status: number | null = null) {
+  constructor(
+    provider: ProviderId,
+    message: string,
+    status: number | null = null,
+    failure: ProviderFailure | null = null,
+  ) {
     super(message)
     this.name = 'ProviderError'
     this.provider = provider
     this.status = status
+    this.failure = failure
   }
 }

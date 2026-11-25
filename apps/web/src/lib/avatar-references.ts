@@ -12,11 +12,13 @@ export const CROP_ROLE_LABELS: Record<AvatarCropRole, string> = {
   'face-front': 'front face',
   'face-three-quarter': 'three-quarter face',
   'body-front': 'full body',
+  'body-side': 'side profile',
 }
 
 export interface AvatarReferenceInfo {
   id: string
   assetIds?: string[]
+  sheetAssetId?: string | null
   avatar?: boolean
   profile?: AvatarProfile | null
   crops?: AvatarCrop[]
@@ -31,7 +33,14 @@ export interface AvatarAssetSlot {
 export function avatarAssetSlots(reference: AvatarReferenceInfo, modelId: string): AvatarAssetSlot[] {
   const assets = reference.assetIds && reference.assetIds.length > 0 ? reference.assetIds : [reference.id]
   const crops = reference.crops ?? []
-  if (crops.length === 0) return assets.map((id) => ({ id, role: 'reference sheet' }))
+  if (crops.length === 0) {
+    // The sheet drives face and identity, the panel body proportions: naming both
+    // "reference sheet" leaves the model guessing which is which.
+    return assets.map((id) => ({
+      id,
+      role: id === reference.sheetAssetId ? 'reference sheet' : '4x4 panel',
+    }))
+  }
   const byRole = new Map(crops.map((crop) => [crop.role, crop]))
   return avatarCropPlan(avatarModelFamily(modelId)).flatMap((role) => {
     const crop = byRole.get(role)
