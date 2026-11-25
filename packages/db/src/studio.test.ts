@@ -120,6 +120,16 @@ test('the asset library hides one studio asset per kind and keeps an unrelated u
   }
   assert.ok(visible.includes(unrelated.id))
 
+  // The exact query the Assets page sends: uploads and social only, studio files removed.
+  assert.deepEqual(
+    listAssets({
+      limit: 1000,
+      sources: ['upload', 'social'],
+      excludeStudioAssets: true,
+    }).map((entry) => entry.id),
+    [unrelated.id],
+  )
+
   // The folder view and the counts see the same visible list.
   assert.deepEqual(
     listAssets({ limit: 1000, folderId: folder.id, excludeStudioAssets: true }).map((entry) => entry.id),
