@@ -23,11 +23,32 @@ test('an oversized reference is downscaled to the longest side and re-encoded', 
 
   const metadata = await sharp(normalized.buffer).metadata()
   assert.equal(normalized.mime, 'image/jpeg')
-  assert.equal(normalized.fileName, 'sheet.jpg')
+  assert.match(
+    normalized.fileName,
+    /^sheet-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}-\d{8}-\d{6}\.jpg$/,
+  )
   assert.ok((metadata.width ?? 0) <= DEFAULT_IMAGE_LIMITS.side)
   assert.ok((metadata.height ?? 0) <= DEFAULT_IMAGE_LIMITS.side)
   assert.ok(normalized.buffer.byteLength <= DEFAULT_IMAGE_LIMITS.bytes)
   assert.ok(Math.abs((metadata.width ?? 0) / (metadata.height ?? 1) - 5000 / 800) < 0.02)
+})
+
+test('a resized copy gets its own name so it never shadows the original at the provider', async () => {
+  const buffer = await noise(5000, 800, 3)
+  const first = await normalizeAsset(await asset(buffer, 'image/png', 'character sheet.png'))
+  const second = await normalizeAsset(await asset(buffer, 'image/png', 'character sheet.png'))
+
+  assert.match(first.fileName, /^character sheet-[0-9a-f-]{36}-\d{8}-\d{6}\.jpg$/)
+  assert.notEqual(first.fileName, second.fileName)
+  // Same bytes, different names: the upload cache key is content, not the name.
+  assert.ok(first.buffer.equals(second.buffer))
+})
+
+test('a resized copy of an alpha sheet keeps the webp extension', async () => {
+  const source = await asset(await noise(5000, 400, 4), 'image/png', 'panel.png')
+  const normalized = await normalizeAsset(source)
+  const extension = normalized.mime === 'image/webp' ? 'webp' : 'png'
+  assert.match(normalized.fileName, new RegExp(`^panel-[0-9a-f-]{36}-\\d{8}-\\d{6}\\.${extension}$`))
 })
 
 test('the byte limit is met by shrinking until the encode fits', async () => {

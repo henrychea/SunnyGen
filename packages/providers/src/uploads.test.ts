@@ -6,7 +6,7 @@ import sharp from 'sharp'
 import { resetFalUploadCache, uploadFalAsset } from './fal/client'
 import { normalizeAsset } from './normalize'
 import { getAdapter } from './registry'
-import { resetSunraUploadCache, uploadSunraAsset } from './sunra/client'
+import { pollSunra, resetSunraUploadCache, uploadSunraAsset } from './sunra/client'
 import { SUNRA_IMAGE_LIMITS } from './sunra/limits'
 import type { AdapterContext, ProviderAsset, ProviderUpload, ProviderUploadCache } from './types'
 import { assetSha256 } from './uploads'
@@ -122,7 +122,8 @@ test('a large reference is uploaded normalized and reused by its normalized hash
   const mock = mockFal(uploads)
   const url = await uploadFalAsset(mock.context, source)
   assert.equal(uploadsIn(mock.calls), 1)
-  assert.deepEqual(mock.initiated[0], { content_type: 'image/jpeg', file_name: 'sheet.jpg' })
+  assert.equal(mock.initiated[0]?.content_type, 'image/jpeg')
+  assert.match(String(mock.initiated[0]?.file_name), /^sheet-[0-9a-f-]{36}-\d{8}-\d{6}\.jpg$/)
   assert.ok(uploads.get('fal', assetSha256(await normalizeAsset(source))))
   assert.equal(uploads.get('fal', assetSha256(source)), null)
 
@@ -245,4 +246,88 @@ test('a stored 4096 board over the limit reaches Sunra as a smaller copy, stored
   // The stored asset itself is untouched: same bytes, same length.
   assert.equal(board.buffer.byteLength, original.byteLength)
   assert.ok(board.buffer.equals(original))
+})
+
+test('a Sunra fetch failure drops the cached URL so the retry uploads the input again', async () => {
+  const uploads = memoryUploads()
+  resetSunraUploadCache()
+  let puts = 0
+  const context = (failure: unknown | null, url = 'https://assets.test/first.png'): AdapterContext => ({
+    apiKey: 'test',
+    baseUrl: null,
+    deployment: null,
+    uploads,
+    fetch: async (input, init) => {
+      const target = String(input)
+      if (target.includes('/storage/upload/initiate')) {
+        return Response.json({ upload_url: 'https://upload.test/put', file_url: url })
+      }
+      if (init?.method === 'PUT') {
+        puts += 1
+        return new Response('ok')
+      }
+      return Response.json(failure)
+    },
+  })
+
+  assert.equal(await uploadSunraAsset(context(null), asset), 'https://assets.test/first.png')
+  assert.equal(puts, 1)
+
+  const poll = await pollSunra(
+    context({
+      status: 'FAILED',
+      error: {
+        code: 'invalid_input',
+        reason: 'input_fetch_failed',
+        message: 'the file exceeds the download size limit',
+      },
+    }),
+    { providerJobId: 'req-1', kind: 'image', model: { id: 'x' } as never },
+  )
+  assert.equal(poll.status, 'failed')
+  assert.equal(poll.inputsStale, true)
+
+  const sunra = await import('./sunra')
+  await sunra.sunraModule.forgetUploads?.(context(null), [asset])
+  assert.equal(uploads.get('sunra', assetSha256(asset)), null)
+
+  // Both the stored row and the in-process map are gone: the retry really uploads again.
+  assert.equal(
+    await uploadSunraAsset(context(null, 'https://assets.test/second.png'), asset),
+    'https://assets.test/second.png',
+  )
+  assert.equal(puts, 2)
+})
+
+test('a poll failure that is not an input fetch failure keeps the cached URL', async () => {
+  const uploads = memoryUploads()
+  resetSunraUploadCache()
+  const context: AdapterContext = {
+    apiKey: 'test',
+    baseUrl: null,
+    deployment: null,
+    uploads,
+    fetch: async (input) => {
+      if (String(input).includes('/storage/upload/initiate')) {
+        return Response.json({
+          upload_url: 'https://upload.test/put',
+          file_url: 'https://assets.test/kept.png',
+        })
+      }
+      return Response.json({
+        status: 'FAILED',
+        error: { code: 'invalid_request', message: 'prompt rejected' },
+      })
+    },
+  }
+
+  await uploadSunraAsset(context, asset)
+  const poll = await pollSunra(context, {
+    providerJobId: 'req-2',
+    kind: 'image',
+    model: { id: 'x' } as never,
+  })
+  assert.equal(poll.status, 'failed')
+  assert.equal(poll.inputsStale, false)
+  assert.equal(uploads.get('sunra', assetSha256(asset))?.url, 'https://assets.test/kept.png')
 })

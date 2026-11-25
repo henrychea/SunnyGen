@@ -1,5 +1,5 @@
 import { createAdapterFromFlows, type ProviderModule } from '../types'
-import { pollSunra } from './client'
+import { forgetSunraUploads, pollSunra } from './client'
 import { sunraImageFlow } from './image'
 import { sunraVideoFlow } from './video'
 import { sunraWebhook } from './webhook'
@@ -14,9 +14,10 @@ export const sunraModule: ProviderModule = {
   adapter: sunraAdapter,
   flows,
   webhook: sunraWebhook,
+  forgetUploads: forgetSunraUploads,
 }
 
-export { SUNRA_BASE, pollSunra, submitSunraQueue, uploadSunraAsset } from './client'
+export { SUNRA_BASE, forgetSunraUploads, pollSunra, submitSunraQueue, uploadSunraAsset } from './client'
 export { sunraImageFlow } from './image'
 export {
   DEFAULT_IMAGE_LIMIT,

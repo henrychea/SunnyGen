@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { DEFAULT_IMAGE_LIMITS, isOversizedImage, type ImageLimits } from '@sunnygen/core'
 import sharp from 'sharp'
 import type { ProviderAsset } from './types'
@@ -9,10 +10,15 @@ const JPEG_QUALITY = 80
 const WEBP_QUALITY = 90
 const PNG_COMPRESSION = 9
 
+/**
+ * A resized copy keeps the original stem but gets its own name, so a provider never sees two
+ * different files under one name and a resized copy can't shadow the original at the provider.
+ */
 function reencoded(asset: ProviderAsset, buffer: Buffer, mime: string): ProviderAsset {
   const base = asset.fileName.replace(/\.[^./\\]+$/, '') || 'image'
   const extension = mime === 'image/jpeg' ? 'jpg' : (mime.split('/')[1] ?? 'bin')
-  return { buffer, mime, fileName: `${base}.${extension}` }
+  const stamp = new Date().toISOString().replace(/[-:]/g, '').replace('T', '-').slice(0, 15)
+  return { buffer, mime, fileName: `${base}-${randomUUID()}-${stamp}.${extension}` }
 }
 
 async function encode(asset: ProviderAsset, alpha: boolean, side: number): Promise<ProviderAsset[]> {

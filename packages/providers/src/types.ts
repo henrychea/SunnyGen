@@ -50,6 +50,8 @@ export interface ProviderPoll {
   outputs?: ProviderOutput[]
   error?: string
   failure?: ProviderFailure
+  /** The provider could not fetch an input we uploaded: that cached upload URL must not be reused. */
+  inputsStale?: boolean
 }
 
 export interface ProviderJob {
@@ -97,6 +99,8 @@ export interface ProviderModule {
   flows: ProviderFlow[]
   /** Terminal-state callback support; omitted when the provider has none. */
   webhook?: ProviderWebhook
+  /** Drop the cached upload URLs for these inputs so the next attempt uploads them again. */
+  forgetUploads?(context: AdapterContext, assets: ProviderAsset[]): Promise<void>
 }
 
 /**
