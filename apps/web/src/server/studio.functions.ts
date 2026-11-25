@@ -27,7 +27,6 @@ import {
 } from '@sunnygen/core'
 import {
   deleteGeneration,
-  deleteStudioItem,
   getAsset,
   getAssetsByIds,
   getStudioItem,
@@ -50,6 +49,7 @@ import {
   type AvatarRegionsDto,
 } from './avatar-crops.server'
 import { extractAvatarFromPrompt } from './avatar-profile.server'
+import { deleteStudioItemWithAssets } from './studio-assets.server'
 
 export type { AvatarRegionsDto } from './avatar-crops.server'
 
@@ -253,11 +253,11 @@ export const extractAvatarFromPromptFn = createServerFn({ method: 'POST', strict
 
 export const deleteStudioItemFn = createServerFn({ method: 'POST' })
   .validator(z.object({ id: z.string() }))
-  .handler(({ data }) => {
+  .handler(async ({ data }) => {
     const item = getStudioItem(data.id)
     if (!item) return { ok: true }
     if (item.builtin) throw new Error('The built-in white studio cannot be deleted.')
-    deleteStudioItem(data.id)
+    await deleteStudioItemWithAssets(data.id)
     return { ok: true }
   })
 

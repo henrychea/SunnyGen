@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from 'motion/react'
+import { ImageOff } from 'lucide-react'
 import { FadeImage, motionFade, motionFast, motionPop, motionSwap } from '@sunnygen/ui'
 import { useEffect, useState } from 'react'
 import { MediaThumbStrip } from '~/components/media-preview'
@@ -6,6 +7,15 @@ import { assetMediaKind } from '~/lib/media-kind'
 import type { InputAsset } from '~/server/media.server'
 
 function ReferenceMedia({ reference, label }: { reference: InputAsset; label: string }) {
+  if (reference.missing) {
+    return (
+      <div className="bg-ink/[0.03] border-line/70 flex min-h-44 flex-col items-center justify-center gap-2 rounded-xl border border-dashed p-6 text-center">
+        <ImageOff size={22} strokeWidth={1.5} className="text-ink/25" />
+        <p className="text-ink/55 text-[12px] font-medium">This file was deleted</p>
+        <p className="text-ink/35 text-[11px]">The generation still opens without it.</p>
+      </div>
+    )
+  }
   return (
     <div className="bg-ink/[0.03] border-line/70 flex items-center justify-center overflow-hidden rounded-xl border p-2">
       {reference.kind === 'image' ? (
@@ -123,7 +133,9 @@ export function ReferencesModal({ references, onClose }: { references: InputAsse
               </div>
               <div className="border-line/70 bg-surface/60 min-w-0 rounded-lg border px-2.5 py-2">
                 <p className="text-ink/35 text-[9.5px] font-semibold tracking-[0.08em] uppercase">Kind</p>
-                <p className="text-ink/70 mt-0.5 text-[11.5px]">{current.kind}</p>
+                <p className="text-ink/70 mt-0.5 text-[11.5px]">
+                  {current.missing ? 'Deleted' : current.kind}
+                </p>
               </div>
               {current.width && current.height ? (
                 <div className="border-line/70 bg-surface/60 min-w-0 rounded-lg border px-2.5 py-2">

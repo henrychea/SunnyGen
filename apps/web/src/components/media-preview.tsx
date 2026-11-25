@@ -1,5 +1,5 @@
 import { cn, FadeImage, motionFast, motionList, motionListItem } from '@sunnygen/ui'
-import { FileAudio } from 'lucide-react'
+import { FileAudio, ImageOff } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { thumbSrcSet, thumbUrl } from '~/lib/media-thumbs'
 
@@ -9,6 +9,7 @@ export interface MediaThumbItem {
   id: string
   url: string
   kind: MediaKind
+  missing?: boolean
 }
 
 export function MediaCard({
@@ -100,7 +101,11 @@ export function MediaThumbStrip({
             itemIndex === index ? 'border-accent ring-accent/25 ring-2' : 'border-line hover:border-ink/25',
           )}
         >
-          {item.kind === 'video' ? (
+          {item.missing ? (
+            <span className="text-ink/30 grid size-full place-items-center">
+              <ImageOff size={14} />
+            </span>
+          ) : item.kind === 'video' ? (
             <video src={item.url} muted preload="metadata" className="size-full object-cover" />
           ) : item.kind === 'audio' ? (
             <span className="text-ink/35 grid size-full place-items-center">
