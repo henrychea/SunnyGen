@@ -1,5 +1,5 @@
 export const APP_NAME = 'SunnyGen'
-export const APP_VERSION = '2.0.0'
+export const APP_VERSION = '2.1.0'
 export const APP_TAGLINE = 'Build AI image and video pipelines visually.'
 
 export const PROVIDER_IDS = ['sunra', 'fal', 'azure', 'codex'] as const
