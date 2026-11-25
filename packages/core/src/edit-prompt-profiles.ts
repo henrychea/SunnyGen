@@ -27,7 +27,10 @@ export interface EditPromptProfile {
   negatives: 'allow' | 'avoid'
   /** Repeat one line at the end. */
   restateBody: boolean
-  /** How many avatar refs the family accepts. */
+  /**
+   * How many avatar references the family accepts, in the order avatarImageLimit sends them:
+   * the two panels first, the sheet last. Keep the two in step.
+   */
   maxRefs: number
 }
 

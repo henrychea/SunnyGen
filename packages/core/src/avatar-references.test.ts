@@ -1,14 +1,40 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { AVATAR_CROP_ROLES, avatarCropPlan, avatarReferenceLimit, panelSizeError } from './avatar-references'
+import { avatarImageLimit, avatarImagePlan, panelSizeError } from './avatar-references'
 
-test('Qwen takes two references, the other families take four', () => {
-  assert.deepEqual(avatarCropPlan('qwen'), ['face-front', 'body-front'])
-  assert.equal(avatarReferenceLimit('qwen'), 2)
-  assert.equal(avatarReferenceLimit('seedream'), 4)
-  for (const crop of avatarCropPlan('nano-banana')) {
-    assert.ok(AVATAR_CROP_ROLES.includes(crop))
-  }
+const THREE_IMAGES = { facePanelAssetId: 'face-panel', bodyPanelAssetId: 'body-panel', sheetAssetId: 'sheet' }
+
+test('an avatar sends its three whole images, face panel first and sheet last', () => {
+  assert.deepEqual(avatarImagePlan(THREE_IMAGES, 'nano-banana'), [
+    { role: 'face-panel', assetId: 'face-panel' },
+    { role: 'body-panel', assetId: 'body-panel' },
+    { role: 'sheet', assetId: 'sheet' },
+  ])
+  assert.equal(avatarImageLimit('qwen'), 2)
+  assert.equal(avatarImageLimit('seedream'), 3)
+})
+
+test('qwen names two avatar images, so the sheet is the one it loses', () => {
+  assert.deepEqual(avatarImagePlan(THREE_IMAGES, 'qwen'), [
+    { role: 'face-panel', assetId: 'face-panel' },
+    { role: 'body-panel', assetId: 'body-panel' },
+  ])
+})
+
+test('a missing image shortens the plan instead of leaving a hole', () => {
+  assert.deepEqual(avatarImagePlan({ ...THREE_IMAGES, sheetAssetId: null }, 'flux'), [
+    { role: 'face-panel', assetId: 'face-panel' },
+    { role: 'body-panel', assetId: 'body-panel' },
+  ])
+  assert.deepEqual(avatarImagePlan({ ...THREE_IMAGES, bodyPanelAssetId: '' }, 'flux'), [
+    { role: 'face-panel', assetId: 'face-panel' },
+    { role: 'sheet', assetId: 'sheet' },
+  ])
+})
+
+test('an avatar without a face panel has no plan and keeps its own id list', () => {
+  assert.deepEqual(avatarImagePlan({ bodyPanelAssetId: 'panel', sheetAssetId: 'sheet' }, 'flux'), [])
+  assert.deepEqual(avatarImagePlan({}, 'flux'), [])
 })
 
 test('a panel must be 4K before it can be used', () => {

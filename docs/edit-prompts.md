@@ -6,9 +6,29 @@ OpenAI and xAI are marked as having no documented guidance because their pages g
 cite, and guessing there would be worse than saying so.
 
 Our implementation: `apps/web/src/lib/edit-prompt.ts`. One template per family, rendering the
-same facts (board roles, face and hair and body features, keep list, integration list) with the
-same trim tiers. Tests: `apps/web/src/lib/edit-prompt.boards.test.ts` (per-family snapshots) and
-`apps/web/src/lib/edit-prompt.profiles.test.ts` (legacy crop path snapshots).
+same facts (image roles, face and hair and body features, keep list, integration list) with the
+same trim tiers. Tests: `apps/web/src/lib/edit-prompt.panels.test.ts` (per-family snapshots) and
+`apps/web/src/lib/edit-prompt.profiles.test.ts` (avatars saved before the split).
+
+## The references we send
+
+An avatar is three whole images, sent after the target (or first, when a family's target rule
+puts the target first) and never cropped into tiles first. Resizing happens only at send time.
+
+The prompt names each image by the cells it holds, because the panels are 2x2 layouts:
+
+- `image N is the face panel: top-left front, top-right three-quarter, bottom-left side profile,
+  bottom-right hands`
+- `image N is the body panel: top-left front, top-right side profile, bottom-left back,
+  bottom-right three-quarter`
+- `image N is the character reference sheet: expressions, hair, hands, skin texture, facial
+  features and body details`
+
+The face section comes from the face panel, the body from the body panel's front and side profile
+cells, and the hair, skin and hands from the sheet. A family that names only two avatar references
+(qwen, grok) gets the two panels and loses the sheet, so its hair falls back to the face panel.
+An avatar saved before the two-panel split has no face panel: it sends the sheet and its old 4x4
+panel whole and keeps the keyword prompt with the identity clause.
 
 ## nano-banana (Google Gemini image)
 
@@ -68,8 +88,8 @@ same trim tiers. Tests: `apps/web/src/lib/edit-prompt.boards.test.ts` (per-famil
 - Image references: the API takes multiple images; the prompt refers to them by position.
 - Negatives: a negative prompt field exists on some qwen models, separate from the prompt.
 - Hard limits: yes, 800 characters.
-- Ours: terse sentences, and the trim tiers keep the whole prompt at or under 800 with the task
-  and the face replacement never cut.
+- Ours: terse sentences naming the two panels (image 1 face, image 2 body), and the trim tiers
+  keep the whole prompt at or under 800 with the task and the face replacement never cut.
 
 ## wan (Alibaba Wan image edit)
 
@@ -80,9 +100,10 @@ same trim tiers. Tests: `apps/web/src/lib/edit-prompt.boards.test.ts` (per-famil
 - Image references: images are inputs to the task; the instruction refers to them by content.
 - Negatives: no guidance.
 - Hard limits: none documented.
-- Ours: a short direct instruction, one change per sentence. Note: the catalog currently has no
-  wan image-edit model (only `wan/wan-2.7` for video), so this template is unexercised by real
-  ids and selected by the `wan` family pattern only.
+- Ours: a short direct instruction, one change per sentence: which image holds the face, the
+  body and the hair. Note: the catalog currently has no wan image-edit model (only `wan/wan-2.7`
+  for video), so this template is unexercised by real ids and selected by the `wan` family
+  pattern only.
 
 ## grok (xAI)
 
@@ -92,7 +113,8 @@ same trim tiers. Tests: `apps/web/src/lib/edit-prompt.boards.test.ts` (per-famil
 - Image references: no documented guidance found.
 - Negatives: no documented guidance found.
 - Hard limits: none documented.
-- Ours: short and direct, no long lists.
+- Ours: short and direct, no long lists, with the face panel and the body panel named in one
+  sentence each.
 
 ## generic
 

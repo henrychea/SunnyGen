@@ -163,10 +163,16 @@ function loadTarget(db: DatabaseSync, source: string): LoadedAsset {
   return loadAsset(db, source)
 }
 
+function text(value: unknown): string | null {
+  return typeof value === 'string' && value.length > 0 ? value : null
+}
+
 interface AvatarItem {
   id: string
   name: string
-  assetId: string | null
+  sheetAssetId: string | null
+  facePanelAssetId: string | null
+  bodyPanelAssetId: string | null
   profile: AvatarProfile
 }
 
@@ -189,7 +195,9 @@ function loadAvatar(db: DatabaseSync, name: string): AvatarItem {
   return {
     id: row.id,
     name: row.name,
-    assetId: row.assetId,
+    sheetAssetId: text(data.characterSheetAssetId),
+    facePanelAssetId: text(data.facePanelAssetId),
+    bodyPanelAssetId: row.assetId,
     profile,
   }
 }
@@ -218,7 +226,16 @@ function planFor(
   args: Args,
 ): Plan {
   const references = editReferencePlan(
-    [{ id: avatar.assetId ?? avatar.id, avatar: true, profile: avatar.profile }],
+    [
+      {
+        id: avatar.sheetAssetId ?? avatar.bodyPanelAssetId ?? avatar.id,
+        avatar: true,
+        profile: avatar.profile,
+        sheetAssetId: avatar.sheetAssetId,
+        facePanelAssetId: avatar.facePanelAssetId,
+        bodyPanelAssetId: avatar.bodyPanelAssetId,
+      },
+    ],
     model.key,
   )
   const profile = editProfile(model.key)

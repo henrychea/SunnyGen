@@ -10,52 +10,67 @@ import {
   withIdentityClause,
 } from './avatar-references'
 
-const CROPS = [
-  { role: 'face-front' as const, assetId: 'face-front', width: 1200, height: 1200 },
-  { role: 'face-three-quarter' as const, assetId: 'face-3q', width: 1200, height: 1200 },
-  { role: 'body-front' as const, assetId: 'body', width: 1200, height: 1600 },
-]
+const FACE_PANEL =
+  'face panel: top-left front, top-right three-quarter, bottom-left side profile, bottom-right hands'
+const BODY_PANEL =
+  'body panel: top-left front, top-right side profile, bottom-left back, bottom-right three-quarter'
+const SHEET =
+  'character reference sheet: expressions, hair, hands, skin texture, facial features and body details'
 
-const PROFILED = {
+/** A two-panel avatar: face panel, body panel, sheet, all stored whole. */
+const THREE_IMAGES = {
   id: 'sheet',
-  assetIds: ['sheet', 'panel'],
+  assetIds: ['face-panel', 'body-panel', 'sheet'],
   sheetAssetId: 'sheet',
+  facePanelAssetId: 'face-panel',
+  bodyPanelAssetId: 'body-panel',
   avatar: true,
   profile: DEFAULT_AVATAR_PROFILE,
-  crops: CROPS,
 }
 
-test('crops replace the collage sheets and are labelled by role', () => {
-  assert.deepEqual(avatarAssetSlots(PROFILED, 'fal:fal-ai/nano-banana-pro'), [
-    { id: 'face-front', role: 'front face' },
-    { id: 'body', role: 'full body' },
-    { id: 'face-3q', role: 'three-quarter face' },
-  ])
-  assert.deepEqual(avatarReferenceAssets(PROFILED, 'fal:fal-ai/qwen-image-edit-2509'), ['face-front', 'body'])
-})
-
-test('avatars without crops keep the sheet and the panel, each labelled for what it is', () => {
-  assert.deepEqual(avatarAssetSlots({ ...PROFILED, crops: [] }, 'fal:fal-ai/qwen-image-edit-2509'), [
-    { id: 'sheet', role: 'reference sheet' },
-    { id: 'panel', role: '4x4 panel' },
-  ])
-  assert.deepEqual(avatarAssetSlots({ ...PROFILED, crops: undefined }, 'fal:fal-ai/flux-2-pro'), [
-    { id: 'sheet', role: 'reference sheet' },
-    { id: 'panel', role: '4x4 panel' },
+test('an avatar sends its three whole images, each named for what it holds', () => {
+  assert.deepEqual(avatarAssetSlots(THREE_IMAGES, 'fal:fal-ai/nano-banana-pro'), [
+    { id: 'face-panel', role: FACE_PANEL },
+    { id: 'body-panel', role: BODY_PANEL },
+    { id: 'sheet', role: SHEET },
   ])
 })
 
-test('edit plans flatten each avatar into one profiled reference per crop', () => {
+test('avatars without a face panel keep the sheet and the old panel, each labelled for what it is', () => {
+  assert.deepEqual(
+    avatarAssetSlots(
+      { id: 'sheet', assetIds: ['sheet', 'panel'], sheetAssetId: 'sheet', avatar: true },
+      'fal:fal-ai/nano-banana-pro',
+    ),
+    [
+      { id: 'sheet', role: 'reference sheet' },
+      { id: 'panel', role: '4x4 panel' },
+    ],
+  )
+  assert.deepEqual(
+    avatarAssetSlots({ id: 'panel', assetIds: ['panel'], avatar: true }, 'fal:fal-ai/flux-2-pro'),
+    [{ id: 'panel', role: '4x4 panel' }],
+  )
+})
+
+test('qwen names two avatar images, so it takes the two panels', () => {
+  assert.deepEqual(avatarReferenceAssets(THREE_IMAGES, 'fal:fal-ai/qwen-image-edit-2509'), [
+    'face-panel',
+    'body-panel',
+  ])
+})
+
+test('edit plans flatten each avatar into one profiled reference per whole image', () => {
   const plan = editReferencePlan(
-    [PROFILED, { id: 'pose', assetIds: ['pose'], avatar: false }],
+    [THREE_IMAGES, { id: 'pose', assetIds: ['pose'], avatar: false }],
     'fal:fal-ai/nano-banana-pro',
   )
   assert.deepEqual(
     plan.map((reference) => [reference.id, reference.avatar, reference.role]),
     [
-      ['face-front', true, 'front face'],
-      ['body', true, 'full body'],
-      ['face-3q', true, 'three-quarter face'],
+      ['face-panel', true, FACE_PANEL],
+      ['body-panel', true, BODY_PANEL],
+      ['sheet', true, SHEET],
       ['pose', false, undefined],
     ],
   )
@@ -70,7 +85,7 @@ test('generation assets flatten avatars and plain references together', () => {
   assert.deepEqual(
     flattenReferenceAssets(
       [
-        { ...PROFILED, crops: [] },
+        { id: 'sheet', assetIds: ['sheet', 'panel'], sheetAssetId: 'sheet', avatar: true },
         { id: 'upload', avatar: false },
       ],
       'fal:fal-ai/nano-banana-pro',
@@ -83,7 +98,7 @@ test('generation assets flatten avatars and plain references together', () => {
 })
 
 test('the first profiled avatar supplies the identity clause', () => {
-  const identity = referenceIdentity([{ id: 'upload' }, PROFILED])
+  const identity = referenceIdentity([{ id: 'upload' }, THREE_IMAGES])
   assert.equal(identity?.face.faceShape, 'soft oval')
   assert.equal(referenceIdentity([{ id: 'upload' }]), null)
 })
@@ -105,52 +120,4 @@ test('identity clauses respect the model family and never touch a bare prompt', 
     withIdentityClause('A coffee shop portrait.', null, 'fal:fal-ai/nano-banana-pro'),
     'A coffee shop portrait.',
   )
-})
-
-const BOARDS = [
-  { role: 'details' as const, assetId: 'details-board', width: 4096, height: 1100 },
-  { role: 'body' as const, assetId: 'body-board', width: 4096, height: 4096 },
-  { role: 'face' as const, assetId: 'face-board', width: 4096, height: 4096 },
-]
-
-test('boards replace crops and reach the model identity first, each naming its tiles', () => {
-  const withBoards = { ...PROFILED, boards: BOARDS }
-  assert.deepEqual(avatarAssetSlots(withBoards, 'fal:fal-ai/nano-banana-pro'), [
-    {
-      id: 'face-board',
-      role: 'face board: top-left front, top-right three-quarter, bottom-left side profile, bottom-right expressions',
-    },
-    {
-      id: 'body-board',
-      role: 'body board: top-left front, top-right side profile, bottom-left back, bottom-right three-quarter',
-    },
-    {
-      id: 'details-board',
-      role: 'details board: top row hands, skin, hair; bottom row facial features, body details',
-    },
-  ])
-  // qwen names two avatar references, so it gets the face board and the body board only.
-  assert.deepEqual(avatarAssetSlots(withBoards, 'fal:fal-ai/qwen-image-edit-2509'), [
-    {
-      id: 'face-board',
-      role: 'face board: top-left front, top-right three-quarter, bottom-left side profile, bottom-right expressions',
-    },
-    {
-      id: 'body-board',
-      role: 'body board: top-left front, top-right side profile, bottom-left back, bottom-right three-quarter',
-    },
-  ])
-  assert.deepEqual(flattenReferenceAssets([withBoards], 'fal:fal-ai/flux-2-pro'), [
-    'face-board',
-    'body-board',
-    'details-board',
-  ])
-})
-
-test('stored crops still drive avatars that have no boards', () => {
-  assert.deepEqual(avatarAssetSlots({ ...PROFILED, boards: [] }, 'fal:fal-ai/nano-banana-pro'), [
-    { id: 'face-front', role: 'front face' },
-    { id: 'body', role: 'full body' },
-    { id: 'face-3q', role: 'three-quarter face' },
-  ])
 })
