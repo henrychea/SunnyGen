@@ -6,6 +6,7 @@ limits. These are working notes, not marketing copy.
 
 | File                                                                                                         | Date       | Covers                                                                             |
 | ------------------------------------------------------------------------------------------------------------ | ---------- | ---------------------------------------------------------------------------------- |
+| [2026-11-25-v2.1.0.md](2026-11-25-v2.1.0.md)                                                                 | 2026-11-25 | v2.1.0 release: PRs #18 to #25, one section per area, and the upgrade notes        |
 | [2026-11-25-avatar-panels.md](2026-11-25-avatar-panels.md)                                                   | 2026-11-25 | PR #25: three whole avatar images, no crops or boards, Sunra cache fix, LoRA split |
 | [2026-11-24-home-today-shoots.md](2026-11-24-home-today-shoots.md)                                           | 2026-11-24 | PR #23: Today inbox, Home renamed to Images, and the shoot planner                 |
 | [2026-11-24-studio-previews-wall.md](2026-11-24-studio-previews-wall.md)                                     | 2026-11-24 | PR #22: studio previews, scene prep, and the Studio generation wall                |
