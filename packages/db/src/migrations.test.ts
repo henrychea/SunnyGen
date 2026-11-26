@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdtempSync, readdirSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
@@ -36,6 +36,17 @@ test('v3 to v6 keeps rows, adds an asset name, NSFW flags and a copy table', () 
   const db = getDb()
   assert.equal(SCHEMA_VERSION, 6)
   assert.equal(MIGRATIONS.length, 6)
+
+  // Opening an existing database backs it up before the pending steps run.
+  const backups = readdirSync(join(dataDir, 'backups'))
+  assert.equal(backups.length, 1)
+  const backup = new DatabaseSync(join(dataDir, 'backups', backups[0] as string), { readOnly: true })
+  try {
+    const row = backup.prepare('PRAGMA user_version').get() as { user_version: number }
+    assert.equal(row.user_version, 3)
+  } finally {
+    backup.close()
+  }
 
   const columns = db.prepare('PRAGMA table_info(assets)').all() as Array<{ name: string }>
   assert.ok(columns.some((column) => column.name === 'name'))

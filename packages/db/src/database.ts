@@ -1,14 +1,23 @@
 import { chmodSync, mkdirSync } from 'node:fs'
 import { DatabaseSync } from 'node:sqlite'
+import { backUpBeforeMigration } from './backups'
 import { MIGRATIONS, SCHEMA_VERSION } from './migrations'
 import { dataDir, databasePath, mediaDir } from './paths'
 import { migrateSecretRows } from './secrets'
 
 let connection: DatabaseSync | null = null
 
-function migrate(database: DatabaseSync): void {
+/**
+ * Runs pending migrations, writing an automatic copy first when an existing database is about to
+ * change. A fresh database has nothing to lose, and a backup that fails aborts before migrating.
+ */
+export function migrateDatabase(database: DatabaseSync, dir: string = dataDir): void {
   const row = database.prepare('PRAGMA user_version').get() as { user_version: number }
-  for (let version = row.user_version; version < MIGRATIONS.length; version += 1) {
+  const from = row.user_version
+  if (from > 0 && from < MIGRATIONS.length) {
+    backUpBeforeMigration({ database, dataDir: dir, fromVersion: from, toVersion: MIGRATIONS.length })
+  }
+  for (let version = from; version < MIGRATIONS.length; version += 1) {
     const migration = MIGRATIONS[version]
     if (!migration) throw new Error(`Missing database migration ${version + 1}`)
     database.exec('BEGIN')
@@ -53,7 +62,7 @@ export function getDb(): DatabaseSync {
   database.exec('PRAGMA journal_mode = WAL')
   database.exec('PRAGMA foreign_keys = ON')
   database.exec('PRAGMA busy_timeout = 5000')
-  migrate(database)
+  migrateDatabase(database, dataDir)
   encryptLegacySecrets(database)
   // The settings table holds provider keys, so keep the database and its
   // sidecars readable only by the owner.
