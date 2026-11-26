@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { Dialog } from '@base-ui/react/dialog'
-import { Plus, Sparkles, X } from 'lucide-react'
+import { MessageSquareText, Plus, X } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { Button, LAYER, Selector, cn } from '@sunnygen/ui'
 import { ChatThread } from '~/components/chat/chat-thread'
@@ -107,7 +107,7 @@ export function AssistantPanel({
       <Dialog.Portal keepMounted>
         <Dialog.Backdrop
           className={cn(
-            'bg-ink/35 fixed inset-0 backdrop-blur-[2px] md:hidden',
+            'bg-ink/35 fixed inset-0 md:hidden',
             LAYER.dialogBackdrop,
             'transition-opacity duration-200 ease-out motion-reduce:transition-none',
             'data-[starting-style]:opacity-0 data-[ending-style]:opacity-0',
@@ -116,10 +116,10 @@ export function AssistantPanel({
         <Dialog.Popup
           ref={popupRef}
           className={cn(
-            'border-line bg-surface fixed inset-x-0 bottom-0 flex h-[92dvh] max-h-[92dvh] flex-col',
-            'rounded-t-2xl border-t shadow-[0_-20px_60px_-30px_rgba(42,30,23,0.45)] outline-none',
+            'border-line-strong bg-surface fixed inset-x-0 bottom-0 flex h-[92dvh] max-h-[92dvh] flex-col',
+            'rounded-t-2xl border-t shadow-panel-up outline-none',
             'md:inset-y-0 md:right-0 md:left-auto md:h-dvh md:max-h-dvh md:w-[420px] md:rounded-none md:border-t-0 md:border-l',
-            'md:shadow-[-30px_0_80px_-40px_rgba(42,30,23,0.5)]',
+            'md:shadow-panel-side',
             LAYER.dialog,
             'transition-[opacity,translate] duration-200 ease-out motion-reduce:transition-none',
             'data-[starting-style]:translate-y-full data-[starting-style]:opacity-0',
@@ -132,18 +132,18 @@ export function AssistantPanel({
 
           <header className="border-line/70 flex shrink-0 items-center gap-2 border-b px-3 py-2.5">
             <div className="bg-accent/10 text-accent grid size-8 shrink-0 place-items-center rounded-lg">
-              <Sparkles size={15} />
+              <MessageSquareText size={15} />
             </div>
             <div className="min-w-0 flex-1">
               <p className="font-display text-[13.5px] font-semibold tracking-tight">Assistant</p>
-              <p className="text-ink/35 truncate text-[10.5px]">{activeId ? chat.title : 'New chat'}</p>
+              <p className="text-ink/65 truncate text-[11px]">{activeId ? chat.title : 'New chat'}</p>
             </div>
             <Button variant="ghost" size="icon" onClick={startNewChat} aria-label="New chat" title="New chat">
               <Plus size={16} />
             </Button>
             <Dialog.Close
               aria-label="Close assistant"
-              className="text-ink/55 hover:bg-ink/[0.05] hover:text-ink grid size-9 place-items-center rounded-lg transition-[color,background-color,transform] duration-150 ease-out active:scale-[0.92]"
+              className="text-ink/65 hover:bg-ink/[0.05] hover:text-ink grid size-9 place-items-center rounded-lg transition-[color,background-color,transform] duration-150 ease-out active:scale-[0.92]"
             >
               <X size={17} />
             </Dialog.Close>
@@ -172,7 +172,7 @@ export function AssistantPanel({
               to="/chat"
               search={activeId ? { id: activeId } : {}}
               onClick={() => onOpenChange(false)}
-              className="text-ink/45 hover:text-ink shrink-0 rounded-lg px-1.5 py-1 text-[11px] font-medium transition-[color,transform] duration-150 ease-out active:scale-[0.97]"
+              className="text-ink/65 hover:text-ink shrink-0 rounded-lg px-1.5 py-1 text-[11px] font-medium transition-[color,transform] duration-150 ease-out active:scale-[0.97]"
             >
               Open full view
             </Link>

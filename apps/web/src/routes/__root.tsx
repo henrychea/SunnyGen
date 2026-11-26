@@ -3,8 +3,10 @@ import { HeadContent, Outlet, Scripts, createRootRouteWithContext, Link } from '
 import { APP_NAME, APP_TAGLINE } from '@sunnygen/core'
 import { Toaster } from '@sunnygen/ui'
 import { MotionConfig } from 'motion/react'
+import { useEffect } from 'react'
 import { AppShell } from '~/components/app-shell'
 import { PwaRegister } from '~/components/pwa-register'
+import { THEME_BOOT_SCRIPT, startThemeSync } from '~/lib/theme'
 import '../styles.css'
 
 interface RouterContext {
@@ -41,10 +43,12 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext()
+  useEffect(() => startThemeSync(), [])
   return (
     <html lang="en">
       <head>
         <HeadContent />
+        <script>{THEME_BOOT_SCRIPT}</script>
       </head>
       <body>
         <PwaRegister />
@@ -66,9 +70,9 @@ function NotFound() {
   return (
     <main className="grid min-h-dvh place-items-center px-6">
       <div className="max-w-sm text-center">
-        <p className="font-display text-accent text-[13px] font-semibold tracking-[0.18em] uppercase">404</p>
+        <p className="font-display text-accent text-[13px] font-semibold">404</p>
         <h1 className="font-display mt-3 text-2xl font-semibold">This page is not on the canvas.</h1>
-        <p className="text-ink/55 mt-2 text-[13px] leading-relaxed">
+        <p className="text-ink/65 mt-2 text-[13px] leading-relaxed">
           The route does not exist. Head back to the studio.
         </p>
         <Link

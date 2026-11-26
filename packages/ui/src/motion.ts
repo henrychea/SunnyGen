@@ -21,16 +21,6 @@ export const motionPop: Variants = {
   visible: { opacity: 1, scale: 1, transition: motionFast },
 }
 
-export const motionList: Variants = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.008 } },
-}
-
-export const motionListItem: Variants = {
-  hidden: { opacity: 0, y: 6, transition: motionFast },
-  visible: { opacity: 1, y: 0, transition: motionFast },
-}
-
 export const motionSwap: Variants = {
   hidden: { opacity: 0, y: 6, transition: motionTransition },
   visible: { opacity: 1, y: 0, transition: motionTransition },
@@ -40,5 +30,3 @@ export const motionSwap: Variants = {
 export const motionPress = 'active:scale-[0.97] motion-reduce:active:scale-100'
 
 export const motionMountFade = 'animate-fade-in motion-reduce:animate-none'
-
-export const motionMountRise = 'animate-rise-in motion-reduce:animate-none'

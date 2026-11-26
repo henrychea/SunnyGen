@@ -9,20 +9,22 @@ import type { InputAsset } from '~/server/media.server'
 function ReferenceMedia({ reference, label }: { reference: InputAsset; label: string }) {
   if (reference.missing) {
     return (
-      <div className="bg-ink/[0.03] border-line/70 flex min-h-44 flex-col items-center justify-center gap-2 rounded-xl border border-dashed p-6 text-center">
-        <ImageOff size={22} strokeWidth={1.5} className="text-ink/25" />
-        <p className="text-ink/55 text-[12px] font-medium">This file was deleted</p>
-        <p className="text-ink/35 text-[11px]">The generation still opens without it.</p>
+      <div className="bg-ink/[0.03] border-line-strong flex min-h-44 flex-col items-center justify-center gap-2 rounded-xl border border-dashed p-6 text-center">
+        <ImageOff size={22} strokeWidth={1.5} className="text-ink/65" />
+        <p className="text-ink/65 text-[12px] font-medium">This file was deleted</p>
+        <p className="text-ink/65 text-[11px]">The generation still opens without it.</p>
       </div>
     )
   }
   return (
-    <div className="bg-ink/[0.03] border-line/70 flex items-center justify-center overflow-hidden rounded-xl border p-2">
+    <div className="bg-ink/[0.03] border-line-strong flex items-center justify-center overflow-hidden rounded-xl border p-2">
       {reference.kind === 'image' ? (
         <div className="relative flex min-h-44 w-full items-center justify-center">
           <FadeImage
             shimmer
             src={reference.url}
+            width={reference.width ?? undefined}
+            height={reference.height ?? undefined}
             alt={label}
             className="relative max-h-[calc(90dvh-18rem)] w-auto max-w-full rounded-lg object-contain"
           />
@@ -66,7 +68,7 @@ export function ReferencesModal({ references, onClose }: { references: InputAsse
       initial="hidden"
       animate="visible"
       exit="hidden"
-      className="bg-ink/70 fixed inset-0 z-[80] flex items-center justify-center p-3 backdrop-blur-sm md:p-8"
+      className="bg-ink/70 fixed inset-0 z-[80] flex items-center justify-center p-3 md:p-8"
       onClick={(event) => {
         event.stopPropagation()
         onClose()
@@ -75,12 +77,12 @@ export function ReferencesModal({ references, onClose }: { references: InputAsse
       <motion.div
         variants={motionPop}
         onClick={(event) => event.stopPropagation()}
-        className="border-line bg-surface flex max-h-[90dvh] w-fit max-w-[min(92vw,1000px)] min-w-[min(92vw,420px)] flex-col overflow-hidden rounded-2xl border shadow-2xl"
+        className="border-line-strong bg-surface shadow-dialog flex max-h-[90dvh] w-fit max-w-[min(92vw,1000px)] min-w-[min(92vw,420px)] flex-col overflow-hidden rounded-2xl border"
       >
         <div className="border-line flex items-center gap-3 border-b px-4 py-2.5">
           <div className="min-w-0">
             <h2 className="font-display text-ink text-[14px] font-semibold">References</h2>
-            <p className="text-ink/35 mt-0.5 text-[10.5px]">
+            <p className="text-ink/65 mt-0.5 text-[11px]">
               {references.length} {references.length === 1 ? 'reference' : 'references'} · {safeIndex + 1} /{' '}
               {references.length}
             </p>
@@ -89,7 +91,7 @@ export function ReferencesModal({ references, onClose }: { references: InputAsse
             type="button"
             onClick={onClose}
             aria-label="Close references"
-            className="text-ink/40 hover:bg-ink/5 hover:text-ink ml-auto grid size-8 shrink-0 place-items-center rounded-lg transition-[color,background-color,transform] active:scale-90"
+            className="text-ink/65 hover:bg-ink/5 hover:text-ink ml-auto grid size-8 shrink-0 place-items-center rounded-lg transition-[color,background-color,transform] active:scale-90"
           >
             ×
           </button>
@@ -121,25 +123,23 @@ export function ReferencesModal({ references, onClose }: { references: InputAsse
               label="Choose a reference"
             />
           ) : null}
-          <div className="border-line bg-canvas/40 mt-3 rounded-xl border p-3.5">
+          <div className="border-line-strong bg-canvas/40 mt-3 rounded-xl border p-3.5">
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              <div className="border-line/70 bg-surface/60 min-w-0 rounded-lg border px-2.5 py-2">
-                <p className="text-ink/35 text-[9.5px] font-semibold tracking-[0.08em] uppercase">
-                  Reference
-                </p>
+              <div className="border-line-strong bg-surface/60 min-w-0 rounded-lg border px-2.5 py-2">
+                <p className="text-ink/65 text-[11px] font-semibold">Reference</p>
                 <p className="text-ink/70 mt-0.5 text-[11.5px]">
                   {safeIndex + 1} of {references.length}
                 </p>
               </div>
-              <div className="border-line/70 bg-surface/60 min-w-0 rounded-lg border px-2.5 py-2">
-                <p className="text-ink/35 text-[9.5px] font-semibold tracking-[0.08em] uppercase">Kind</p>
+              <div className="border-line-strong bg-surface/60 min-w-0 rounded-lg border px-2.5 py-2">
+                <p className="text-ink/65 text-[11px] font-semibold">Kind</p>
                 <p className="text-ink/70 mt-0.5 text-[11.5px]">
                   {current.missing ? 'Deleted' : current.kind}
                 </p>
               </div>
               {current.width && current.height ? (
-                <div className="border-line/70 bg-surface/60 min-w-0 rounded-lg border px-2.5 py-2">
-                  <p className="text-ink/35 text-[9.5px] font-semibold tracking-[0.08em] uppercase">Size</p>
+                <div className="border-line-strong bg-surface/60 min-w-0 rounded-lg border px-2.5 py-2">
+                  <p className="text-ink/65 text-[11px] font-semibold">Size</p>
                   <p className="text-ink/70 mt-0.5 text-[11.5px]">
                     {current.width}×{current.height}
                   </p>

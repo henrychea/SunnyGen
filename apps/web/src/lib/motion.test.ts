@@ -1,16 +1,8 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import {
-  motionFade,
-  motionFadeRise,
-  motionFast,
-  motionList,
-  motionListItem,
-  motionPop,
-  motionTransition,
-} from '@sunnygen/ui'
+import { motionFade, motionFadeRise, motionFast, motionPop, motionTransition } from '@sunnygen/ui'
 
-const PRESETS = { fade: motionFade, fadeRise: motionFadeRise, pop: motionPop, listItem: motionListItem }
+const PRESETS = { fade: motionFade, fadeRise: motionFadeRise, pop: motionPop }
 
 test('shared motion presets stay subtle and fast', () => {
   for (const [name, preset] of Object.entries(PRESETS)) {
@@ -23,7 +15,6 @@ test('shared motion presets stay subtle and fast', () => {
       assert.equal(variant.transition?.ease, 'easeOut', `${name} must ease out`)
     }
   }
-  assert.deepEqual((motionList.visible as { transition: unknown }).transition, { staggerChildren: 0.008 })
   assert.equal((motionFast as { duration: number }).duration, 0.16)
   assert.equal((motionTransition as { duration: number }).duration, 0.2)
 })

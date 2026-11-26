@@ -22,6 +22,7 @@ import { ExternalLink, RefreshCw, Search } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { PageBody, PageHeader, PageScroll } from '~/components/app-shell'
 import { ModelCombobox } from '~/components/model-combobox'
+import { readStoredTheme, writeThemeMode, type ThemeMode } from '~/lib/theme'
 import type { CatalogProvider, ModelCatalogView } from '~/server/model-catalog.functions'
 import { loadModelCatalog, rebuildModelCatalog } from '~/server/model-catalog.functions'
 import {
@@ -62,10 +63,10 @@ function SettingsPage() {
       />
       <PageBody>
         <div className="grid min-w-0 gap-5 lg:grid-cols-2">
-          <Card animateIn>
+          <Card>
             <CardHeader>
               <CardTitle>Providers</CardTitle>
-              <p className="text-ink/50 text-[12px]">
+              <p className="text-ink/65 text-[12px]">
                 One key per provider. Generations run on your account. Keys are encrypted at rest.
               </p>
             </CardHeader>
@@ -95,10 +96,10 @@ function SettingsPage() {
           </Card>
 
           <div className="flex min-w-0 flex-col gap-5">
-            <Card animateIn>
+            <Card>
               <CardHeader>
                 <CardTitle>Assistant</CardTitle>
-                <p className="text-ink/50 text-[12px]">
+                <p className="text-ink/65 text-[12px]">
                   OpenRouter powers prompt help and the canvas assistant. It is never used for generation. The
                   key is encrypted at rest.
                 </p>
@@ -111,10 +112,22 @@ function SettingsPage() {
               </CardContent>
             </Card>
 
-            <Card animateIn>
+            <Card>
+              <CardHeader>
+                <CardTitle>Theme</CardTitle>
+                <p className="text-ink/65 text-[12px]">
+                  Stored in this browser. System follows the device appearance setting.
+                </p>
+              </CardHeader>
+              <CardContent>
+                <ThemeCard />
+              </CardContent>
+            </Card>
+
+            <Card>
               <CardHeader>
                 <CardTitle>Studio</CardTitle>
-                <p className="text-ink/50 text-[12px]">
+                <p className="text-ink/65 text-[12px]">
                   Model used to turn supplier photos into clean garment references.
                 </p>
               </CardHeader>
@@ -127,7 +140,7 @@ function SettingsPage() {
               </CardContent>
             </Card>
 
-            <Card animateIn>
+            <Card>
               <CardHeader>
                 <CardTitle>Local storage</CardTitle>
               </CardHeader>
@@ -204,7 +217,7 @@ function CodexCard() {
           )}
         </AnimatePresence>
       </div>
-      <p className="border-line bg-canvas/60 text-ink/50 rounded-xl border px-3 py-2 text-[11.5px] leading-relaxed">
+      <p className="border-line-strong bg-canvas/60 text-ink/65 rounded-xl border px-3 py-2 text-[11.5px] leading-relaxed">
         Runs GPT Image 2 through your ChatGPT plan. Install <code className="font-mono">codex-imagegen</code>{' '}
         and run <code className="font-mono">codex login</code> on this machine to enable it.
       </p>
@@ -304,7 +317,7 @@ function ProviderKeyCard({
           </AnimatePresence>
         </div>
       ) : (
-        <p className="border-line bg-canvas/60 text-ink/50 rounded-xl border px-3 py-2 text-[11.5px]">
+        <p className="border-line-strong bg-canvas/60 text-ink/65 rounded-xl border px-3 py-2 text-[11.5px]">
           Codex uses your local CLI login instead of an API key.
         </p>
       )}
@@ -316,7 +329,7 @@ function ProviderKeyCard({
             initial="hidden"
             animate="visible"
             exit="hidden"
-            className="text-ink/45 text-[11px]"
+            className="text-ink/65 text-[11px]"
           >
             {message}
           </motion.p>
@@ -394,7 +407,7 @@ function AzureCard({
               initial="hidden"
               animate="visible"
               exit="hidden"
-              className="text-ink/45 text-[11px]"
+              className="text-ink/65 text-[11px]"
             >
               {message}
             </motion.span>
@@ -488,7 +501,7 @@ function AssistantKeyCard({ configured, onSaved }: { configured: boolean; onSave
             initial="hidden"
             animate="visible"
             exit="hidden"
-            className="text-ink/45 text-[11px]"
+            className="text-ink/65 text-[11px]"
           >
             {message}
           </motion.p>
@@ -552,12 +565,12 @@ function ModelCatalogCard({ catalog }: { catalog: ModelCatalogView }) {
   }
 
   return (
-    <Card animateIn>
+    <Card>
       <CardHeader>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <CardTitle>Models</CardTitle>
-            <p className="text-ink/50 mt-1 max-w-2xl text-[12px] leading-relaxed">
+            <p className="text-ink/65 mt-1 max-w-2xl text-[12px] leading-relaxed">
               Search and filter models by provider. Prices come from the Sunra and fal catalogs when
               available; rebuild them after provider updates.
             </p>
@@ -585,11 +598,11 @@ function ModelCatalogCard({ catalog }: { catalog: ModelCatalogView }) {
         </div>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
-        <div className="border-line/70 flex flex-wrap gap-x-4 gap-y-1.5 border-y py-2 text-[10px]">
+        <div className="border-line/70 flex flex-wrap gap-x-4 gap-y-1.5 border-y py-2 text-[11px]">
           {data.sources.map((source) => (
             <div key={source.id} className="flex items-center gap-1.5">
-              <span className="text-ink/55 font-medium">{source.label}</span>
-              <span className="text-ink/30">
+              <span className="text-ink/65 font-medium">{source.label}</span>
+              <span className="text-ink/65">
                 {source.updatedAt
                   ? `Synced ${new Date(source.updatedAt).toLocaleString()}`
                   : 'Not rebuilt yet'}
@@ -600,13 +613,13 @@ function ModelCatalogCard({ catalog }: { catalog: ModelCatalogView }) {
                 href={source.docsUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="text-ink/35 hover:text-ink inline-flex items-center gap-0.5 transition-colors duration-150 ease-out"
+                className="text-ink/65 hover:text-ink inline-flex items-center gap-0.5 transition-colors duration-150 ease-out"
               >
                 Docs <ExternalLink size={9} />
               </a>
             </div>
           ))}
-          <span className="text-ink/30">
+          <span className="text-ink/65">
             {supported} supported · {data.entries.length - supported} catalog only
           </span>
         </div>
@@ -639,14 +652,14 @@ function ModelCatalogCard({ catalog }: { catalog: ModelCatalogView }) {
         </AnimatePresence>
 
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <label className="border-line bg-surface text-ink/45 focus-within:border-accent/40 flex h-9 w-full items-center gap-1.5 rounded-xl border px-2.5 transition-colors sm:max-w-sm">
+          <label className="border-line-strong bg-surface text-ink/65 focus-within:border-accent/40 flex h-9 w-full items-center gap-1.5 rounded-xl border px-2.5 transition-colors sm:max-w-sm">
             <Search size={13} className="shrink-0" />
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search models, providers, or prices"
               aria-label="Search models"
-              className="text-ink placeholder:text-ink/30 min-w-0 flex-1 bg-transparent text-[11.5px] outline-none"
+              className="text-ink placeholder:text-ink/65 min-w-0 flex-1 bg-transparent text-[11.5px] outline-none"
             />
           </label>
           <div className="flex flex-wrap items-center gap-1">
@@ -657,9 +670,9 @@ function ModelCatalogCard({ catalog }: { catalog: ModelCatalogView }) {
                 onClick={() => setProvider(option.id)}
                 aria-pressed={provider === option.id}
                 className={cn(
-                  'relative rounded-lg px-2.5 py-1.5 text-[10.5px] font-medium',
+                  'relative rounded-lg px-2.5 py-1.5 text-[11px] font-medium',
                   'transition-[color,transform] duration-150 ease-out active:scale-[0.96]',
-                  provider === option.id ? 'text-canvas' : 'text-ink/45 hover:text-ink',
+                  provider === option.id ? 'text-canvas' : 'text-ink/65 hover:text-ink',
                 )}
               >
                 {provider === option.id ? (
@@ -676,7 +689,7 @@ function ModelCatalogCard({ catalog }: { catalog: ModelCatalogView }) {
               </button>
             ))}
           </div>
-          <p className="text-ink/30 ml-auto text-[10px]">
+          <p className="text-ink/65 ml-auto text-[11px]">
             {entries.length} of {data.entries.length}
           </p>
         </div>
@@ -686,7 +699,7 @@ function ModelCatalogCard({ catalog }: { catalog: ModelCatalogView }) {
           variants={motionFade}
           initial="hidden"
           animate="visible"
-          className="border-line max-h-[440px] overflow-y-auto rounded-xl border"
+          className="border-line-strong max-h-[440px] overflow-y-auto rounded-xl border"
         >
           <AnimatePresence initial={false} mode="wait">
             {entries.length === 0 ? (
@@ -696,7 +709,7 @@ function ModelCatalogCard({ catalog }: { catalog: ModelCatalogView }) {
                 initial="hidden"
                 animate="visible"
                 exit="hidden"
-                className="text-ink/35 px-4 py-10 text-center text-[12px]"
+                className="text-ink/65 px-4 py-10 text-center text-[12px]"
               >
                 No models match that search or provider.
               </motion.p>
@@ -720,17 +733,17 @@ function ModelCatalogCard({ catalog }: { catalog: ModelCatalogView }) {
                           {entry.supported ? 'Supported' : entry.available ? 'Generic' : 'Unavailable'}
                         </Badge>
                       </div>
-                      <p className="text-ink/35 mt-0.5 truncate text-[9.5px]">
+                      <p className="text-ink/65 mt-0.5 truncate text-[11px]">
                         {entry.company} · {entry.providerLabel} · {entry.kind} · {entry.sourceId}
                         {entry.limitation ? ` · ${entry.limitation}` : ''}
                       </p>
                     </div>
                     <div className="max-w-[48%] shrink-0 text-right">
-                      <p className="text-ink/60 truncate text-[10.5px] tabular-nums">
+                      <p className="text-ink/65 truncate text-[11px] tabular-nums">
                         {entry.price ?? 'No price'}
                       </p>
                       {entry.modelId ? (
-                        <p className="text-ink/25 mt-0.5 truncate text-[9px]">{entry.modelId}</p>
+                        <p className="text-ink/65 mt-0.5 truncate text-[11px]">{entry.modelId}</p>
                       ) : null}
                     </div>
                   </div>
@@ -739,12 +752,53 @@ function ModelCatalogCard({ catalog }: { catalog: ModelCatalogView }) {
             )}
           </AnimatePresence>
         </motion.div>
-        <p className="text-ink/30 text-[10px]">
+        <p className="text-ink/65 text-[11px]">
           Catalog-only models are listed by the provider but are not wired into SunnyGen generation yet.
           Rebuilding updates prices and availability; it does not change generation support.
         </p>
       </CardContent>
     </Card>
+  )
+}
+
+function ThemeCard() {
+  const [mode, setMode] = useState<ThemeMode>(() =>
+    typeof window === 'undefined' ? 'system' : readStoredTheme(window.localStorage),
+  )
+  const options: Array<{ value: ThemeMode; label: string }> = [
+    { value: 'system', label: 'System' },
+    { value: 'light', label: 'Light' },
+    { value: 'dark', label: 'Dark' },
+  ]
+
+  const choose = (next: ThemeMode) => {
+    setMode(next)
+    writeThemeMode(next)
+    toast(`Theme set to ${next === 'system' ? 'the device setting' : next}`, { tone: 'info' })
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <Label>Appearance</Label>
+      <div className="border-line-strong bg-canvas inline-flex w-full gap-1 rounded-xl border p-1">
+        {options.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            aria-pressed={mode === option.value}
+            onClick={() => choose(option.value)}
+            className={cn(
+              'flex-1 rounded-lg px-3 py-1.5 text-[12.5px] font-medium transition-colors duration-150',
+              mode === option.value
+                ? 'bg-surface text-ink ring-line-strong ring-1'
+                : 'text-ink/65 hover:text-ink',
+            )}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+    </div>
   )
 }
 
@@ -797,7 +851,7 @@ function PrepModelCard({
           Save
         </Button>
       </div>
-      <p className="text-ink/35 text-[10px]">
+      <p className="text-ink/65 text-[11px]">
         Search by name, provider, or price. Rebuild the catalog below to refresh pricing.
       </p>
     </div>
@@ -807,8 +861,8 @@ function PrepModelCard({
 function PathRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-baseline justify-between gap-4">
-      <span className="text-ink/40 text-[10.5px] font-semibold tracking-[0.08em] uppercase">{label}</span>
-      <span className="text-ink/60 truncate font-mono text-[10.5px]">{value}</span>
+      <span className="text-ink/65 text-[11px] font-semibold">{label}</span>
+      <span className="text-ink/65 truncate font-mono text-[11px]">{value}</span>
     </div>
   )
 }

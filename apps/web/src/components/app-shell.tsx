@@ -175,14 +175,12 @@ export function PageHeader({
   return (
     <header className="border-line/70 flex flex-wrap items-end justify-between gap-4 border-b px-6 py-6 md:px-9">
       <div>
-        {eyebrow ? (
-          <p className="text-accent/80 text-[10.5px] font-semibold tracking-[0.14em] uppercase">{eyebrow}</p>
-        ) : null}
+        {eyebrow ? <p className="text-accent text-[11px] font-semibold">{eyebrow}</p> : null}
         <h1 className="font-display text-ink mt-1 text-[24px] font-semibold tracking-tight md:text-[27px]">
           {title}
         </h1>
         {description ? (
-          <p className="text-ink/50 mt-1.5 max-w-2xl text-[12.5px] leading-relaxed">{description}</p>
+          <p className="text-ink/65 mt-1.5 max-w-2xl text-[12.5px] leading-relaxed">{description}</p>
         ) : null}
       </div>
       {actions ? <div className="flex min-w-0 flex-wrap items-center gap-2">{actions}</div> : null}

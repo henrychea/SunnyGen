@@ -80,7 +80,7 @@ export function ImportAvatarDialog({
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="text-ink/60 hover:bg-ink/5 grid size-11 shrink-0 place-items-center rounded-lg transition-[color,background-color,scale] duration-150 ease-out active:scale-[0.94] motion-reduce:active:scale-100 sm:size-8"
+            className="text-ink/65 hover:bg-ink/5 grid size-11 shrink-0 place-items-center rounded-lg transition-[color,background-color,scale] duration-150 ease-out active:scale-[0.94] motion-reduce:active:scale-100 sm:size-8"
             aria-label="Close"
           >
             <X size={15} aria-hidden="true" />
@@ -105,7 +105,7 @@ export function ImportAvatarDialog({
           </div>
 
           {traits ? (
-            <div className="border-line bg-canvas/40 text-ink/70 flex flex-col gap-0.5 rounded-xl border px-3 py-2 text-[10.5px]">
+            <div className="border-line-strong bg-canvas/40 text-ink/70 flex flex-col gap-0.5 rounded-xl border px-3 py-2 text-[11px]">
               <p className="text-ink/75 text-[11px] font-medium">Extracted traits</p>
               {[traits.face, traits.hair, traits.body, traits.outfit].map((group, index) => (
                 <p key={index}>{group.join(' · ')}</p>

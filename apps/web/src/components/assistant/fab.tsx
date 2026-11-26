@@ -1,4 +1,4 @@
-import { Loader2, Sparkles } from 'lucide-react'
+import { Loader2, MessageSquareText } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import { LAYER, cn, motionPop } from '@sunnygen/ui'
@@ -78,10 +78,10 @@ export function AssistantFab({
       title={`Open assistant (${shortcut})`}
       style={{ bottom: offset }}
       className={cn(
-        'bg-accent hover:bg-accent/90 fixed right-4 grid size-14 place-items-center rounded-full text-white',
-        'shadow-[0_14px_40px_-12px_rgba(163,22,33,0.65)] transition-[background-color,transform] duration-150 ease-out',
+        'bg-accent hover:bg-accent/90 text-accent-ink fixed right-4 grid size-14 place-items-center rounded-full',
+        'shadow-fab transition-[background-color,transform] duration-150 ease-out',
         'hover:scale-[1.03] active:scale-95 motion-reduce:hover:scale-100 motion-reduce:active:scale-100',
-        'focus-visible:ring-accent/35 focus-visible:ring-offset-canvas focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none',
+        'focus-visible:ring-accent/70 focus-visible:ring-offset-canvas focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none',
         'md:right-6',
         LAYER.fab,
       )}
@@ -108,7 +108,7 @@ export function AssistantFab({
               exit="hidden"
               className="grid place-items-center"
             >
-              <Sparkles size={21} />
+              <MessageSquareText size={21} />
             </motion.span>
           )}
         </AnimatePresence>

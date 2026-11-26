@@ -4,12 +4,11 @@ import { cn } from './cn'
 import { motionFast, motionPop, motionPress } from './motion'
 
 const VARIANTS = {
-  primary:
-    'bg-accent text-white shadow-[0_1px_0_rgba(255,255,255,0.18)_inset,0_6px_18px_-8px_rgba(163,22,33,0.55)] hover:bg-accent/90',
+  primary: 'bg-accent text-accent-ink hover:bg-accent/90',
   secondary: 'bg-ink text-canvas hover:bg-ink/90',
-  outline: 'border border-line bg-surface text-ink hover:border-ink/25 hover:bg-canvas',
+  outline: 'border border-line-strong bg-surface text-ink hover:border-ink/60 hover:bg-canvas',
   ghost: 'text-ink/70 hover:bg-ink/5 hover:text-ink',
-  danger: 'bg-error text-white hover:bg-error/90',
+  danger: 'bg-error text-accent-ink hover:bg-error/90',
 } as const
 
 const SIZES = {
@@ -41,7 +40,7 @@ export function Button({
       className={cn(
         'inline-flex select-none items-center justify-center gap-2 font-medium transition duration-150 ease-out',
         motionPress,
-        'focus-visible:ring-accent/35 focus-visible:ring-offset-canvas focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+        'focus-visible:ring-accent/70 focus-visible:ring-offset-canvas focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
         'disabled:pointer-events-none disabled:opacity-45',
         VARIANTS[variant],
         SIZES[size],

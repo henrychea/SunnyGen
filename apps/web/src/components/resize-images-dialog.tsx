@@ -37,28 +37,26 @@ export function ResizeImagesDialog({
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <DialogSurface>
         <Dialog.Title className="font-display text-[16px] font-semibold">Resize large images?</Dialog.Title>
-        <Dialog.Description className="text-ink/60 mt-1.5 text-[12.5px] leading-relaxed">
+        <Dialog.Description className="text-ink/65 mt-1.5 text-[12.5px] leading-relaxed">
           {count === 1
             ? '1 attached image is larger than providers accept.'
             : `${count} attached images are larger than providers accept.`}{' '}
           They will be downscaled before upload. Your originals in the library are not changed.
         </Dialog.Description>
 
-        <p className="text-ink/40 mt-3 text-[10.5px] font-semibold tracking-[0.06em] uppercase">
-          {limitLabel(limits)}
-        </p>
+        <p className="text-ink/65 mt-3 text-[11px] font-semibold">{limitLabel(limits)}</p>
 
-        <ul className="border-line bg-canvas/60 mt-2 divide-y rounded-xl border">
+        <ul className="border-line-strong bg-canvas/60 mt-2 divide-y rounded-xl border">
           {listed.map((item) => (
             <li key={item.id} className="flex items-baseline justify-between gap-3 px-3 py-2">
               <span className="text-ink truncate text-[12px]">{item.name}</span>
-              <span className="text-ink/45 shrink-0 text-[11px] tabular-nums">{itemSize(item)}</span>
+              <span className="text-ink/65 shrink-0 text-[11px] tabular-nums">{itemSize(item)}</span>
             </li>
           ))}
-          {rest > 0 ? <li className="text-ink/45 px-3 py-2 text-[11px]">and {rest} more</li> : null}
+          {rest > 0 ? <li className="text-ink/65 px-3 py-2 text-[11px]">and {rest} more</li> : null}
         </ul>
 
-        <label className="text-ink/60 mt-3 flex cursor-pointer items-center gap-2 text-[12px]">
+        <label className="text-ink/65 mt-3 flex cursor-pointer items-center gap-2 text-[12px]">
           <input
             type="checkbox"
             checked={dontAskAgain}

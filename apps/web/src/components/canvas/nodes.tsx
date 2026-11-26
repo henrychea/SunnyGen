@@ -16,7 +16,17 @@ import {
   motionPop,
   motionTransition,
 } from '@sunnygen/ui'
-import { Image as ImageIcon, Loader2, Minus, Play, Plus, Sparkles, StickyNote, Video, X } from 'lucide-react'
+import {
+  Image as ImageIcon,
+  Loader2,
+  Minus,
+  Play,
+  Plus,
+  StickyNote,
+  TextCursorInput,
+  Video,
+  X,
+} from 'lucide-react'
 import { useRef, useState, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { MediaPicker } from '../media-picker'
@@ -57,13 +67,13 @@ function NodeShell({
       transition={motionTransition}
       style={{ width }}
       className={cn(
-        'bg-surface overflow-hidden rounded-xl border shadow-[0_16px_44px_-30px_rgba(42,30,23,0.55)]',
+        'bg-surface overflow-hidden rounded-xl border',
         'transition-[border-color,box-shadow] duration-150 ease-out',
-        selected ? 'border-accent/50 ring-accent/12 ring-2' : 'border-line',
+        selected ? 'border-accent/50 ring-accent/12 ring-2' : 'border-line-strong',
       )}
     >
       <div className="border-line/80 flex items-center gap-2 border-b px-3 py-2">
-        <span className="text-accent/80">{icon}</span>
+        <span className="text-accent">{icon}</span>
         <span className="font-display text-ink/80 text-[11.5px] font-semibold tracking-tight">{title}</span>
         <AnimatePresence initial={false} mode="popLayout">
           {status && status !== 'idle' ? (
@@ -103,7 +113,7 @@ function OutputThumbs({ ids, kind }: { ids: string[]; kind: 'image' | 'video' })
           href={`/api/media/${id}`}
           target="_blank"
           rel="noreferrer"
-          className="nodrag border-line bg-canvas overflow-hidden rounded-md border"
+          className="nodrag border-line-strong bg-canvas overflow-hidden rounded-md border"
         >
           {kind === 'video' ? (
             <video src={`/api/media/${id}`} muted className="aspect-square w-full object-cover" />
@@ -119,14 +129,14 @@ function OutputThumbs({ ids, kind }: { ids: string[]; kind: 'image' | 'video' })
 export function PromptNode({ id, data, selected }: NodeProps<CanvasNode>) {
   const { updateNodeData } = useReactFlow()
   return (
-    <NodeShell title="Prompt" icon={<Sparkles size={13} />} selected={selected}>
+    <NodeShell title="Prompt" icon={<TextCursorInput size={13} />} selected={selected}>
       <Textarea
         value={data.text ?? ''}
         onChange={(event) => updateNodeData(id, { text: event.target.value })}
         placeholder="Describe the frame…"
         className="nodrag nowheel min-h-28 border-0 bg-transparent p-0 text-[12px] focus-visible:ring-0"
       />
-      <p className="text-ink/30 text-right text-[9.5px]">{(data.text ?? '').length} chars</p>
+      <p className="text-ink/65 text-right text-[11px]">{(data.text ?? '').length} chars</p>
       <Handle
         type="source"
         position={Position.Right}
@@ -161,7 +171,7 @@ export function MediaInputNode({ id, data, selected, type }: NodeProps<CanvasNod
               initial="hidden"
               animate="visible"
               exit="hidden"
-              className="border-line bg-canvas group relative overflow-hidden rounded-md border"
+              className="border-line-strong bg-canvas group relative overflow-hidden rounded-md border"
             >
               {video ? (
                 <video src={`/api/media/${assetId}`} muted className="aspect-square w-full object-cover" />
@@ -170,7 +180,7 @@ export function MediaInputNode({ id, data, selected, type }: NodeProps<CanvasNod
               )}
               <button
                 type="button"
-                className="nodrag bg-ink/70 text-canvas absolute top-0.5 right-0.5 grid size-4 place-items-center rounded opacity-0 transition-[opacity,transform] duration-150 ease-out group-hover:opacity-100 active:scale-[0.88]"
+                className="nodrag bg-ink/70 text-canvas absolute top-0.5 right-0.5 grid size-6 place-items-center rounded opacity-0 transition-[opacity,transform] duration-150 ease-out group-hover:opacity-100 active:scale-[0.88]"
                 onClick={() => updateNodeData(id, { assetIds: ids.filter((value) => value !== assetId) })}
                 aria-label="Remove"
               >
@@ -182,7 +192,7 @@ export function MediaInputNode({ id, data, selected, type }: NodeProps<CanvasNod
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          className="nodrag border-line text-ink/35 hover:border-accent/40 hover:text-accent grid aspect-square place-items-center rounded-md border border-dashed transition-[color,border-color,transform] duration-150 ease-out active:scale-[0.94]"
+          className="nodrag border-line-strong text-ink/65 hover:border-accent/40 hover:text-accent grid aspect-square place-items-center rounded-md border border-dashed transition-[color,border-color,transform] duration-150 ease-out active:scale-[0.94]"
           aria-label={`Add ${video ? 'video' : 'image'}`}
         >
           <motion.span
@@ -216,7 +226,7 @@ export function MediaInputNode({ id, data, selected, type }: NodeProps<CanvasNod
       <button
         type="button"
         onClick={() => setPickerOpen(true)}
-        className="nodrag border-line text-ink/45 hover:text-ink inline-flex h-7 items-center justify-center gap-1 rounded-md border text-[10px] transition-[color,border-color,transform] duration-150 ease-out active:scale-[0.97]"
+        className="nodrag border-line-strong text-ink/65 hover:text-ink inline-flex h-7 items-center justify-center gap-1 rounded-md border text-[11px] transition-[color,border-color,transform] duration-150 ease-out active:scale-[0.97]"
       >
         <ImageIcon size={10} /> Library
       </button>
@@ -296,7 +306,7 @@ export function GenerateNode({ id, data, selected, type }: NodeProps<CanvasNode>
     >
       <div className="grid grid-cols-2 gap-2">
         <div className="col-span-2 flex flex-col gap-1">
-          <span className="text-ink/40 text-[9.5px] font-semibold tracking-[0.08em] uppercase">Model</span>
+          <span className="text-ink/65 text-[11px] font-semibold">Model</span>
           <ModelCombobox
             className="nodrag"
             size="sm"
@@ -309,7 +319,7 @@ export function GenerateNode({ id, data, selected, type }: NodeProps<CanvasNode>
         </div>
 
         <label className="flex flex-col gap-1">
-          <span className="text-ink/40 text-[9.5px] font-semibold tracking-[0.08em] uppercase">Ratio</span>
+          <span className="text-ink/65 text-[11px] font-semibold">Ratio</span>
           <Select
             value={String(data.aspectRatio ?? model?.ratios[0] ?? '1:1')}
             onChange={(event) => updateNodeData(id, { aspectRatio: event.target.value })}
@@ -325,9 +335,7 @@ export function GenerateNode({ id, data, selected, type }: NodeProps<CanvasNode>
 
         {!video && model?.kind === 'image' && model.supportsQuality ? (
           <label className="flex flex-col gap-1">
-            <span className="text-ink/40 text-[9.5px] font-semibold tracking-[0.08em] uppercase">
-              Quality
-            </span>
+            <span className="text-ink/65 text-[11px] font-semibold">Quality</span>
             <Select
               value={String(data.quality ?? model.defaultQuality)}
               onChange={(event) => updateNodeData(id, { quality: event.target.value })}
@@ -345,9 +353,7 @@ export function GenerateNode({ id, data, selected, type }: NodeProps<CanvasNode>
         {video && model?.kind === 'video' ? (
           <>
             <label className="flex flex-col gap-1">
-              <span className="text-ink/40 text-[9.5px] font-semibold tracking-[0.08em] uppercase">
-                Seconds
-              </span>
+              <span className="text-ink/65 text-[11px] font-semibold">Seconds</span>
               <Select
                 value={String(data.durationSeconds ?? model.defaultDuration)}
                 onChange={(event) => updateNodeData(id, { durationSeconds: Number(event.target.value) })}
@@ -362,9 +368,7 @@ export function GenerateNode({ id, data, selected, type }: NodeProps<CanvasNode>
             </label>
             {model.resolutions.length > 0 ? (
               <label className="flex flex-col gap-1">
-                <span className="text-ink/40 text-[9.5px] font-semibold tracking-[0.08em] uppercase">
-                  Resolution
-                </span>
+                <span className="text-ink/65 text-[11px] font-semibold">Resolution</span>
                 <Select
                   value={String(data.resolution ?? model.defaultResolution)}
                   onChange={(event) => updateNodeData(id, { resolution: event.target.value })}
@@ -380,9 +384,7 @@ export function GenerateNode({ id, data, selected, type }: NodeProps<CanvasNode>
             ) : null}
             {model.modes.length > 0 ? (
               <label className="flex flex-col gap-1">
-                <span className="text-ink/40 text-[9.5px] font-semibold tracking-[0.08em] uppercase">
-                  Mode
-                </span>
+                <span className="text-ink/65 text-[11px] font-semibold">Mode</span>
                 <Select
                   value={String(data.mode ?? model.defaultMode)}
                   onChange={(event) => updateNodeData(id, { mode: event.target.value })}
@@ -397,10 +399,10 @@ export function GenerateNode({ id, data, selected, type }: NodeProps<CanvasNode>
               </label>
             ) : null}
             {model.sound ? (
-              <label className="text-ink/55 flex items-center gap-1.5 text-[10.5px]">
+              <label className="text-ink/65 flex items-center gap-1.5 text-[11px]">
                 <input
                   type="checkbox"
-                  className="nodrag accent-[#A31621]"
+                  className="nodrag accent-accent"
                   checked={Boolean(data.sound ?? true)}
                   onChange={(event) => updateNodeData(id, { sound: event.target.checked })}
                 />
@@ -415,7 +417,7 @@ export function GenerateNode({ id, data, selected, type }: NodeProps<CanvasNode>
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          className="nodrag border-line text-ink/55 hover:border-ink/25 inline-flex h-7 items-center gap-1 rounded-md border px-2 text-[10.5px] transition-[color,border-color,transform] duration-150 ease-out active:scale-[0.97]"
+          className="nodrag border-line-strong text-ink/65 hover:border-ink/60 inline-flex h-7 items-center gap-1 rounded-md border px-2 text-[11px] transition-[color,border-color,transform] duration-150 ease-out active:scale-[0.97]"
         >
           <motion.span
             key={busy ? 'busy' : 'idle'}
@@ -431,7 +433,7 @@ export function GenerateNode({ id, data, selected, type }: NodeProps<CanvasNode>
         <button
           type="button"
           onClick={() => setPickerOpen(true)}
-          className="nodrag border-line text-ink/55 hover:border-ink/25 inline-flex h-7 items-center gap-1 rounded-md border px-2 text-[10.5px] transition-[color,border-color,transform] duration-150 ease-out active:scale-[0.97]"
+          className="nodrag border-line-strong text-ink/65 hover:border-ink/60 inline-flex h-7 items-center gap-1 rounded-md border px-2 text-[11px] transition-[color,border-color,transform] duration-150 ease-out active:scale-[0.97]"
         >
           <ImageIcon size={10} /> Library
         </button>
@@ -445,7 +447,7 @@ export function GenerateNode({ id, data, selected, type }: NodeProps<CanvasNode>
             updateNodeData(id, { assetIds: [...new Set([...existing, ...ids])] })
           }}
         />
-        {refIds.length > 0 ? <span className="text-ink/35 text-[10px]">{refIds.length}</span> : null}
+        {refIds.length > 0 ? <span className="text-ink/65 text-[11px]">{refIds.length}</span> : null}
         <input
           ref={inputRef}
           type="file"
@@ -465,7 +467,7 @@ export function GenerateNode({ id, data, selected, type }: NodeProps<CanvasNode>
         />
         <Button
           size="sm"
-          className="nodrag ml-auto h-7 px-2.5 text-[10.5px]"
+          className="nodrag ml-auto h-7 px-2.5 text-[11px]"
           onClick={() => runNode(id)}
           loading={isRunning}
         >
@@ -484,7 +486,7 @@ export function GenerateNode({ id, data, selected, type }: NodeProps<CanvasNode>
                 animate="visible"
                 exit="hidden"
                 type="button"
-                className="nodrag border-line group relative overflow-hidden rounded border transition-[border-color,transform] duration-150 ease-out active:scale-[0.94]"
+                className="nodrag border-line-strong group relative overflow-hidden rounded border transition-[border-color,transform] duration-150 ease-out active:scale-[0.94]"
                 onClick={() => updateNodeData(id, { assetIds: refIds.filter((value) => value !== assetId) })}
                 title="Remove reference"
               >
@@ -506,7 +508,7 @@ export function GenerateNode({ id, data, selected, type }: NodeProps<CanvasNode>
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={motionTransition}
-            className="bg-error/8 text-error overflow-hidden rounded-md text-[10px] leading-snug"
+            className="bg-error/8 text-error overflow-hidden rounded-md text-[11px] leading-snug"
           >
             <span className="block px-2 py-1.5">{data.error}</span>
           </motion.p>
@@ -565,7 +567,7 @@ export function CommentNode({ id, data, selected }: NodeProps<CanvasNode>) {
   return (
     <div
       className={cn(
-        'w-[190px] rounded-lg border bg-[#FFF8E7] px-2.5 py-2 shadow-sm',
+        'bg-warning/10 w-[190px] rounded-lg border px-2.5 py-2',
         selected ? 'border-warning/50' : 'border-warning/25',
       )}
     >

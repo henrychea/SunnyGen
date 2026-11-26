@@ -21,6 +21,7 @@ import {
 } from '@sunnygen/ui'
 import { FileAudio, FolderPlus, Loader2, MoreHorizontal, Trash2, Upload, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
+import { RefreshError } from '~/components/refresh-error'
 import { PageBody, PageHeader, PageScroll } from '~/components/app-shell'
 import { FolderChips } from '~/components/folder-chips'
 import { formatBytes, formatDate } from '~/lib/format'
@@ -219,7 +220,7 @@ function AssetsPage() {
                     transition={motionFast}
                     type="button"
                     onClick={() => setAddingFolder(true)}
-                    className="text-ink/40 hover:text-ink flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1.5 text-[10.5px] transition-colors active:scale-[0.98] motion-reduce:active:scale-100 sm:text-[11px]"
+                    className="text-ink/65 hover:text-ink flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1.5 text-[11px] transition-colors active:scale-[0.98] motion-reduce:active:scale-100 sm:text-[11px]"
                   >
                     <FolderPlus size={13} /> New folder
                   </motion.button>
@@ -275,7 +276,7 @@ function AssetsPage() {
 
           <div>
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <div className="border-line bg-surface inline-flex rounded-xl border p-0.5">
+              <div className="border-line-strong bg-surface inline-flex rounded-xl border p-0.5">
                 {(['all', 'image', 'video', 'audio'] as const).map((option) => (
                   <button
                     key={option}
@@ -283,7 +284,7 @@ function AssetsPage() {
                     onClick={() => selectKind(option)}
                     className={cn(
                       'relative rounded-[10px] px-2.5 py-1.5 text-[11px] font-medium capitalize transition-colors duration-150 ease-out active:scale-[0.96] motion-reduce:active:scale-100',
-                      kind === option ? 'text-canvas' : 'text-ink/50 hover:text-ink',
+                      kind === option ? 'text-canvas' : 'text-ink/65 hover:text-ink',
                     )}
                   >
                     {kind === option ? (
@@ -297,7 +298,7 @@ function AssetsPage() {
                   </button>
                 ))}
               </div>
-              <p className="text-ink/40 text-[11.5px]">
+              <p className="text-ink/65 text-[11.5px]">
                 <AnimatePresence mode="popLayout" initial={false}>
                   <motion.span
                     key={contentState === 'items' ? `count-${items.length}` : contentState}
@@ -352,7 +353,7 @@ function AssetsPage() {
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0 }}
                     transition={motionFast}
-                    className="border-accent/40 bg-canvas/75 text-accent pointer-events-none absolute inset-0 z-10 grid place-items-center rounded-2xl border border-dashed text-[12px] font-medium backdrop-blur-[1px]"
+                    className="border-accent/40 bg-canvas text-accent pointer-events-none absolute inset-0 z-10 grid place-items-center rounded-2xl border border-dashed text-[12px] font-medium"
                   >
                     Drop files to upload
                   </motion.div>
@@ -372,12 +373,20 @@ function AssetsPage() {
                       pendingSwitch ? 'pointer-events-none opacity-55' : 'opacity-100',
                     )}
                   >
+                    {assets.isRefetchError ? (
+                      <div className="mb-3">
+                        <RefreshError
+                          message="Could not refresh the files."
+                          onRetry={() => void assets.refetch()}
+                        />
+                      </div>
+                    ) : null}
                     {assets.isPending ? (
                       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                         {Array.from({ length: 6 }).map((_, index) => (
                           <div
                             key={index}
-                            className="border-line bg-surface overflow-hidden rounded-xl border"
+                            className="border-line-strong bg-surface overflow-hidden rounded-xl border"
                           >
                             <Skeleton className="aspect-square rounded-none" />
                             <div className="flex items-center justify-between gap-2 px-2.5 py-2">
@@ -391,9 +400,9 @@ function AssetsPage() {
                         ))}
                       </div>
                     ) : items.length === 0 ? (
-                      <div className="border-line bg-surface/50 rounded-2xl border border-dashed px-6 py-20 text-center">
+                      <div className="border-line-strong bg-surface/50 rounded-2xl border border-dashed px-6 py-20 text-center">
                         <p className="font-display text-[15px] font-semibold">No assets here.</p>
-                        <p className="text-ink/50 mt-2 text-[12.5px]">
+                        <p className="text-ink/65 mt-2 text-[12.5px]">
                           Drop files anywhere in this panel or use Upload.
                         </p>
                       </div>
@@ -407,7 +416,7 @@ function AssetsPage() {
                               animate={{ opacity: 1, y: 0 }}
                               exit={{ opacity: 0, scale: 0.98 }}
                               transition={motionFast}
-                              className="border-line bg-surface group hover:border-ink/20 relative overflow-hidden rounded-xl border transition-[border-color,box-shadow,transform] duration-200 ease-out hover:-translate-y-0.5"
+                              className="border-line-strong bg-surface group hover:border-ink/60 relative overflow-hidden rounded-xl border transition-[border-color,box-shadow,transform] duration-200 ease-out hover:-translate-y-0.5"
                             >
                               <button
                                 type="button"
@@ -420,6 +429,8 @@ function AssetsPage() {
                                     src={thumbUrl(asset.url, 640)}
                                     srcSet={thumbSrcSet(asset.url, [320, 640])}
                                     sizes="(min-width: 1280px) 300px, (min-width: 640px) 45vw, 92vw"
+                                    width={asset.width ?? undefined}
+                                    height={asset.height ?? undefined}
                                     alt=""
                                     loading="lazy"
                                     decoding="async"
@@ -435,7 +446,7 @@ function AssetsPage() {
                                     className="size-full object-cover"
                                   />
                                 ) : (
-                                  <span className="text-ink/30 grid size-full place-items-center">
+                                  <span className="text-ink/65 grid size-full place-items-center">
                                     <FileAudio size={32} strokeWidth={1.4} />
                                   </span>
                                 )}
@@ -445,12 +456,12 @@ function AssetsPage() {
                                   <p className="text-ink/70 truncate text-[11px] font-medium">
                                     {asset.name ?? asset.mime.split('/')[1]?.toUpperCase() ?? asset.mime}
                                   </p>
-                                  <p className="text-ink/35 text-[10px]">
+                                  <p className="text-ink/65 text-[11px]">
                                     {formatBytes(asset.byteSize)} · {formatDate(asset.createdAt)}
                                   </p>
                                 </div>
                                 <DropdownMenu.Root>
-                                  <DropdownMenu.Trigger className="text-ink/40 hover:bg-ink/5 hover:text-ink inline-flex size-7 items-center justify-center rounded-md outline-none">
+                                  <DropdownMenu.Trigger className="text-ink/65 hover:bg-ink/5 hover:text-ink inline-flex size-7 items-center justify-center rounded-md outline-none">
                                     <MoreHorizontal size={14} />
                                   </DropdownMenu.Trigger>
                                   <DropdownMenuContent>
@@ -482,7 +493,7 @@ function AssetsPage() {
                                     initial="hidden"
                                     animate="visible"
                                     exit="hidden"
-                                    className="bg-canvas/55 text-ink/50 pointer-events-none absolute inset-0 z-20 grid place-items-center"
+                                    className="bg-canvas/55 text-ink/65 pointer-events-none absolute inset-0 z-20 grid place-items-center"
                                   >
                                     <Loader2 size={16} className="animate-spin" />
                                   </motion.span>
@@ -509,16 +520,16 @@ function AssetsPage() {
             initial="hidden"
             animate="visible"
             exit="hidden"
-            className="bg-ink/55 fixed inset-0 z-40 flex items-center justify-center p-4 backdrop-blur-sm"
+            className="bg-ink/55 fixed inset-0 z-40 flex items-center justify-center p-4"
           >
             <motion.div
               variants={motionPop}
-              className="border-line bg-surface relative w-full max-w-3xl overflow-hidden rounded-2xl border shadow-2xl"
+              className="border-line-strong bg-surface shadow-dialog relative w-full max-w-3xl overflow-hidden rounded-2xl border"
             >
               <div className="border-line flex items-center justify-between border-b px-4 py-2.5">
                 <div className="flex items-center gap-2">
                   <Badge tone="neutral">{preview.kind}</Badge>
-                  <span className="text-ink/45 text-[11px]">
+                  <span className="text-ink/65 text-[11px]">
                     {formatBytes(preview.byteSize)}
                     {preview.width && preview.height ? ` · ${preview.width}×${preview.height}` : ''}
                   </span>
@@ -528,7 +539,7 @@ function AssetsPage() {
                     type="button"
                     disabled={remove.isPending}
                     onClick={() => remove.mutate(preview)}
-                    className="text-ink/50 hover:bg-error/10 hover:text-error inline-flex size-8 items-center justify-center rounded-lg transition-[color,background-color,scale] duration-150 ease-out active:scale-[0.94] disabled:opacity-60 motion-reduce:active:scale-100"
+                    className="text-ink/65 hover:bg-error/10 hover:text-error inline-flex size-8 items-center justify-center rounded-lg transition-[color,background-color,scale] duration-150 ease-out active:scale-[0.94] disabled:opacity-60 motion-reduce:active:scale-100"
                     aria-label="Delete"
                   >
                     <AnimatePresence mode="wait" initial={false}>
@@ -551,7 +562,7 @@ function AssetsPage() {
                   <button
                     type="button"
                     onClick={() => setPreview(null)}
-                    className="text-ink/50 hover:bg-ink/5 inline-flex size-8 items-center justify-center rounded-lg transition-[color,background-color,scale] duration-150 ease-out active:scale-[0.94] motion-reduce:active:scale-100"
+                    className="text-ink/65 hover:bg-ink/5 inline-flex size-8 items-center justify-center rounded-lg transition-[color,background-color,scale] duration-150 ease-out active:scale-[0.94] motion-reduce:active:scale-100"
                     aria-label="Close"
                   >
                     <X size={15} />
@@ -563,6 +574,8 @@ function AssetsPage() {
                   <FadeImage
                     shimmer
                     src={preview.url}
+                    width={preview.width ?? undefined}
+                    height={preview.height ?? undefined}
                     alt=""
                     className="max-h-[75dvh] rounded-lg object-contain"
                   />

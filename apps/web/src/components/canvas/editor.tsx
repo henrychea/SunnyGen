@@ -21,7 +21,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   motionFade,
-  motionMountRise,
   motionTransition,
   toast,
 } from '@sunnygen/ui'
@@ -33,11 +32,11 @@ import {
   Play,
   Plus,
   Save,
-  Sparkles,
   StickyNote,
+  TextCursorInput,
   Video,
 } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import {
   defaultGraph,
@@ -53,17 +52,18 @@ import {
 } from '~/lib/workflow'
 import { getGenerationView, submitGeneration } from '~/server/generation.functions'
 import { saveWorkflowFn, type WorkflowDocument, type WorkflowSummary } from '~/server/workflow.functions'
+import { useThemeColors } from '~/lib/theme-colors'
 import { CanvasActionsContext } from './context'
 import { canvasNodeTypes } from './nodes'
 
 const EDGE_DEFAULTS = {
   type: 'smoothstep',
-  style: { stroke: '#A31621', strokeWidth: 1.4 },
+  style: { strokeWidth: 1.4 },
   interactionWidth: 18,
 }
 
-const PALETTE: Array<{ type: CanvasNodeType; label: string; icon: typeof Sparkles }> = [
-  { type: 'prompt', label: 'Prompt', icon: Sparkles },
+const PALETTE: Array<{ type: CanvasNodeType; label: string; icon: typeof TextCursorInput }> = [
+  { type: 'prompt', label: 'Prompt', icon: TextCursorInput },
   { type: 'image-input', label: 'Image input', icon: ImageIcon },
   { type: 'video-input', label: 'Video input', icon: Video },
   { type: 'generate-image', label: 'Generate image', icon: LayoutGrid },
@@ -91,8 +91,20 @@ function CanvasInner({ latest, workflows }: WorkflowEditorProps) {
   const queryClient = useQueryClient()
   const { screenToFlowPosition, fitView } = useReactFlow()
   const navigate = useNavigate()
+  const themeColors = useThemeColors()
   const [nodes, setNodes, onNodesChange] = useNodesState<CanvasNode>(graph.nodes)
   const [edges, setEdges, onEdgesChange] = useEdgesState<CanvasEdge>(graph.edges.map(withEdgeStyle))
+  const styledEdges = useMemo(
+    () =>
+      edges.map((edge) =>
+        edge.style?.stroke ? edge : { ...edge, style: { ...edge.style, stroke: themeColors.accent } },
+      ),
+    [edges, themeColors.accent],
+  )
+  const edgeDefaults = useMemo(
+    () => ({ ...EDGE_DEFAULTS, style: { ...EDGE_DEFAULTS.style, stroke: themeColors.accent } }),
+    [themeColors.accent],
+  )
   const [name, setName] = useState(latest?.name ?? 'Untitled pipeline')
   const [workflowId, setWorkflowId] = useState<string | null>(latest?.id ?? null)
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
@@ -388,12 +400,12 @@ function CanvasInner({ latest, workflows }: WorkflowEditorProps) {
             <input
               value={name}
               onChange={(event) => setName(event.target.value)}
-              className="font-display text-ink hover:border-line focus:border-line w-48 rounded-lg border border-transparent bg-transparent px-1.5 py-1 text-[13px] font-semibold transition-colors duration-150 ease-out outline-none"
+              className="font-display text-ink hover:border-line-strong focus:border-line-strong w-48 rounded-lg border border-transparent bg-transparent px-1.5 py-1 text-[13px] font-semibold transition-colors duration-150 ease-out outline-none"
               aria-label="Workflow name"
             />
           </div>
 
-          <span className="text-ink/35 text-[10.5px]">
+          <span className="text-ink/65 text-[11px]">
             <motion.span
               key={statusLabel}
               variants={motionFade}
@@ -408,7 +420,7 @@ function CanvasInner({ latest, workflows }: WorkflowEditorProps) {
           <div className="ml-auto flex items-center gap-1.5">
             {workflows.length > 0 ? (
               <DropdownMenu.Root>
-                <DropdownMenu.Trigger className="border-line text-ink/60 hover:text-ink inline-flex h-8 items-center rounded-lg border px-2.5 text-[11.5px] transition-[color,border-color,transform] duration-150 ease-out active:scale-[0.97]">
+                <DropdownMenu.Trigger className="border-line-strong text-ink/65 hover:text-ink inline-flex h-8 items-center rounded-lg border px-2.5 text-[11.5px] transition-[color,border-color,transform] duration-150 ease-out active:scale-[0.97]">
                   Open
                 </DropdownMenu.Trigger>
                 <DropdownMenuContent>
@@ -483,12 +495,12 @@ function CanvasInner({ latest, workflows }: WorkflowEditorProps) {
         <div className="relative min-h-0 flex-1">
           <ReactFlow
             nodes={nodes}
-            edges={edges}
+            edges={styledEdges}
             nodeTypes={canvasNodeTypes}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
-            defaultEdgeOptions={EDGE_DEFAULTS}
+            defaultEdgeOptions={edgeDefaults}
             fitView
             fitViewOptions={{ padding: 0.25 }}
             minZoom={0.15}
@@ -497,15 +509,14 @@ function CanvasInner({ latest, workflows }: WorkflowEditorProps) {
             proOptions={{ hideAttribution: false }}
             className="bg-canvas"
           >
-            <Background variant={BackgroundVariant.Dots} gap={22} size={1} color="#D9CEBF" />
+            <Background variant={BackgroundVariant.Dots} gap={22} size={1} color={themeColors.line} />
             <Controls
               showInteractive={false}
-              className="!border-line !bg-surface !rounded-xl !border !shadow-sm"
+              className="!border-line-strong !bg-surface !rounded-xl !border"
             />
             <div
               className={cn(
-                'border-line bg-surface/95 absolute top-3 left-3 z-10 flex flex-col gap-1 rounded-xl border p-1.5 shadow-sm backdrop-blur',
-                motionMountRise,
+                'border-line-strong bg-surface absolute top-3 left-3 z-10 flex flex-col gap-1 rounded-xl border p-1.5',
               )}
             >
               {PALETTE.map((item) => {
@@ -516,17 +527,17 @@ function CanvasInner({ latest, workflows }: WorkflowEditorProps) {
                     type="button"
                     onClick={() => addNode(item.type)}
                     className={cn(
-                      'text-ink/55 flex items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[11px] font-medium',
+                      'text-ink/65 flex items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[11px] font-medium',
                       'hover:bg-ink/[0.05] hover:text-ink',
                       'transition-[color,background-color,transform] duration-150 ease-out active:scale-[0.97]',
                     )}
                   >
-                    <Icon size={12} className="text-ink/35" />
+                    <Icon size={12} className="text-ink/65" />
                     {item.label}
                   </button>
                 )
               })}
-              <p className="text-ink/25 px-2 py-1 text-[9px]">{APP_NAME} canvas</p>
+              <p className="text-ink/65 px-2 py-1 text-[11px]">{APP_NAME} canvas</p>
             </div>
           </ReactFlow>
         </div>

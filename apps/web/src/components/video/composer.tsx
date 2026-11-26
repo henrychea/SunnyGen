@@ -31,7 +31,7 @@ import {
   Minimize2,
   Minus,
   Replace,
-  Sparkles,
+  TextCursorInput,
   Volume2,
   VolumeX,
   X,
@@ -428,13 +428,13 @@ export function VideoComposer({
           onClick={() => setMinimized(false)}
           aria-label="Open prompt"
           className={cn(
-            'border-line bg-surface md:bg-surface/92 text-ink/65 hover:border-ink/25 hover:text-ink pointer-events-auto flex items-center gap-2 rounded-full border px-4 py-2.5 text-[12px] font-medium shadow-[0_18px_50px_-24px_rgba(42,30,23,0.55)] transition-[color,border-color,transform] md:backdrop-blur-xl',
+            'border-line-strong bg-surface text-ink/65 hover:border-ink/60 hover:text-ink pointer-events-auto flex items-center gap-2 rounded-full border px-4 py-2.5 text-[12px] font-medium shadow-toast transition-[color,border-color,transform]',
             motionPress,
           )}
         >
-          <Sparkles size={13} className="text-accent/80" />
+          <TextCursorInput size={13} className="text-accent" />
           Prompt
-          <span className="text-ink/65 hidden max-w-32 truncate text-[10.5px] sm:block">
+          <span className="text-ink/65 hidden max-w-32 truncate text-[11px] sm:block">
             {activeModel?.label ?? 'Video'}
           </span>
           <ChevronUp size={13} className="text-ink/65" />
@@ -456,7 +456,7 @@ export function VideoComposer({
             initial="hidden"
             animate="visible"
             exit="hidden"
-            className="bg-ink/25 fixed inset-0 z-40 md:backdrop-blur-[2px]"
+            className="bg-ink/25 fixed inset-0 z-40"
           />
         ) : null}
       </AnimatePresence>
@@ -473,7 +473,7 @@ export function VideoComposer({
           transition={motionSpring}
           data-assistant-clearance=""
           className={cn(
-            'border-line bg-surface md:bg-surface/92 pointer-events-auto relative mx-auto flex w-full flex-col overflow-hidden border shadow-[0_28px_80px_-30px_rgba(42,30,23,0.55)] transition-[border-radius,border-color] focus-within:border-accent/25 md:backdrop-blur-xl',
+            'border-line-strong bg-surface pointer-events-auto relative mx-auto flex w-full flex-col overflow-hidden border shadow-dialog transition-[border-radius,border-color] focus-within:border-accent/25',
             expanded ? 'h-full max-h-[840px] max-w-[1000px] rounded-[26px]' : 'max-w-[860px] rounded-[22px]',
           )}
         >
@@ -561,7 +561,7 @@ export function VideoComposer({
                 />
               ) : null}
               <span className="relative flex items-center gap-1.5">
-                <Sparkles size={12} />
+                <ImagePlus size={12} />
                 Generate
               </span>
             </button>
@@ -599,11 +599,11 @@ export function VideoComposer({
                   onClick={() => chooseFlowMode(entry)}
                   disabled={busy}
                   className={cn(
-                    'flex h-6 items-center rounded-md border px-2 text-[10px] font-medium transition-[color,background-color,border-color,transform]',
+                    'flex h-8 items-center rounded-md border px-2 text-[11px] font-medium transition-[color,background-color,border-color,transform]',
                     motionPress,
                     videoMode === entry
                       ? 'border-accent/30 bg-accent/10 text-accent'
-                      : 'border-line bg-canvas/55 text-ink/65 hover:text-ink',
+                      : 'border-line-strong bg-canvas/55 text-ink/65 hover:text-ink',
                   )}
                 >
                   {VIDEO_MODE_LABELS[entry]}
@@ -657,7 +657,7 @@ export function VideoComposer({
                       setEditReferences((current) => current.filter((entry) => entry.id !== id))
                     }
                   />
-                  <p className="text-ink/65 px-3 pt-1 text-[9px] leading-snug">
+                  <p className="text-ink/65 px-3 pt-1 text-[11px] leading-snug">
                     Each target video becomes its own edit. Avatars use their clean sheet and 4x4 panel for
                     face and body.
                   </p>
@@ -667,10 +667,7 @@ export function VideoComposer({
           </AnimatePresence>
 
           <div className={cn('flex min-h-0 flex-col px-3 pt-2', expanded ? 'flex-1 pb-2' : '')}>
-            <label
-              htmlFor="video-prompt"
-              className="text-ink/65 text-[9px] font-semibold tracking-[0.1em] uppercase"
-            >
+            <label htmlFor="video-prompt" className="text-ink/65 text-[11px] font-semibold">
               Prompt
             </label>
             <textarea
@@ -713,7 +710,7 @@ export function VideoComposer({
                 initial="hidden"
                 animate="visible"
                 exit="hidden"
-                className={cn('px-3 pt-1.5 text-[10.5px]', error ? 'text-error' : 'text-ink/65')}
+                className={cn('px-3 pt-1.5 text-[11px]', error ? 'text-error' : 'text-ink/65')}
               >
                 {error ?? notice}
               </motion.p>
@@ -790,7 +787,7 @@ export function VideoComposer({
                       motionPress,
                       videoParams.sound
                         ? 'border-accent/30 bg-accent/10 text-accent'
-                        : 'border-line bg-canvas/55 text-ink/65 hover:text-ink',
+                        : 'border-line-strong bg-canvas/55 text-ink/65 hover:text-ink',
                     )}
                   >
                     {videoParams.sound ? <Volume2 size={13} /> : <VolumeX size={13} />}
@@ -799,13 +796,13 @@ export function VideoComposer({
                 ) : null}
               </>
             ) : (
-              <span className="text-ink/65 text-[10.5px]">No video model documents this mode.</span>
+              <span className="text-ink/65 text-[11px]">No video model documents this mode.</span>
             )}
 
             <div className="ml-auto flex items-center gap-2">
               <span
                 className={cn(
-                  'text-[10px] tabular-nums transition-colors duration-300',
+                  'text-[11px] tabular-nums transition-colors duration-300',
                   overLimit ? 'text-error' : 'text-ink/65',
                 )}
               >
@@ -817,7 +814,7 @@ export function VideoComposer({
                 disabled={disabled}
                 aria-label={mode === 'edit' ? 'Apply edit' : 'Generate'}
                 title={busy ? 'Submitting' : mode === 'edit' ? 'Apply edit' : 'Generate'}
-                className="bg-accent hover:bg-accent/90 relative grid size-9 place-items-center rounded-full text-white shadow-[0_8px_20px_-10px_rgba(163,22,33,0.7)] transition-[background-color,transform] duration-150 hover:scale-[1.03] active:scale-95 disabled:pointer-events-none disabled:opacity-35 motion-reduce:hover:scale-100 motion-reduce:active:scale-100"
+                className="bg-accent hover:bg-accent/90 text-accent-ink relative grid size-9 place-items-center rounded-full transition-[background-color,transform] duration-150 hover:scale-[1.03] active:scale-95 disabled:pointer-events-none disabled:opacity-35 motion-reduce:hover:scale-100 motion-reduce:active:scale-100"
               >
                 <AnimatePresence initial={false} mode="popLayout">
                   <motion.span
@@ -896,8 +893,8 @@ function SelectionBox({
   return (
     <div className="px-3 pt-2">
       <div className="flex items-center justify-between">
-        <span className="text-ink/65 text-[9px] font-semibold tracking-[0.1em] uppercase">{label}</span>
-        <span className="text-ink/65 text-[9px] tabular-nums">
+        <span className="text-ink/65 text-[11px] font-semibold">{label}</span>
+        <span className="text-ink/65 text-[11px] tabular-nums">
           {items.length}/{Number.isFinite(slots) ? slots : max}
         </span>
       </div>
@@ -912,7 +909,7 @@ function SelectionBox({
               animate="visible"
               exit="hidden"
               transition={motionFast}
-              className="border-line group relative overflow-hidden rounded-lg border"
+              className="border-line-strong group relative overflow-hidden rounded-lg border"
             >
               {item.kind === 'video' ? (
                 <video src={item.url} muted preload="metadata" playsInline className="size-12 object-cover" />
@@ -927,11 +924,11 @@ function SelectionBox({
                 />
               )}
               {labels?.[index] ? (
-                <span className="bg-ink/65 text-canvas absolute inset-x-0 bottom-0 truncate px-1 py-px text-[7px] font-semibold tracking-[0.04em] uppercase backdrop-blur">
+                <span className="bg-ink text-canvas absolute inset-x-0 bottom-0 truncate px-1 py-px text-[11px] font-semibold">
                   {labels[index]}
                 </span>
               ) : item.lora ? (
-                <span className="bg-accent text-canvas absolute bottom-0 left-0 rounded-tr px-1 py-px text-[7px] font-semibold tracking-[0.04em] uppercase">
+                <span className="bg-accent text-canvas absolute bottom-0 left-0 rounded-tr px-1 py-px text-[11px] font-semibold">
                   LoRA
                 </span>
               ) : null}
@@ -940,7 +937,7 @@ function SelectionBox({
                   tone="warning"
                   title="Larger than providers accept; will be resized"
                   aria-label="Larger than providers accept; will be resized"
-                  className="absolute top-0.5 left-0.5 px-1 py-px text-[7px]"
+                  className="absolute top-0.5 left-0.5 px-1 py-px text-[11px]"
                 >
                   Large
                 </Badge>
@@ -949,7 +946,7 @@ function SelectionBox({
                 type="button"
                 onClick={() => onRemove(item.id)}
                 aria-label={`Remove ${item.name}`}
-                className="bg-ink/75 text-canvas absolute top-0.5 right-0.5 grid size-4 place-items-center rounded opacity-100 transition-[opacity,transform] hover:scale-110 active:scale-95 md:opacity-0 md:group-hover:opacity-100"
+                className="bg-ink/75 text-canvas absolute top-0.5 right-0.5 grid size-6 place-items-center rounded opacity-100 transition-[opacity,transform] hover:scale-110 active:scale-95 md:opacity-0 md:group-hover:opacity-100"
               >
                 <X size={9} />
               </button>
@@ -996,10 +993,10 @@ function AddTile({
       animate="visible"
       exit="hidden"
       transition={motionFast}
-      className="border-line bg-canvas/50 text-ink/65 hover:border-accent/35 hover:text-accent flex size-12 flex-col items-center justify-center gap-0.5 rounded-lg border border-dashed px-0.5 text-center transition-[color,border-color,transform] active:scale-95 disabled:opacity-40"
+      className="border-line-strong bg-canvas/50 text-ink/65 hover:border-accent/35 hover:text-accent flex size-12 flex-col items-center justify-center gap-0.5 rounded-lg border border-dashed px-0.5 text-center transition-[color,border-color,transform] active:scale-95 disabled:opacity-40"
     >
       <ImagePlus size={13} />
-      <span className="text-[7px] leading-tight font-semibold tracking-[0.03em] uppercase">{label}</span>
+      <span className="text-[11px] leading-tight font-semibold">{label}</span>
     </motion.button>
   )
 }

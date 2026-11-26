@@ -32,7 +32,7 @@ export function CleanupFailedButton({ count, className }: { count: number; class
       title="Delete all failed generations"
       className={cn(
         className ??
-          'border-line bg-surface text-ink/45 hover:border-error/25 hover:text-error inline-flex h-8 shrink-0 items-center gap-1 rounded-lg border px-2.5 text-[10.5px] font-medium transition-[color,border-color,transform] active:scale-[0.97] disabled:opacity-50 motion-reduce:active:scale-100',
+          'border-line-strong bg-surface text-ink/65 hover:border-error/25 hover:text-error inline-flex h-8 shrink-0 items-center gap-1 rounded-lg border px-2.5 text-[11px] font-medium transition-[color,border-color,transform] active:scale-[0.97] disabled:opacity-50 motion-reduce:active:scale-100',
         motionMountFade,
       )}
     >

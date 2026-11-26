@@ -1,7 +1,7 @@
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { parseAvatarProfile, parseGarmentViews, type GarmentSlot, type GarmentSource } from '@sunnygen/core'
-import { Badge, Button, Card, FadeImage, Textarea, cn, motionMountRise, toast } from '@sunnygen/ui'
+import { Badge, Button, Card, FadeImage, Textarea, cn, toast } from '@sunnygen/ui'
 import { Camera, Check, Images, Loader2 } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { PageBody, PageHeader, PageScroll } from '~/components/app-shell'
@@ -274,7 +274,7 @@ function ShootsPage() {
                         onClick={() => setAvatarId(item.id)}
                         className={cn(
                           'relative w-20 shrink-0 overflow-hidden rounded-xl border text-left transition-[border-color] duration-200 ease-out',
-                          active ? 'border-accent/60' : 'border-line hover:border-ink/25',
+                          active ? 'border-accent/60' : 'border-line-strong hover:border-ink/60',
                         )}
                       >
                         {active ? (
@@ -292,7 +292,7 @@ function ShootsPage() {
                         ) : (
                           <div className="bg-ink/[0.04] aspect-square" />
                         )}
-                        <p className="text-ink/60 truncate px-1.5 py-1 text-[10px]">{item.name}</p>
+                        <p className="text-ink/65 truncate px-1.5 py-1 text-[11px]">{item.name}</p>
                       </button>
                     )
                   })}
@@ -335,7 +335,7 @@ function ShootsPage() {
           <Card className="p-4">
             <Step title="4. Poses" hint={poseIds.length > 0 ? `${poseIds.length} picked` : 'optional'}>
               {library.poses.length === 0 ? (
-                <p className="border-line text-ink/40 rounded-lg border border-dashed px-3 py-5 text-center text-[11.5px]">
+                <p className="border-line-strong text-ink/65 rounded-lg border border-dashed px-3 py-5 text-center text-[11.5px]">
                   No poses saved. Each look keeps a relaxed, natural stance.
                 </p>
               ) : (
@@ -352,10 +352,8 @@ function ShootsPage() {
           <Card className="p-4">
             <div className="mb-3 flex flex-wrap items-center gap-2">
               <div>
-                <p className="text-ink/45 text-[11px] font-semibold tracking-[0.08em] uppercase">
-                  5. Combinations
-                </p>
-                <p className="text-ink/40 mt-0.5 text-[10.5px]">
+                <p className="text-ink/65 text-[11px] font-semibold">5. Combinations</p>
+                <p className="text-ink/65 mt-0.5 text-[11px]">
                   {plan.total} {plan.total === 1 ? 'combination' : 'combinations'} · {cells.length} queued
                 </p>
               </div>
@@ -377,19 +375,19 @@ function ShootsPage() {
             </div>
 
             {plan.dropped > 0 ? (
-              <p className="bg-warning/[0.08] text-ink/60 mb-3 rounded-lg px-2.5 py-1.5 text-[10.5px]">
+              <p className="bg-warning/[0.08] text-ink/65 mb-3 rounded-lg px-2.5 py-1.5 text-[11px]">
                 A shoot queues at most {MAX_BATCH} looks. The first {MAX_BATCH} of {plan.total} are shown;
                 uncheck or trim the picks to swap them.
               </p>
             ) : null}
             {overReferenceLimit ? (
-              <p className="bg-warning/[0.08] text-ink/60 mb-3 rounded-lg px-2.5 py-1.5 text-[10.5px]">
+              <p className="bg-warning/[0.08] text-ink/65 mb-3 rounded-lg px-2.5 py-1.5 text-[11px]">
                 {model?.label} takes {referenceLimit} reference images per look. Extra references are dropped
                 when queuing.
               </p>
             ) : null}
             {error ? (
-              <p role="alert" className="text-error/80 mb-3 text-[11px]">
+              <p role="alert" className="text-error mb-3 text-[11px]">
                 {error}
               </p>
             ) : null}
@@ -405,8 +403,7 @@ function ShootsPage() {
                   <div
                     key={cell.key}
                     className={cn(
-                      'border-line bg-canvas/40 flex flex-col gap-2 rounded-xl border p-2.5',
-                      motionMountRise,
+                      'border-line-strong bg-canvas/40 flex flex-col gap-2 rounded-xl border p-2.5',
                     )}
                   >
                     <div className="flex items-start gap-2">
@@ -422,13 +419,13 @@ function ShootsPage() {
                           {cell.label}
                         </span>
                       </label>
-                      <span className="text-ink/30 shrink-0 text-[9.5px]">{cell.assetIds.length} refs</span>
+                      <span className="text-ink/65 shrink-0 text-[11px]">{cell.assetIds.length} refs</span>
                     </div>
                     <div className="flex gap-1 overflow-x-auto">
                       {cell.assetIds.map((id, index) => (
                         <span
                           key={`${id}-${index}`}
-                          className="border-line size-10 shrink-0 overflow-hidden rounded-md border"
+                          className="border-line-strong size-10 shrink-0 overflow-hidden rounded-md border"
                         >
                           <FadeImage
                             src={thumbUrl(mediaUrl(id), 160)}
@@ -446,7 +443,7 @@ function ShootsPage() {
                         setPrompts((current) => ({ ...current, [cell.key]: event.target.value }))
                       }
                       aria-label={`Prompt for ${cell.label}`}
-                      className="min-h-20 text-[10.5px] leading-snug"
+                      className="min-h-20 text-[11px] leading-snug"
                     />
                   </div>
                 ))}
@@ -456,7 +453,7 @@ function ShootsPage() {
 
           <Card className="p-4">
             <div className="mb-3 flex flex-wrap items-center gap-2">
-              <p className="text-ink/45 text-[11px] font-semibold tracking-[0.08em] uppercase">Shoot queue</p>
+              <p className="text-ink/65 text-[11px] font-semibold">Shoot queue</p>
               <div className="flex items-center gap-1.5">
                 {shootRunning > 0 ? <Badge tone="accent">{shootRunning} running</Badge> : null}
                 {shootFailed > 0 ? <Badge tone="error">{shootFailed} failed</Badge> : null}
@@ -494,7 +491,7 @@ function ShootsPage() {
             )}
           </Card>
 
-          <p className="text-ink/35 text-[10.5px]">
+          <p className="text-ink/65 text-[11px]">
             Shoot setups are not saved yet. The queued looks and their folder stay in Gallery.
           </p>
         </div>
@@ -511,8 +508,8 @@ function Step({ title, hint, children }: { title: string; hint?: string; childre
   return (
     <div>
       <div className="mb-2 flex items-center gap-2">
-        <p className="text-ink/45 text-[11px] font-semibold tracking-[0.08em] uppercase">{title}</p>
-        {hint ? <span className="text-ink/35 text-[10.5px]">{hint}</span> : null}
+        <p className="text-ink/65 text-[11px] font-semibold">{title}</p>
+        {hint ? <span className="text-ink/65 text-[11px]">{hint}</span> : null}
       </div>
       {children}
     </div>
@@ -535,7 +532,7 @@ function MultiGrid({
   return (
     <div>
       {items.length === 0 ? (
-        <p className="border-line text-ink/40 rounded-lg border border-dashed px-3 py-5 text-center text-[11.5px]">
+        <p className="border-line-strong text-ink/65 rounded-lg border border-dashed px-3 py-5 text-center text-[11.5px]">
           Nothing saved here yet.
         </p>
       ) : (
@@ -551,7 +548,7 @@ function MultiGrid({
                 aria-pressed={active}
                 className={cn(
                   'relative overflow-hidden rounded-lg border text-left transition-[border-color] duration-200 ease-out',
-                  active ? 'border-accent/60' : 'border-line hover:border-ink/25',
+                  active ? 'border-accent/60' : 'border-line-strong hover:border-ink/60',
                 )}
               >
                 {active ? (
@@ -574,26 +571,26 @@ function MultiGrid({
                 ) : (
                   <div className="bg-ink/[0.04] aspect-square" />
                 )}
-                <p className="text-ink/60 truncate px-1.5 py-1 text-[10px]">{item.name}</p>
+                <p className="text-ink/65 truncate px-1.5 py-1 text-[11px]">{item.name}</p>
               </button>
             )
           })}
         </div>
       )}
-      {emptyHint ? <p className="text-ink/35 mt-1.5 text-[10.5px]">{emptyHint}</p> : null}
+      {emptyHint ? <p className="text-ink/65 mt-1.5 text-[11px]">{emptyHint}</p> : null}
     </div>
   )
 }
 
 function EmptyStep({ title, body, to }: { title: string; body: string; to?: string }) {
   return (
-    <div className="border-line bg-surface/35 rounded-xl border border-dashed px-4 py-5">
+    <div className="border-line-strong bg-surface/35 rounded-xl border border-dashed px-4 py-5">
       <p className="text-ink/65 text-[12px] font-medium">{title}</p>
-      <p className="text-ink/40 mt-1 max-w-md text-[11.5px] leading-relaxed">{body}</p>
+      <p className="text-ink/65 mt-1 max-w-md text-[11.5px] leading-relaxed">{body}</p>
       {to ? (
         <Link
           to={to}
-          className="text-accent/85 hover:text-accent mt-2 inline-flex items-center gap-1 text-[11.5px] font-medium"
+          className="text-accent hover:text-accent mt-2 inline-flex items-center gap-1 text-[11.5px] font-medium"
         >
           <Images size={11} /> Open Studio
         </Link>

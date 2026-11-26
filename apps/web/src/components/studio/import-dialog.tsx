@@ -94,14 +94,14 @@ export function StudioPackDialog({
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="text-ink/40 hover:bg-ink/5 grid size-8 place-items-center rounded-lg transition-[color,background-color,scale] duration-150 ease-out active:scale-[0.94] motion-reduce:active:scale-100"
+            className="text-ink/65 hover:bg-ink/5 grid size-8 place-items-center rounded-lg transition-[color,background-color,scale] duration-150 ease-out active:scale-[0.94] motion-reduce:active:scale-100"
             aria-label="Close"
           >
             <X size={15} />
           </button>
         </div>
 
-        <p className="text-ink/50 mt-1 text-[11.5px]">
+        <p className="text-ink/65 mt-1 text-[11.5px]">
           Drop in a <strong>.zip</strong> or a folder of images. A{' '}
           <code className="bg-ink/[0.05] rounded px-1 py-0.5">sunnygen-pack.json</code> at the pack root is
           read automatically; items without a kind fall back to <strong>{kind}</strong>.
@@ -113,19 +113,19 @@ export function StudioPackDialog({
               type="button"
               onClick={() => zipRef.current?.click()}
               className={cn(
-                'border-line bg-surface/60 text-ink/55 hover:border-accent/40 hover:text-accent flex min-h-24 flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed px-3 text-center transition-[color,border-color,background-color,scale] duration-200 ease-out active:scale-[0.99] motion-reduce:active:scale-100',
+                'border-line-strong bg-surface/60 text-ink/65 hover:border-accent/40 hover:text-accent flex min-h-24 flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed px-3 text-center transition-[color,border-color,background-color,scale] duration-200 ease-out active:scale-[0.99] motion-reduce:active:scale-100',
                 zip ? 'border-accent/50 bg-accent/[0.04] text-accent' : '',
               )}
             >
               <FileArchive size={18} />
               <span className="text-[11.5px] font-medium">{zip ? zip.name : 'Choose .zip'}</span>
-              <span className="text-ink/35 text-[10px]">images + manifest</span>
+              <span className="text-ink/65 text-[11px]">images + manifest</span>
             </button>
             <button
               type="button"
               onClick={() => folderRef.current?.click()}
               className={cn(
-                'border-line bg-surface/60 text-ink/55 hover:border-accent/40 hover:text-accent flex min-h-24 flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed px-3 text-center transition-[color,border-color,background-color,scale] duration-200 ease-out active:scale-[0.99] motion-reduce:active:scale-100',
+                'border-line-strong bg-surface/60 text-ink/65 hover:border-accent/40 hover:text-accent flex min-h-24 flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed px-3 text-center transition-[color,border-color,background-color,scale] duration-200 ease-out active:scale-[0.99] motion-reduce:active:scale-100',
                 folder ? 'border-accent/50 bg-accent/[0.04] text-accent' : '',
               )}
             >
@@ -133,14 +133,14 @@ export function StudioPackDialog({
               <span className="text-[11.5px] font-medium">
                 {folder ? `${folder.files.length} files` : 'Choose folder'}
               </span>
-              <span className="text-ink/35 text-[10px]">images on disk</span>
+              <span className="text-ink/65 text-[11px]">images on disk</span>
             </button>
           </div>
 
-          <div className="border-line flex items-center justify-between gap-3 rounded-xl border px-3 py-2">
+          <div className="border-line-strong flex items-center justify-between gap-3 rounded-xl border px-3 py-2">
             <div>
               <Label>Mapping file</Label>
-              <p className="text-ink/40 text-[10px]">Optional JSON that overrides names, kinds, and data.</p>
+              <p className="text-ink/65 text-[11px]">Optional JSON that overrides names, kinds, and data.</p>
             </div>
             <div className="flex items-center gap-2">
               <AnimatePresence initial={false}>
@@ -151,7 +151,7 @@ export function StudioPackDialog({
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 4 }}
                     transition={motionFast}
-                    className="text-ink/50 max-w-32 truncate text-[10.5px]"
+                    className="text-ink/65 max-w-32 truncate text-[11px]"
                   >
                     {mapping.name}
                   </motion.span>
@@ -191,7 +191,7 @@ export function StudioPackDialog({
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
                 transition={motionFast}
-                className="border-line bg-canvas/60 overflow-hidden rounded-xl border"
+                className="border-line-strong bg-canvas/60 overflow-hidden rounded-xl border"
               >
                 <div className="px-3 py-2.5 text-[11.5px]">
                   <p className="text-ink/80">
@@ -200,13 +200,13 @@ export function StudioPackDialog({
                     {result.manifestPath ? ` from ${result.manifestPath}` : ''}.
                   </p>
                   {result.skipped.length > 0 ? (
-                    <p className="text-ink/45 mt-1">
+                    <p className="text-ink/65 mt-1">
                       Skipped {result.skipped.length}: {result.skipped[0]?.reason}
                       {result.skipped.length > 1 ? ` (+${result.skipped.length - 1} more)` : ''}
                     </p>
                   ) : null}
                   {result.failed.length > 0 ? (
-                    <ul className="text-error/80 mt-1.5 list-disc pl-4">
+                    <ul className="text-error mt-1.5 list-disc pl-4">
                       {result.failed.slice(0, 5).map((failure) => (
                         <li key={failure.file}>
                           {failure.file}: {failure.error}
@@ -221,7 +221,7 @@ export function StudioPackDialog({
           </AnimatePresence>
 
           <div className="flex items-center justify-between gap-3">
-            <span className="text-ink/35 text-[10.5px]">
+            <span className="text-ink/65 text-[11px]">
               <AnimatePresence mode="popLayout" initial={false}>
                 <motion.span
                   key={source ?? 'default'}
@@ -277,7 +277,7 @@ export function StudioPackDialog({
           }}
         />
 
-        <p className="text-ink/30 mt-3 text-[10px]">
+        <p className="text-ink/65 mt-3 text-[11px]">
           Kinds: {KINDS.join(', ')}. Garments default to slot <em>top</em>, source <em>flat-lay</em>.
         </p>
       </DialogSurface>

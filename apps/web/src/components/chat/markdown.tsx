@@ -132,7 +132,7 @@ function inline(source: string, key: string): ReactNode[] {
       )
     } else if (token.startsWith('~~')) {
       nodes.push(
-        <del key={tokenKey} className="text-ink/50">
+        <del key={tokenKey} className="text-ink/65">
           {token.slice(2, -2)}
         </del>,
       )
@@ -192,12 +192,10 @@ export function Markdown({ text, className }: { text: string; className?: string
           return (
             <pre
               key={key}
-              className="bg-canvas border-line/70 mt-2 overflow-x-auto rounded-lg border p-2.5 text-[11.5px] leading-relaxed first:mt-0"
+              className="bg-canvas border-line-strong mt-2 overflow-x-auto rounded-lg border p-2.5 text-[11.5px] leading-relaxed first:mt-0"
             >
               {block.language ? (
-                <span className="text-ink/30 mb-1 block text-[9.5px] font-semibold tracking-[0.08em] uppercase">
-                  {block.language}
-                </span>
+                <span className="text-ink/65 mb-1 block text-[11px] font-semibold">{block.language}</span>
               ) : null}
               <code className="font-mono whitespace-pre">{block.content}</code>
             </pre>
@@ -224,7 +222,7 @@ export function Markdown({ text, className }: { text: string; className?: string
 
         if (block.type === 'quote') {
           return (
-            <blockquote key={key} className="border-accent/35 text-ink/60 my-2 border-l-2 pl-3">
+            <blockquote key={key} className="border-accent/35 text-ink/65 my-2 border-l-2 pl-3">
               {withBreaks(block.lines, key)}
             </blockquote>
           )

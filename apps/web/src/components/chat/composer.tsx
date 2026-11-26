@@ -89,7 +89,7 @@ export function Composer({
       )}
     >
       <div className={cn('mx-auto w-full', compact ? 'max-w-none' : 'max-w-3xl')}>
-        <div className="border-line bg-surface focus-within:border-ink/20 rounded-2xl border p-2 shadow-[0_10px_30px_-24px_rgba(42,30,23,0.4)] transition-colors duration-150 ease-out">
+        <div className="border-line-strong bg-surface focus-within:border-ink/20 rounded-2xl border p-2 transition-colors duration-150 ease-out">
           <textarea
             ref={textarea}
             value={value}
@@ -99,7 +99,7 @@ export function Composer({
             disabled={streaming}
             placeholder="Ask anything, or paste a prompt to improve…"
             className={cn(
-              'text-ink placeholder:text-ink/35 max-h-[200px] w-full resize-none bg-transparent px-2 py-2 text-[13.5px] leading-relaxed transition-[height,opacity] duration-150 ease-out outline-none disabled:opacity-60 motion-reduce:transition-none',
+              'text-ink placeholder:text-ink/65 max-h-[200px] w-full resize-none bg-transparent px-2 py-2 text-[13.5px] leading-relaxed transition-[height,opacity] duration-150 ease-out outline-none disabled:opacity-60 motion-reduce:transition-none',
               compact ? 'min-h-10' : 'min-h-11',
             )}
             aria-label="Message"
@@ -166,7 +166,7 @@ export function Composer({
 
         <p
           className={cn(
-            'text-ink/35 mt-1.5 px-1 text-[10.5px] leading-relaxed',
+            'text-ink/65 mt-1.5 px-1 text-[11px] leading-relaxed',
             compact ? 'hidden' : 'hidden sm:block',
           )}
         >

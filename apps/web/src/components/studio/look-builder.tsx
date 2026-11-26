@@ -317,8 +317,8 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
       <div className="flex flex-col gap-5">
         <Card className="p-4">
           <div className="mb-2 flex items-center justify-between">
-            <p className="text-ink/45 text-[11px] font-semibold tracking-[0.08em] uppercase">Avatar</p>
-            <span className="text-ink/35 text-[10.5px]">
+            <p className="text-ink/65 text-[11px] font-semibold">Avatar</p>
+            <span className="text-ink/65 text-[11px]">
               <AnimatePresence mode="popLayout" initial={false}>
                 <motion.span
                   key={library.avatars.length}
@@ -334,7 +334,7 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
             </span>
           </div>
           {library.avatars.length === 0 ? (
-            <p className="border-line text-ink/40 rounded-lg border border-dashed px-3 py-6 text-center text-[11.5px]">
+            <p className="border-line-strong text-ink/65 rounded-lg border border-dashed px-3 py-6 text-center text-[11.5px]">
               Add an avatar in the Avatars tab first.
             </p>
           ) : (
@@ -346,7 +346,7 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
                   onClick={() => setAvatarId(item.id)}
                   className={cn(
                     'relative w-20 shrink-0 overflow-hidden rounded-xl border text-left transition-[border-color,scale] duration-200 ease-out active:scale-[0.97] motion-reduce:active:scale-100',
-                    avatarId === item.id ? 'border-accent/60' : 'border-line hover:border-ink/25',
+                    avatarId === item.id ? 'border-accent/60' : 'border-line-strong hover:border-ink/60',
                   )}
                 >
                   {avatarId === item.id ? (
@@ -369,7 +369,7 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
                   ) : (
                     <div className="bg-ink/[0.04] aspect-square" />
                   )}
-                  <p className="text-ink/60 truncate px-1.5 py-1 text-[10px]">{item.name}</p>
+                  <p className="text-ink/65 truncate px-1.5 py-1 text-[11px]">{item.name}</p>
                 </button>
               ))}
             </div>
@@ -378,8 +378,8 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
 
         <Card className="p-4">
           <div className="mb-2 flex items-center justify-between">
-            <p className="text-ink/45 text-[11px] font-semibold tracking-[0.08em] uppercase">Wardrobe</p>
-            <span className="text-ink/35 text-[10.5px]">
+            <p className="text-ink/65 text-[11px] font-semibold">Wardrobe</p>
+            <span className="text-ink/65 text-[11px]">
               <AnimatePresence mode="popLayout" initial={false}>
                 <motion.span
                   key={selectedGarments.length}
@@ -395,7 +395,7 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
             </span>
           </div>
           {library.garments.length === 0 ? (
-            <p className="border-line text-ink/40 rounded-lg border border-dashed px-3 py-6 text-center text-[11.5px]">
+            <p className="border-line-strong text-ink/65 rounded-lg border border-dashed px-3 py-6 text-center text-[11.5px]">
               Add garments in the Wardrobe tab first.
             </p>
           ) : (
@@ -412,7 +412,7 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
                     onClick={() => toggleGarment(item)}
                     className={cn(
                       'relative overflow-hidden rounded-lg border text-left transition-[border-color,opacity,scale] duration-200 ease-out active:scale-[0.97] motion-reduce:active:scale-100',
-                      selected ? 'border-accent/60' : 'border-line hover:border-ink/25',
+                      selected ? 'border-accent/60' : 'border-line-strong hover:border-ink/60',
                       disabled && 'opacity-40',
                     )}
                   >
@@ -445,13 +445,13 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
                           animate={{ opacity: 1, scale: 1 }}
                           exit={{ opacity: 0, scale: 0.5 }}
                           transition={motionFast}
-                          className="bg-accent absolute top-1 right-1 z-20 grid size-4 place-items-center rounded-full text-white"
+                          className="bg-accent text-accent-ink absolute top-1 right-1 z-20 grid size-4 place-items-center rounded-full"
                         >
                           <Check size={9} />
                         </motion.span>
                       ) : null}
                     </AnimatePresence>
-                    <p className="text-ink/55 truncate px-1.5 py-1 text-[9.5px]">
+                    <p className="text-ink/65 truncate px-1.5 py-1 text-[11px]">
                       {SLOT_LABELS[(item.data.slot as StudioGarmentInput['slot']) ?? 'top']} · {item.name}
                     </p>
                   </button>
@@ -463,7 +463,7 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
 
         <div className="grid gap-3 sm:grid-cols-2">
           <Card className="flex flex-col gap-2 p-4">
-            <p className="text-ink/45 text-[11px] font-semibold tracking-[0.08em] uppercase">Pose</p>
+            <p className="text-ink/65 text-[11px] font-semibold">Pose</p>
             <Selector
               value={poseId}
               size="sm"
@@ -477,7 +477,7 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
             />
           </Card>
           <Card className="flex flex-col gap-2 p-4">
-            <p className="text-ink/45 text-[11px] font-semibold tracking-[0.08em] uppercase">Scene</p>
+            <p className="text-ink/65 text-[11px] font-semibold">Scene</p>
             <Selector
               value={sceneId}
               size="sm"
@@ -496,7 +496,7 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
       <div className="flex flex-col gap-4">
         <Card className="p-4">
           <div className="flex items-center justify-between">
-            <p className="text-ink/45 text-[11px] font-semibold tracking-[0.08em] uppercase">Shot</p>
+            <p className="text-ink/65 text-[11px] font-semibold">Shot</p>
             <AnimatePresence mode="wait" initial={false}>
               <motion.span
                 key={blocking ? 'not-ready' : 'ready'}
@@ -518,10 +518,10 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
                 type="button"
                 onClick={() => toggleAngle(angle)}
                 className={cn(
-                  'h-8 rounded-lg border text-[10.5px] font-medium transition-[border-color,background-color,color,scale] duration-150 ease-out active:scale-[0.97] motion-reduce:active:scale-100',
+                  'h-8 rounded-lg border text-[11px] font-medium transition-[border-color,background-color,color,scale] duration-150 ease-out active:scale-[0.97] motion-reduce:active:scale-100',
                   angles.includes(angle)
                     ? 'border-accent bg-accent/[0.07] text-accent'
-                    : 'border-line text-ink/45 hover:border-ink/25 hover:text-ink',
+                    : 'border-line-strong text-ink/65 hover:border-ink/60 hover:text-ink',
                 )}
               >
                 {STUDIO_ANGLE_LABELS[angle]}
@@ -531,9 +531,7 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
 
           <div className="mt-3 flex flex-col gap-2">
             <div className="flex flex-col gap-1.5">
-              <span className="text-ink/40 text-[9.5px] font-semibold tracking-[0.08em] uppercase">
-                Model
-              </span>
+              <span className="text-ink/65 text-[11px] font-semibold">Model</span>
               <ModelCombobox
                 value={model?.id ?? ''}
                 options={modelOptions}
@@ -545,9 +543,7 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div className="flex flex-col gap-1.5">
-                <span className="text-ink/40 text-[9.5px] font-semibold tracking-[0.08em] uppercase">
-                  Ratio
-                </span>
+                <span className="text-ink/65 text-[11px] font-semibold">Ratio</span>
                 <AspectRatioSelector
                   className="w-full"
                   value={ratio}
@@ -557,9 +553,7 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <span className="text-ink/40 text-[9.5px] font-semibold tracking-[0.08em] uppercase">
-                  Quality
-                </span>
+                <span className="text-ink/65 text-[11px] font-semibold">Quality</span>
                 <QualitySelector
                   className="w-full"
                   value={quality}
@@ -570,9 +564,7 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
               </div>
             </div>
             <label className="flex flex-col gap-1.5">
-              <span className="text-ink/40 text-[9.5px] font-semibold tracking-[0.08em] uppercase">
-                Direction
-              </span>
+              <span className="text-ink/65 text-[11px] font-semibold">Direction</span>
               <Textarea
                 value={notes}
                 onChange={(event) => setNotes(event.target.value.slice(0, 500))}
@@ -582,7 +574,7 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
             </label>
           </div>
 
-          <div className="text-ink/40 mt-3 flex items-center justify-between text-[10.5px]">
+          <div className="text-ink/65 mt-3 flex items-center justify-between text-[11px]">
             <span>
               <AnimatePresence mode="popLayout" initial={false}>
                 <motion.span
@@ -635,7 +627,7 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
                 transition={motionFast}
-                className="text-warning mt-2 overflow-hidden text-[10.5px] leading-snug"
+                className="text-warning mt-2 overflow-hidden text-[11px] leading-snug"
               >
                 {viewWarnings[0]}
                 {viewWarnings.length > 1 ? ` (+${viewWarnings.length - 1} more)` : ''}
@@ -650,7 +642,7 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
                 transition={motionFast}
-                className="text-ink/45 mt-1 overflow-hidden text-[10.5px] leading-snug"
+                className="text-ink/65 mt-1 overflow-hidden text-[11px] leading-snug"
               >
                 {validation.warnings[0]}
               </motion.p>
@@ -710,7 +702,7 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
               type="button"
               onClick={() => setPreviewOpen((current) => !current)}
               aria-expanded={previewOpen}
-              className="text-ink/40 hover:text-ink flex items-center gap-1 text-[10.5px] transition-[color,scale] duration-150 ease-out active:scale-[0.98] motion-reduce:active:scale-100"
+              className="text-ink/65 hover:text-ink flex items-center gap-1 text-[11px] transition-[color,scale] duration-150 ease-out active:scale-[0.98] motion-reduce:active:scale-100"
             >
               <ChevronDown
                 size={11}
@@ -728,7 +720,7 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
                   transition={motionFast}
                   className="overflow-hidden"
                 >
-                  <pre className="bg-canvas text-ink/55 mt-2 max-h-48 overflow-auto rounded-lg p-2 text-[10px] leading-relaxed whitespace-pre-wrap">
+                  <pre className="bg-canvas text-ink/65 mt-2 max-h-48 overflow-auto rounded-lg p-2 text-[11px] leading-relaxed whitespace-pre-wrap">
                     {promptFor(angles[0] ?? 'front')}
                   </pre>
                 </motion.div>
@@ -738,7 +730,7 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
         </Card>
 
         <Card className="p-4">
-          <p className="text-ink/45 text-[11px] font-semibold tracking-[0.08em] uppercase">Angles</p>
+          <p className="text-ink/65 text-[11px] font-semibold">Angles</p>
           <AnimatePresence mode="wait" initial={false}>
             {results.length === 0 ? (
               <motion.p
@@ -747,7 +739,7 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
                 initial="hidden"
                 animate="visible"
                 exit="hidden"
-                className="text-ink/40 mt-3 text-[11.5px]"
+                className="text-ink/65 mt-3 text-[11.5px]"
               >
                 Renders appear here, one per angle.
               </motion.p>
@@ -768,7 +760,7 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.98 }}
                       transition={motionFast}
-                      className="border-line flex items-center gap-2 rounded-lg border p-2"
+                      className="border-line-strong flex items-center gap-2 rounded-lg border p-2"
                     >
                       <div className="bg-ink/[0.04] relative grid size-9 place-items-center overflow-hidden rounded-md">
                         <AnimatePresence mode="wait" initial={false}>
@@ -785,7 +777,7 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
                             ) : result.status === 'failed' ? (
                               <span className="text-error">!</span>
                             ) : (
-                              <Loader2 size={13} className="text-ink/35 animate-spin" />
+                              <Loader2 size={13} className="text-ink/65 animate-spin" />
                             )}
                           </motion.span>
                         </AnimatePresence>
@@ -794,7 +786,7 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
                         <p className="text-ink/70 text-[11px] font-medium">
                           {STUDIO_ANGLE_LABELS[result.angle]}
                         </p>
-                        <p className="text-ink/40 truncate text-[10px]">
+                        <p className="text-ink/65 truncate text-[11px]">
                           <AnimatePresence mode="popLayout" initial={false}>
                             <motion.span
                               key={`${result.status}-${result.error ?? ''}`}
@@ -819,7 +811,7 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
                             transition={motionFast}
                             type="button"
                             onClick={() => void generate()}
-                            className="text-ink/40 hover:bg-ink/5 grid size-7 place-items-center rounded-md transition-[color,background-color,scale] duration-150 ease-out active:scale-[0.92] motion-reduce:active:scale-100"
+                            className="text-ink/65 hover:bg-ink/5 grid size-7 place-items-center rounded-md transition-[color,background-color,scale] duration-150 ease-out active:scale-[0.92] motion-reduce:active:scale-100"
                             aria-label="Retry"
                           >
                             <RotateCcw size={12} />
@@ -833,7 +825,7 @@ export function StudioLookBuilder({ library }: { library: StudioLibrary }) {
             )}
           </AnimatePresence>
         </Card>
-        <p className="text-ink/35 flex items-center gap-1.5 text-[10px]">
+        <p className="text-ink/65 flex items-center gap-1.5 text-[11px]">
           <Camera size={11} /> One generation per angle, all over the same reference list.
         </p>
       </div>

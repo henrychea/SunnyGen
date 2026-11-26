@@ -11,13 +11,21 @@
   --color-surface: #fffdf8;
   --color-ink: #2a1e17;
   --color-line: #e8dfd3;
+  --color-line-strong: #8f7e6b;
   --color-accent: #a31621;
+  --color-accent-ink: #fffdf8;
   --color-success: #2f7a4b;
-  --color-warning: #a36a12;
+  --color-warning: #8c5a0c;
   --color-error: #b3261e;
 
+  --shadow-menu: 0 20px 50px -20px rgba(42, 30, 23, 0.45);
+  --shadow-dialog: 0 30px 90px -30px rgba(42, 30, 23, 0.55);
+  --shadow-toast: 0 18px 50px -24px rgba(42, 30, 23, 0.55);
+  --shadow-fab: 0 14px 40px -12px rgba(163, 22, 33, 0.65);
+  --shadow-panel-up: 0 -20px 60px -30px rgba(42, 30, 23, 0.45);
+  --shadow-panel-side: -30px 0 80px -40px rgba(42, 30, 23, 0.5);
+
   --animate-fade-in: fade-in 0.18s ease-out both;
-  --animate-rise-in: rise-in 0.22s ease-out both;
 
   @keyframes fade-in {
     from {
@@ -27,17 +35,27 @@
       opacity: 1;
     }
   }
+}
 
-  @keyframes rise-in {
-    from {
-      opacity: 0;
-      transform: translateY(6px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
+/* The element selector outranks the emitted :root, so no !important is needed. */
+html[data-theme='dark'] {
+  --color-canvas: #17120f;
+  --color-surface: #211a16;
+  --color-ink: #f4ece1;
+  --color-line: #4a3c34;
+  --color-line-strong: #8a7364;
+  --color-accent: #e0695c;
+  --color-accent-ink: #17120f;
+  --color-success: #5fbf84;
+  --color-warning: #e0a64a;
+  --color-error: #f0786c;
+
+  --shadow-menu: 0 20px 50px -20px rgba(0, 0, 0, 0.85);
+  --shadow-dialog: 0 30px 90px -30px rgba(0, 0, 0, 0.9);
+  --shadow-toast: 0 18px 50px -24px rgba(0, 0, 0, 0.9);
+  --shadow-fab: 0 14px 40px -12px rgba(224, 105, 92, 0.45);
+  --shadow-panel-up: 0 -20px 60px -30px rgba(0, 0, 0, 0.9);
+  --shadow-panel-side: -30px 0 80px -40px rgba(0, 0, 0, 0.9);
 }
 
 @layer base {
@@ -75,6 +93,17 @@
   button:disabled,
   [aria-disabled='true'] {
     cursor: not-allowed;
+  }
+}
+
+/* Touch pointers get the 44px target without growing the mouse-density layout.
+   Canvas node controls keep their size: they live inside a fixed-width node. */
+@media (pointer: coarse) {
+  button:not(.nodrag),
+  [role='button']:not(.nodrag),
+  a[href] {
+    min-height: 44px;
+    min-width: 44px;
   }
 }
 

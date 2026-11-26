@@ -8,7 +8,7 @@ import {
   type StudioKind,
 } from '@sunnygen/core'
 import { Badge, Button, Card, cn, FadeImage, motionFast } from '@sunnygen/ui'
-import { ImagePlus, Pencil, Plus, Sparkles, Trash2 } from 'lucide-react'
+import { ImagePlus, Paintbrush, Pencil, Plus, Trash2 } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { thumbSrcSet, thumbUrl } from '~/lib/media-thumbs'
 import type { StudioItemDto } from '~/server/studio.functions'
@@ -37,7 +37,7 @@ export function StudioLibraryGrid({
       <button
         type="button"
         onClick={onAdd}
-        className="border-line bg-surface/50 text-ink/40 hover:border-accent/40 hover:text-accent hover:bg-surface flex min-h-44 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed transition-[color,border-color,background-color,scale] duration-200 ease-out active:scale-[0.99] motion-reduce:active:scale-100"
+        className="border-line-strong bg-surface/50 text-ink/65 hover:border-accent/40 hover:text-accent hover:bg-surface flex min-h-44 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed transition-[color,border-color,background-color,scale] duration-200 ease-out active:scale-[0.99] motion-reduce:active:scale-100"
       >
         <Plus size={20} />
         <span className="text-[11.5px] font-medium">{kind === 'avatar' ? 'New avatar' : `Add ${kind}`}</span>
@@ -69,7 +69,7 @@ export function StudioLibraryGrid({
               transition={motionFast}
               className="min-w-0"
             >
-              <Card className="hover:border-ink/20 h-full overflow-hidden transition-[border-color,box-shadow,transform] duration-200 ease-out hover:-translate-y-0.5">
+              <Card className="hover:border-ink/60 h-full overflow-hidden transition-[border-color,box-shadow,transform] duration-200 ease-out hover:-translate-y-0.5">
                 <div className="bg-ink/[0.04] relative aspect-[4/3]">
                   {image ? (
                     <FadeImage
@@ -83,7 +83,7 @@ export function StudioLibraryGrid({
                       className="size-full object-cover"
                     />
                   ) : (
-                    <div className="grid size-full place-items-center bg-[#FFFDF8]">
+                    <div className="bg-surface grid size-full place-items-center">
                       <span className="bg-ink/[0.04] size-8 rounded-full" />
                     </div>
                   )}
@@ -94,7 +94,7 @@ export function StudioLibraryGrid({
                       aria-label={`Preview ${item.name}`}
                       className="group text-canvas hover:bg-ink/25 absolute inset-0 grid place-items-center bg-transparent transition-colors duration-150 ease-out"
                     >
-                      <span className="bg-ink/70 rounded-md px-2 py-1 text-[10px] font-medium opacity-0 backdrop-blur transition-opacity duration-150 ease-out group-hover:opacity-100 group-focus-visible:opacity-100">
+                      <span className="bg-ink/70 rounded-md px-2 py-1 text-[11px] font-medium opacity-0 transition-opacity duration-150 ease-out group-hover:opacity-100 group-focus-visible:opacity-100">
                         Preview
                       </span>
                     </button>
@@ -112,7 +112,7 @@ export function StudioLibraryGrid({
                   {lora ? (
                     <Badge
                       tone="accent"
-                      className="border-line bg-surface/95 absolute top-2 right-2 border px-2 whitespace-nowrap backdrop-blur"
+                      className="border-line-strong bg-surface absolute top-2 right-2 border px-2 whitespace-nowrap"
                     >
                       LoRA v{lora.version}
                     </Badge>
@@ -122,7 +122,7 @@ export function StudioLibraryGrid({
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <p className="text-ink/80 truncate text-[12px] font-medium">{item.name}</p>
-                      <p className="text-ink/40 truncate text-[10px]">
+                      <p className="text-ink/65 truncate text-[11px]">
                         {item.kind === 'avatar'
                           ? item.data.style === 'anime'
                             ? 'Anime 2D'
@@ -141,7 +141,7 @@ export function StudioLibraryGrid({
                             <button
                               type="button"
                               onClick={() => onEdit(item)}
-                              className="text-ink/45 hover:bg-ink/5 hover:text-ink rounded-md px-1.5 py-1 text-[10px] font-medium transition-[color,background-color] duration-150 ease-out"
+                              className="text-ink/65 hover:bg-ink/5 hover:text-ink rounded-md px-1.5 py-1 text-[11px] font-medium transition-[color,background-color] duration-150 ease-out"
                             >
                               Edit profile
                             </button>
@@ -149,7 +149,7 @@ export function StudioLibraryGrid({
                             <button
                               type="button"
                               onClick={() => onEdit(item)}
-                              className="text-ink/40 hover:bg-ink/5 hover:text-ink grid size-7 place-items-center rounded-md transition-[color,background-color,scale] duration-150 ease-out active:scale-[0.92] motion-reduce:active:scale-100"
+                              className="text-ink/65 hover:bg-ink/5 hover:text-ink grid size-7 place-items-center rounded-md transition-[color,background-color,scale] duration-150 ease-out active:scale-[0.92] motion-reduce:active:scale-100"
                               aria-label={`Edit ${item.name}`}
                             >
                               <Pencil size={12} />
@@ -164,7 +164,7 @@ export function StudioLibraryGrid({
                                 onDelete(item)
                               }
                             }}
-                            className="text-ink/40 hover:bg-error/10 hover:text-error grid size-7 place-items-center rounded-md transition-[color,background-color,scale] duration-150 ease-out active:scale-[0.92] motion-reduce:active:scale-100"
+                            className="text-ink/65 hover:bg-error/10 hover:text-error grid size-7 place-items-center rounded-md transition-[color,background-color,scale] duration-150 ease-out active:scale-[0.92] motion-reduce:active:scale-100"
                             aria-label={`Delete ${item.name}`}
                           >
                             <Trash2 size={12} />
@@ -178,11 +178,11 @@ export function StudioLibraryGrid({
                     <Button
                       size="sm"
                       variant={needsPrep ? 'primary' : 'outline'}
-                      className="h-7 text-[10.5px]"
+                      className="h-7 text-[11px]"
                       loading={preparingId === item.id}
                       onClick={() => onPrepare(item)}
                     >
-                      <Sparkles size={10} />
+                      <Paintbrush size={10} />
                       {unprepared === 0
                         ? 'Re-prep'
                         : kind === 'garment'
@@ -206,8 +206,8 @@ export function StudioEmpty({ kind, onAdd }: { kind: StudioKind; onAdd: () => vo
       type="button"
       onClick={onAdd}
       className={cn(
-        'border-line bg-surface/50 flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed px-6 py-16 text-center',
-        'text-ink/40 hover:border-accent/40 hover:text-accent transition-[color,border-color,scale] duration-200 ease-out active:scale-[0.99] motion-reduce:active:scale-100',
+        'border-line-strong bg-surface/50 flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed px-6 py-16 text-center',
+        'text-ink/65 hover:border-accent/40 hover:text-accent transition-[color,border-color,scale] duration-200 ease-out active:scale-[0.99] motion-reduce:active:scale-100',
       )}
     >
       <ImagePlus size={22} />

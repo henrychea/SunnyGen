@@ -1,7 +1,7 @@
-import { AlertCircle, Sparkles, Wand2, X } from 'lucide-react'
+import { AlertCircle, MessageSquareText, Wand2, X } from 'lucide-react'
 import { Link } from '@tanstack/react-router'
 import { AnimatePresence, motion } from 'motion/react'
-import { motionFade, motionList, motionListItem, motionTransition, toast } from '@sunnygen/ui'
+import { motionFade, motionTransition, toast } from '@sunnygen/ui'
 import { useState } from 'react'
 import { Composer } from './composer'
 import { Transcript, TranscriptSkeleton } from './transcript'
@@ -130,7 +130,7 @@ export function ChatThread({
                 }
               >
                 <div className="bg-accent/10 text-accent grid size-11 place-items-center rounded-2xl">
-                  <Sparkles size={19} />
+                  <MessageSquareText size={19} />
                 </div>
                 <div className="min-w-0">
                   <h2
@@ -142,31 +142,25 @@ export function ChatThread({
                   >
                     What are we making?
                   </h2>
-                  <p className="text-ink/45 mt-1.5 text-[12.5px] leading-relaxed">
+                  <p className="text-ink/65 mt-1.5 text-[12.5px] leading-relaxed">
                     Rewrite a prompt, describe a shot, or plan a look. The assistant works inside SunnyGen.
                   </p>
                 </div>
-                <motion.div
-                  variants={motionList}
-                  initial="hidden"
-                  animate="visible"
-                  className="grid w-full grid-cols-1 gap-1.5 sm:grid-cols-2"
-                >
+                <div className="grid w-full grid-cols-1 gap-1.5 sm:grid-cols-2">
                   {STARTERS.map((suggestion) => (
-                    <motion.button
+                    <button
                       key={suggestion}
-                      variants={motionListItem}
                       type="button"
                       onClick={() => {
                         chat.setDraft(suggestion)
                         setInserted(true)
                       }}
-                      className="border-line bg-surface text-ink/60 hover:border-ink/20 hover:text-ink min-w-0 rounded-xl border px-3 py-2 text-left text-[11.5px] leading-snug transition-[color,border-color,transform] duration-150 ease-out active:scale-[0.97]"
+                      className="border-line-strong bg-surface text-ink/65 hover:border-ink/60 hover:text-ink min-w-0 rounded-xl border px-3 py-2 text-left text-[11.5px] leading-snug transition-[color,border-color,transform] duration-150 ease-out active:scale-[0.97]"
                     >
                       {suggestion}
-                    </motion.button>
+                    </button>
                   ))}
-                </motion.div>
+                </div>
               </div>
             </motion.div>
           ) : (
@@ -193,12 +187,12 @@ export function ChatThread({
           <button
             type="button"
             onClick={insertCurrentPrompt}
-            className="border-line bg-surface text-ink/70 hover:border-accent/35 hover:text-accent inline-flex min-w-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[11px] font-medium transition-[color,border-color,transform] duration-150 ease-out active:scale-[0.97]"
+            className="border-line-strong bg-surface text-ink/70 hover:border-accent/35 hover:text-accent inline-flex min-w-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[11px] font-medium transition-[color,border-color,transform] duration-150 ease-out active:scale-[0.97]"
           >
             <Wand2 size={12} className="shrink-0" />
             Use current prompt
           </button>
-          <span className="text-ink/35 min-w-0 flex-1 truncate text-[10.5px]">
+          <span className="text-ink/65 min-w-0 flex-1 truncate text-[11px]">
             {context.label}
             {inserted ? ' · added to input' : ''}
           </span>

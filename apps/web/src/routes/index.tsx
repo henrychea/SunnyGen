@@ -1,9 +1,10 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { Skeleton, cn, motionMountRise, motionPress, toast } from '@sunnygen/ui'
+import { Skeleton, cn, motionPress, toast } from '@sunnygen/ui'
 import { Camera, Clapperboard, Folder, Image as ImageIcon, Shirt, Star, Trash2 } from 'lucide-react'
 import { AnimatePresence } from 'motion/react'
 import { useState, type ReactNode } from 'react'
+import { RefreshError } from '~/components/refresh-error'
 import { PageScroll } from '~/components/app-shell'
 import { CleanupFailedButton } from '~/components/cleanup-failed'
 import {
@@ -28,7 +29,7 @@ export const Route = createFileRoute('/')({
 })
 
 const REVIEW_ACTION =
-  'inline-flex h-6 items-center gap-1 rounded-md border border-line bg-surface px-1.5 text-[10px] font-medium text-ink/60 transition-[color,border-color,background-color,transform] hover:border-ink/25 hover:text-ink active:scale-[0.97] disabled:opacity-50 motion-reduce:active:scale-100'
+  'inline-flex h-6 items-center gap-1 rounded-md border border-line-strong bg-surface px-1.5 text-[11px] font-medium text-ink/65 transition-[color,border-color,background-color,transform] hover:border-ink/60 hover:text-ink active:scale-[0.97] disabled:opacity-50 motion-reduce:active:scale-100'
 
 function isLive(data: TodayData | undefined): boolean {
   return (data?.running.length ?? 0) > 0
@@ -123,15 +124,15 @@ function TodayPage() {
   return (
     <>
       <PageScroll>
-        <div className="border-line/70 bg-canvas/85 sticky top-0 z-20 border-b backdrop-blur-xl">
+        <div className="border-line-strong bg-canvas sticky top-0 z-20 border-b">
           <div className="flex flex-wrap items-center gap-2 px-3 py-2.5 md:px-6">
             <div>
-              <p className="text-accent/80 text-[9.5px] font-semibold tracking-[0.14em] uppercase">Inbox</p>
+              <p className="text-accent text-[11px] font-semibold">Inbox</p>
               <h1 className="font-display text-ink text-[19px] leading-tight font-semibold tracking-tight">
                 Today
               </h1>
             </div>
-            <p className="text-ink/40 ml-1 hidden text-[10.5px] sm:block">
+            <p className="text-ink/65 ml-1 hidden text-[11px] sm:block">
               {data.running.length} running · {reviewOutputs.length} to review · {data.failed.length} failed
             </p>
             <div className="ml-auto flex items-center gap-1.5">
@@ -142,6 +143,12 @@ function TodayPage() {
             </div>
           </div>
         </div>
+
+        {today.isRefetchError ? (
+          <div className="px-3 pt-3 md:px-6">
+            <RefreshError message="Could not refresh the inbox." onRetry={() => void today.refetch()} />
+          </div>
+        ) : null}
 
         <div className="flex flex-col gap-7 px-3 py-4 md:px-6 md:py-6">
           <Section
@@ -165,7 +172,7 @@ function TodayPage() {
                 action={
                   <Link
                     to="/images"
-                    className="text-accent/85 hover:text-accent text-[11.5px] font-medium underline-offset-4 hover:underline"
+                    className="text-accent hover:text-accent text-[11.5px] font-medium underline-offset-4 hover:underline"
                   >
                     Open Images
                   </Link>
@@ -242,9 +249,9 @@ function TodayPage() {
                         </button>
                       </div>
                       {movingId === generation.id ? (
-                        <div className="border-line bg-surface flex max-w-[320px] flex-wrap gap-1 rounded-lg border p-1.5">
+                        <div className="border-line-strong bg-surface flex max-w-[320px] flex-wrap gap-1 rounded-lg border p-1.5">
                           {(folders.data ?? []).length === 0 ? (
-                            <p className="text-ink/40 px-1 py-0.5 text-[10px]">
+                            <p className="text-ink/65 px-1 py-0.5 text-[11px]">
                               No folders yet. Create one in Gallery.
                             </p>
                           ) : (
@@ -254,7 +261,7 @@ function TodayPage() {
                                   key={folder.id}
                                   type="button"
                                   onClick={() => void relocate(generation, folder.id)}
-                                  className="bg-canvas text-ink/60 hover:text-ink max-w-full truncate rounded px-1.5 py-1 text-[10px] font-medium"
+                                  className="bg-canvas text-ink/65 hover:text-ink max-w-full truncate rounded px-1.5 py-1 text-[11px] font-medium"
                                 >
                                   {folder.name}
                                 </button>
@@ -263,7 +270,7 @@ function TodayPage() {
                                 <button
                                   type="button"
                                   onClick={() => void relocate(generation, null)}
-                                  className="text-ink/40 hover:text-ink rounded px-1.5 py-1 text-[10px] font-medium"
+                                  className="text-ink/65 hover:text-ink rounded px-1.5 py-1 text-[11px] font-medium"
                                 >
                                   Remove
                                 </button>
@@ -314,8 +321,8 @@ function TodayPage() {
             title="This week"
             hint={weekRuns > 0 ? `${weekRuns} finished ${weekRuns === 1 ? 'run' : 'runs'}` : undefined}
           >
-            <div className="border-line bg-surface/60 rounded-xl border p-3.5">
-              <p className="text-ink/40 text-[10.5px] leading-relaxed">
+            <div className="border-line-strong bg-surface/60 rounded-xl border p-3.5">
+              <p className="text-ink/65 text-[11px] leading-relaxed">
                 SunnyGen does not record what a run costs, so this counts finished runs per provider and model
                 since{' '}
                 {new Date(data.weekStart).toLocaleDateString(undefined, {
@@ -325,7 +332,7 @@ function TodayPage() {
                 .
               </p>
               {data.week.length === 0 ? (
-                <p className="text-ink/35 mt-2.5 text-[11.5px]">No finished runs this week yet.</p>
+                <p className="text-ink/65 mt-2.5 text-[11.5px]">No finished runs this week yet.</p>
               ) : (
                 <ul className="mt-2.5 flex flex-col gap-1">
                   {data.week.map((row) => (
@@ -333,7 +340,7 @@ function TodayPage() {
                       key={`${row.provider}-${row.model}`}
                       className="flex items-center gap-2 text-[11.5px]"
                     >
-                      <span className="text-ink/30 w-20 shrink-0 text-[9.5px] font-semibold tracking-[0.08em] uppercase">
+                      <span className="text-ink/65 w-20 shrink-0 text-[11px] font-semibold">
                         {row.provider}
                       </span>
                       <span className="text-ink/65 min-w-0 flex-1 truncate">{row.model}</span>
@@ -378,11 +385,11 @@ function QuickAction({
     <Link
       to={to}
       className={cn(
-        'inline-flex h-7 items-center gap-1.5 rounded-lg border px-2 text-[10.5px] font-medium transition-[color,border-color,background-color,transform] active:scale-[0.97] motion-reduce:active:scale-100',
+        'inline-flex h-7 items-center gap-1.5 rounded-lg border px-2 text-[11px] font-medium transition-[color,border-color,background-color,transform] active:scale-[0.97] motion-reduce:active:scale-100',
         motionPress,
         accent
           ? 'border-accent/30 bg-accent/[0.07] text-accent hover:bg-accent/[0.11]'
-          : 'border-line bg-surface text-ink/60 hover:border-ink/25 hover:text-ink',
+          : 'border-line-strong bg-surface text-ink/65 hover:border-ink/60 hover:text-ink',
       )}
     >
       {icon}
@@ -406,7 +413,7 @@ function Section({
     <section aria-label={title}>
       <div className="mb-2.5 flex items-center gap-2">
         <h2 className="font-display text-ink text-[13px] font-semibold tracking-tight">{title}</h2>
-        {hint ? <span className="text-ink/35 text-[10.5px]">{hint}</span> : null}
+        {hint ? <span className="text-ink/65 text-[11px]">{hint}</span> : null}
         {action ? <div className="ml-auto">{action}</div> : null}
       </div>
       {children}
@@ -416,11 +423,9 @@ function Section({
 
 function Empty({ title, body, action }: { title: string; body: string; action?: ReactNode }) {
   return (
-    <div
-      className={cn('border-line bg-surface/35 rounded-2xl border border-dashed px-5 py-6', motionMountRise)}
-    >
+    <div className="border-line-strong bg-surface/35 rounded-2xl border border-dashed px-5 py-6">
       <p className="text-ink/65 text-[12px] font-medium">{title}</p>
-      <p className="text-ink/40 mt-1 max-w-md text-[11.5px] leading-relaxed">{body}</p>
+      <p className="text-ink/65 mt-1 max-w-md text-[11.5px] leading-relaxed">{body}</p>
       {action ? <div className="mt-2.5">{action}</div> : null}
     </div>
   )

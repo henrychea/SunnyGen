@@ -1,4 +1,4 @@
-import { cn, FadeImage, motionFast, motionList, motionListItem } from '@sunnygen/ui'
+import { cn, FadeImage, motionFast } from '@sunnygen/ui'
 import { FileAudio, ImageOff } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { thumbSrcSet, thumbUrl } from '~/lib/media-thumbs'
@@ -28,7 +28,7 @@ export function MediaCard({
   return (
     <div
       className={cn(
-        'bg-ink/[0.03] border-line/70 flex items-center justify-center overflow-hidden rounded-xl border p-2',
+        'bg-ink/[0.03] border-line-strong flex items-center justify-center overflow-hidden rounded-xl border p-2',
         className,
       )}
     >
@@ -78,37 +78,30 @@ export function MediaThumbStrip({
   label: string
 }) {
   return (
-    <motion.div
-      role="listbox"
-      aria-label={label}
-      variants={motionList}
-      initial="hidden"
-      animate="visible"
-      className="mt-2 flex gap-1.5 overflow-x-auto pb-1"
-    >
+    <div role="listbox" aria-label={label} className="mt-2 flex gap-1.5 overflow-x-auto pb-1">
       {items.map((item, itemIndex) => (
-        <motion.button
+        <button
           key={item.id}
-          variants={motionListItem}
           type="button"
           role="option"
           aria-selected={itemIndex === index}
           aria-label={`Show item ${itemIndex + 1} of ${items.length}`}
           onClick={() => onSelect(itemIndex)}
-          whileTap={{ scale: 0.96 }}
           className={cn(
             'relative size-16 shrink-0 overflow-hidden rounded-lg border transition-[border-color,box-shadow] duration-150 ease-out',
-            itemIndex === index ? 'border-accent ring-accent/25 ring-2' : 'border-line hover:border-ink/25',
+            itemIndex === index
+              ? 'border-accent ring-accent/25 ring-2'
+              : 'border-line-strong hover:border-ink/60',
           )}
         >
           {item.missing ? (
-            <span className="text-ink/30 grid size-full place-items-center">
+            <span className="text-ink/65 grid size-full place-items-center">
               <ImageOff size={14} />
             </span>
           ) : item.kind === 'video' ? (
             <video src={item.url} muted preload="metadata" className="size-full object-cover" />
           ) : item.kind === 'audio' ? (
-            <span className="text-ink/35 grid size-full place-items-center">
+            <span className="text-ink/65 grid size-full place-items-center">
               <FileAudio size={16} />
             </span>
           ) : (
@@ -123,8 +116,8 @@ export function MediaThumbStrip({
               loading="lazy"
             />
           )}
-        </motion.button>
+        </button>
       ))}
-    </motion.div>
+    </div>
   )
 }

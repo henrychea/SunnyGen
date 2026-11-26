@@ -9,7 +9,7 @@ export function GalleryCard({ item, onOpen }: { item: GalleryItem; onOpen: () =>
       type="button"
       onClick={onOpen}
       className={cn(
-        'border-line bg-surface hover:border-ink/20 group relative overflow-hidden rounded-2xl border text-left shadow-[0_14px_40px_-30px_rgba(42,30,23,0.4)] transition-[transform,border-color] duration-200 ease-out hover:-translate-y-0.5 active:scale-[0.985] motion-reduce:active:scale-100',
+        'border-line-strong bg-surface hover:border-ink/60 group relative overflow-hidden rounded-2xl border text-left transition-[transform,border-color] duration-200 ease-out hover:-translate-y-0.5 active:scale-[0.985] motion-reduce:active:scale-100',
       )}
     >
       <div className="bg-ink/[0.04] relative aspect-[4/5] overflow-hidden">
@@ -23,7 +23,7 @@ export function GalleryCard({ item, onOpen }: { item: GalleryItem; onOpen: () =>
               preload="metadata"
               className="size-full object-cover"
             />
-            <span className="bg-ink/70 text-canvas absolute top-2.5 left-2.5 inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[9.5px] font-semibold tracking-[0.06em] uppercase backdrop-blur">
+            <span className="bg-ink/70 text-canvas absolute top-2.5 left-2.5 inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[11px] font-semibold">
               <Play size={9} fill="currentColor" /> Video
             </span>
           </>
@@ -33,6 +33,8 @@ export function GalleryCard({ item, onOpen }: { item: GalleryItem; onOpen: () =>
             src={thumbUrl(item.url, 640)}
             srcSet={thumbSrcSet(item.url, [320, 640])}
             sizes="(min-width: 1280px) 320px, (min-width: 640px) 45vw, 92vw"
+            width={item.width ?? undefined}
+            height={item.height ?? undefined}
             alt={item.prompt || 'Generated image'}
             loading="lazy"
             decoding="async"
@@ -40,7 +42,7 @@ export function GalleryCard({ item, onOpen }: { item: GalleryItem; onOpen: () =>
           />
         )}
         {item.outputCount > 1 ? (
-          <span className="bg-ink/70 text-canvas absolute top-2.5 right-2.5 rounded-md px-1.5 py-1 text-[9.5px] font-semibold backdrop-blur">
+          <span className="bg-ink/70 text-canvas absolute top-2.5 right-2.5 rounded-md px-1.5 py-1 text-[11px] font-semibold">
             {item.outputCount}
           </span>
         ) : null}
@@ -51,11 +53,11 @@ export function GalleryCard({ item, onOpen }: { item: GalleryItem; onOpen: () =>
       <div className="flex items-center justify-between gap-2 px-3 py-2.5">
         <div className="min-w-0">
           <p className="text-ink/75 truncate text-[11.5px] font-medium">{item.model}</p>
-          <p className="text-ink/35 text-[10px]">
+          <p className="text-ink/65 text-[11px]">
             {new Date(item.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
           </p>
         </div>
-        <span className="bg-ink/[0.05] text-ink/45 rounded px-1.5 py-0.5 text-[9.5px] font-semibold tracking-[0.05em] uppercase">
+        <span className="bg-ink/[0.05] text-ink/65 rounded px-1.5 py-0.5 text-[11px] font-semibold">
           {item.provider}
         </span>
       </div>
@@ -70,7 +72,7 @@ export function GalleryWallTile({ item, onOpen }: { item: GalleryItem; onOpen: (
       type="button"
       onClick={onOpen}
       className={cn(
-        'group bg-ink/[0.04] border-line hover:border-ink/25 relative block w-full overflow-hidden rounded-xl border text-left transition-[border-color,scale] duration-200 ease-out active:scale-[0.985] motion-reduce:active:scale-100',
+        'group bg-ink/[0.04] border-line-strong hover:border-ink/60 relative block w-full overflow-hidden rounded-xl border text-left transition-[border-color,scale] duration-200 ease-out active:scale-[0.985] motion-reduce:active:scale-100',
       )}
     >
       <div style={{ aspectRatio: ratio }} className="relative w-full overflow-hidden">
@@ -89,6 +91,8 @@ export function GalleryWallTile({ item, onOpen }: { item: GalleryItem; onOpen: (
             src={thumbUrl(item.url, 640)}
             srcSet={thumbSrcSet(item.url, [320, 640])}
             sizes="(min-width: 1280px) 320px, (min-width: 640px) 45vw, 92vw"
+            width={item.width ?? undefined}
+            height={item.height ?? undefined}
             alt={item.prompt || 'Generated image'}
             loading="lazy"
             decoding="async"
@@ -96,18 +100,18 @@ export function GalleryWallTile({ item, onOpen }: { item: GalleryItem; onOpen: (
           />
         )}
         {item.kind === 'video' ? (
-          <span className="bg-ink/70 text-canvas absolute top-2 left-2 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[9px] font-semibold tracking-[0.06em] uppercase backdrop-blur">
+          <span className="bg-ink/70 text-canvas absolute top-2 left-2 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-semibold">
             <Play size={8} fill="currentColor" /> Video
           </span>
         ) : null}
         {item.outputCount > 1 ? (
-          <span className="bg-ink/70 text-canvas absolute top-2 right-2 rounded px-1.5 py-0.5 text-[9px] font-semibold backdrop-blur">
+          <span className="bg-ink/70 text-canvas absolute top-2 right-2 rounded px-1.5 py-0.5 text-[11px] font-semibold">
             {item.outputCount}
           </span>
         ) : null}
         <div className="from-ink/80 pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t to-transparent p-3 pt-10 opacity-0 transition-opacity group-hover:opacity-100">
-          <p className="text-canvas/90 line-clamp-2 text-[10.5px] leading-snug">{item.prompt}</p>
-          <p className="text-canvas/55 mt-0.5 truncate text-[9.5px]">{item.model}</p>
+          <p className="text-canvas/90 line-clamp-2 text-[11px] leading-snug">{item.prompt}</p>
+          <p className="text-canvas/90 mt-0.5 truncate text-[11px]">{item.model}</p>
         </div>
       </div>
     </button>
