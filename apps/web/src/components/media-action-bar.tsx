@@ -4,7 +4,7 @@ import { motionFadeRise, motionFast, motionMountFade } from '@sunnygen/ui'
 import { useEffect, useState } from 'react'
 
 export const ACTION_CLASS =
-  'border-line bg-surface text-ink/65 hover:border-ink/25 hover:text-ink inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[11px] font-medium transition-[color,border-color,background-color,transform] active:scale-[0.97] disabled:opacity-50 motion-reduce:active:scale-100'
+  'border-line-strong bg-surface text-ink/65 hover:border-ink/60 hover:text-ink inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[11px] font-medium transition-[color,border-color,background-color,transform] active:scale-[0.97] disabled:opacity-50 motion-reduce:active:scale-100'
 
 async function clipboardPng(blob: Blob): Promise<Blob> {
   if (blob.type === 'image/png') return blob
@@ -126,7 +126,7 @@ export function MediaActionBar({
           type="button"
           onClick={remove}
           disabled={busy === 'delete'}
-          className={`${ACTION_CLASS} text-error/70 hover:border-error/30 hover:text-error`}
+          className={`${ACTION_CLASS} text-error hover:border-error/30 hover:text-error`}
         >
           <Trash2 size={13} />
           <span key={busy === 'delete' ? 'busy' : 'idle'} className={motionMountFade}>
@@ -143,7 +143,7 @@ export function MediaActionBar({
             animate="visible"
             exit="hidden"
             transition={motionFast}
-            className="text-success/80 mt-2 text-[10.5px]"
+            className="text-success mt-2 text-[11px]"
           >
             {notice}
           </motion.p>
@@ -156,7 +156,7 @@ export function MediaActionBar({
             animate="visible"
             exit="hidden"
             transition={motionFast}
-            className="text-error/80 mt-2 text-[10.5px]"
+            className="text-error mt-2 text-[11px]"
           >
             {error}
           </motion.p>

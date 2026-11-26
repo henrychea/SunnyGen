@@ -74,7 +74,7 @@ function StudioSkeleton({ look }: { look: boolean }) {
       <div className="grid gap-5 xl:grid-cols-[1.25fr_0.75fr]">
         <div className="flex flex-col gap-5">
           {[0, 1].map((index) => (
-            <div key={index} className="border-line bg-surface rounded-2xl border p-4">
+            <div key={index} className="border-line-strong bg-surface rounded-2xl border p-4">
               <Skeleton className="h-2.5 w-24 rounded-full" />
               <Skeleton className="mt-3 h-20" />
             </div>
@@ -82,7 +82,7 @@ function StudioSkeleton({ look }: { look: boolean }) {
         </div>
         <div className="flex flex-col gap-4">
           {[0, 1].map((index) => (
-            <div key={index} className="border-line bg-surface rounded-2xl border p-4">
+            <div key={index} className="border-line-strong bg-surface rounded-2xl border p-4">
               <Skeleton className="h-2.5 w-16 rounded-full" />
               <Skeleton className="mt-3 h-24" />
             </div>
@@ -94,7 +94,7 @@ function StudioSkeleton({ look }: { look: boolean }) {
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {Array.from({ length: 8 }).map((_, index) => (
-        <div key={index} className="border-line bg-surface overflow-hidden rounded-2xl border">
+        <div key={index} className="border-line-strong bg-surface overflow-hidden rounded-2xl border">
           <Skeleton className="aspect-[4/3] rounded-none" />
           <div className="flex flex-col gap-2 p-3">
             <Skeleton className="h-2.5 w-2/3 rounded-full" />
@@ -295,7 +295,7 @@ function StudioPage() {
             onChange={(option) => selectTab(option.key as Tab)}
           />
         </div>
-        <div className="border-line bg-surface mb-5 hidden rounded-xl border p-0.5 sm:inline-flex">
+        <div className="border-line-strong bg-surface mb-5 hidden rounded-xl border p-0.5 sm:inline-flex">
           {TABS.map((entry) => (
             <button
               key={entry.id}
@@ -303,7 +303,7 @@ function StudioPage() {
               onClick={() => selectTab(entry.id)}
               className={cn(
                 'relative flex items-center gap-1.5 rounded-[10px] px-2.5 py-1.5 text-[11px] font-medium transition-colors duration-150 ease-out active:scale-[0.96] motion-reduce:active:scale-100',
-                tab === entry.id ? 'text-canvas' : 'text-ink/50 hover:text-ink',
+                tab === entry.id ? 'text-canvas' : 'text-ink/65 hover:text-ink',
               )}
             >
               {tab === entry.id ? (
@@ -317,8 +317,8 @@ function StudioPage() {
               {entry.id !== 'look' ? (
                 <span
                   className={cn(
-                    'relative text-[9.5px] tabular-nums',
-                    tab === entry.id ? 'text-canvas/60' : 'text-ink/30',
+                    'relative text-[11px] tabular-nums',
+                    tab === entry.id ? 'text-canvas/60' : 'text-ink/65',
                   )}
                 >
                   <AnimatePresence mode="popLayout" initial={false}>
@@ -418,7 +418,7 @@ function StudioPage() {
               )}
 
               {tab !== 'look' ? (
-                <p className="text-ink/35 mt-4 text-[10.5px]">
+                <p className="text-ink/65 mt-4 text-[11px]">
                   {tab === 'wardrobe'
                     ? 'On-model and supplier photos must be prepared before a shoot. Prep fills every missing view and costs one image generation per view.'
                     : tab === 'avatars'

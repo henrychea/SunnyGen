@@ -9,7 +9,7 @@ export function Kbd({ className, ...props }: ComponentProps<'kbd'>) {
   return (
     <kbd
       className={cn(
-        'border-line bg-canvas text-ink/55 inline-flex h-5 min-w-5 items-center justify-center rounded border px-1.5 font-sans text-[10px] font-semibold',
+        'border-line-strong bg-canvas text-ink/65 inline-flex h-5 min-w-5 items-center justify-center rounded border px-1.5 font-sans text-[11px] font-semibold',
         className,
       )}
       {...props}

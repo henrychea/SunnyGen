@@ -14,7 +14,7 @@ export function MissingFields({ missing }: { missing: string[] }) {
         {missing.map((path) => (
           <span
             key={path}
-            className="border-line bg-canvas/40 text-ink/70 rounded-full border px-2 py-0.5 text-[10.5px]"
+            className="border-line-strong bg-canvas/40 text-ink/70 rounded-full border px-2 py-0.5 text-[11px]"
           >
             {AVATAR_PROFILE_FIELD_LABELS[path] ?? path} is missing
           </span>
@@ -67,7 +67,7 @@ export function PromptExtract({ onExtracted }: { onExtracted: (profile: AvatarPr
         >
           Extract
         </Button>
-        <span className="text-ink/65 text-[10.5px]">
+        <span className="text-ink/65 text-[11px]">
           {text.trim().length < 20
             ? 'Paste at least 20 characters.'
             : 'Nothing is saved until you press Save.'}

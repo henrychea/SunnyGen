@@ -36,11 +36,11 @@ export function SessionRail({
   return (
     <aside className="border-line/70 bg-surface/45 hidden w-64 shrink-0 flex-col border-r md:flex">
       <div className="border-line/60 flex items-center justify-between gap-2 border-b px-4 pt-3 pb-2">
-        <p className="text-ink/40 text-[10.5px] font-semibold tracking-[0.14em] uppercase">Chats</p>
+        <p className="text-ink/65 text-[11px] font-semibold">Chats</p>
         <button
           type="button"
           onClick={onNew}
-          className="text-ink/45 hover:bg-ink/[0.05] hover:text-ink inline-flex size-7 items-center justify-center rounded-lg transition-[color,background-color,transform] duration-150 ease-out active:scale-[0.92]"
+          className="text-ink/65 hover:bg-ink/[0.05] hover:text-ink inline-flex size-7 items-center justify-center rounded-lg transition-[color,background-color,transform] duration-150 ease-out active:scale-[0.92]"
           aria-label="New chat"
           title="New chat"
         >
@@ -49,21 +49,21 @@ export function SessionRail({
       </div>
 
       <div className="px-2 pt-2">
-        <div className="border-line bg-canvas/50 focus-within:border-accent/35 flex h-8 items-center gap-1.5 rounded-lg border px-2 transition-colors duration-150">
-          <Search size={12} className="text-ink/30 shrink-0" />
+        <div className="border-line-strong bg-canvas/50 focus-within:border-accent/35 flex h-8 items-center gap-1.5 rounded-lg border px-2 transition-colors duration-150">
+          <Search size={12} className="text-ink/65 shrink-0" />
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search chats"
             aria-label="Search chats"
-            className="text-ink placeholder:text-ink/30 min-w-0 flex-1 bg-transparent text-[11.5px] outline-none"
+            className="text-ink placeholder:text-ink/65 min-w-0 flex-1 bg-transparent text-[11.5px] outline-none"
           />
           {query ? (
             <button
               type="button"
               onClick={() => setQuery('')}
               aria-label="Clear search"
-              className="text-ink/30 hover:text-ink shrink-0 rounded p-0.5 transition-colors"
+              className="text-ink/65 hover:text-ink shrink-0 rounded p-0.5 transition-colors"
             >
               <X size={11} />
             </button>
@@ -93,7 +93,7 @@ export function SessionRail({
               initial="hidden"
               animate="visible"
               exit="hidden"
-              className="text-ink/35 px-2.5 py-6 text-[12px] leading-relaxed"
+              className="text-ink/65 px-2.5 py-6 text-[12px] leading-relaxed"
             >
               {needle ? 'No chats match that search.' : 'No chats yet. Ask something to start one.'}
             </motion.p>
@@ -142,8 +142,8 @@ export function SessionRail({
                         <span className="relative block truncate text-[12.5px]">{session.title}</span>
                         <span
                           className={cn(
-                            'relative mt-0.5 block text-[10px] tracking-wide',
-                            active ? 'text-accent/60' : 'text-ink/30',
+                            'relative mt-0.5 block text-[11px] tracking-wide',
+                            active ? 'text-accent' : 'text-ink/65',
                           )}
                         >
                           {formatRelativeDate(session.updatedAt)}
@@ -154,7 +154,7 @@ export function SessionRail({
                         onClick={() => onDelete(session.id)}
                         className={cn(
                           'absolute top-1/2 right-1.5 inline-flex size-6 -translate-y-1/2 items-center justify-center rounded-md',
-                          'text-ink/30 hover:bg-ink/[0.06] hover:text-error transition-[opacity,color,transform] duration-150 ease-out active:scale-[0.9]',
+                          'text-ink/65 hover:bg-ink/[0.06] hover:text-error transition-[opacity,color,transform] duration-150 ease-out active:scale-[0.9]',
                           'opacity-0 focus-visible:opacity-100 group-hover:opacity-100',
                         )}
                         aria-label={`Delete ${session.title}`}

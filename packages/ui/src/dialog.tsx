@@ -10,7 +10,7 @@ export function DialogSurface({ className, children }: { className?: string; chi
     <BaseDialog.Portal>
       <BaseDialog.Backdrop
         className={cn(
-          'bg-ink/35 fixed inset-0 backdrop-blur-[2px]',
+          'bg-ink/35 fixed inset-0',
           LAYER.dialogBackdrop,
           'transition-opacity duration-200 ease-out data-[ending-style]:opacity-0 data-[starting-style]:opacity-0 motion-reduce:transition-none',
         )}
@@ -25,8 +25,8 @@ export function DialogSurface({ className, children }: { className?: string; chi
         className={cn(
           'fixed w-[min(92vw,520px)]',
           LAYER.dialog,
-          'border-line bg-surface max-h-[88dvh] overflow-y-auto rounded-2xl border p-6',
-          'shadow-[0_30px_90px_-30px_rgba(42,30,23,0.55)] outline-none',
+          'border-line-strong bg-surface max-h-[88dvh] overflow-y-auto rounded-2xl border p-6',
+          'shadow-dialog outline-none',
           'transition-[opacity,scale,translate] duration-200 ease-out motion-reduce:transition-none',
           'data-[ending-style]:scale-[0.98] data-[ending-style]:translate-y-1 data-[ending-style]:opacity-0',
           'data-[starting-style]:scale-[0.98] data-[starting-style]:translate-y-1 data-[starting-style]:opacity-0',

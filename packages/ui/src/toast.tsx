@@ -104,7 +104,7 @@ const TONE_ACCENT: Record<ToastTone, string> = {
 }
 
 const TONE_ICON: Record<ToastTone, string> = {
-  info: 'bg-ink/10 text-ink/60',
+  info: 'bg-ink/10 text-ink/65',
   warning: 'bg-warning/15 text-warning',
   error: 'bg-error/12 text-error',
 }
@@ -136,14 +136,14 @@ export function Toaster({ className }: { className?: string }) {
             initial="hidden"
             animate="visible"
             exit="hidden"
-            className="border-line bg-surface/95 pointer-events-auto relative w-full max-w-[360px] overflow-hidden rounded-xl border shadow-[0_18px_50px_-24px_rgba(42,30,23,0.55)] backdrop-blur-xl md:max-w-[340px]"
+            className="border-line-strong bg-surface shadow-toast pointer-events-auto relative w-full max-w-[360px] overflow-hidden rounded-xl border md:max-w-[340px]"
           >
             <span className={cn('absolute inset-y-0 left-0 w-[3px]', TONE_ACCENT[entry.tone])} />
             <div className="flex items-start gap-2 py-2.5 pr-2 pl-3.5">
               <span
                 aria-hidden="true"
                 className={cn(
-                  'mt-px grid size-4 shrink-0 place-items-center rounded-full text-[10px] font-bold',
+                  'mt-px grid size-4 shrink-0 place-items-center rounded-full text-[11px] font-bold',
                   TONE_ICON[entry.tone],
                 )}
               >
@@ -154,7 +154,7 @@ export function Toaster({ className }: { className?: string }) {
                 type="button"
                 onClick={() => dismissToast(entry.id)}
                 aria-label="Dismiss notification"
-                className="text-ink/30 hover:bg-ink/[0.06] hover:text-ink -mt-1 grid size-6 shrink-0 place-items-center rounded-md transition-[color,background-color,transform] active:scale-90"
+                className="text-ink/65 hover:bg-ink/[0.06] hover:text-ink -mt-1 grid size-6 shrink-0 place-items-center rounded-md transition-[color,background-color,transform] active:scale-90"
               >
                 <svg viewBox="0 0 12 12" aria-hidden="true" className="size-2.5">
                   <path

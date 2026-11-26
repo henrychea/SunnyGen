@@ -14,9 +14,10 @@ import {
   Skeleton,
   toast,
 } from '@sunnygen/ui'
-import { Columns3, LayoutGrid, Loader2, RefreshCw, Sparkles, X } from 'lucide-react'
+import { Columns3, ImagePlus, LayoutGrid, Loader2, RefreshCw, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { PageBody, PageHeader, PageScroll } from '~/components/app-shell'
+import { RefreshError } from '~/components/refresh-error'
 import { GalleryCard, GalleryWallTile } from '~/components/gallery-card'
 import { FolderChips } from '~/components/folder-chips'
 import { CleanupFailedButton } from '~/components/cleanup-failed'
@@ -138,14 +139,14 @@ function GalleryPage() {
               <button
                 type="button"
                 onClick={() => setComposerOpen(true)}
-                className="bg-accent hover:bg-accent/90 inline-flex h-9 items-center gap-1.5 rounded-xl px-3.5 text-[12.5px] font-medium text-white transition-transform duration-150 ease-out active:scale-[0.97] motion-reduce:active:scale-100"
+                className="bg-accent hover:bg-accent/90 text-accent-ink inline-flex h-9 items-center gap-1.5 rounded-xl px-3.5 text-[12.5px] font-medium transition-transform duration-150 ease-out active:scale-[0.97] motion-reduce:active:scale-100"
               >
-                <Sparkles size={13} /> New render
+                <ImagePlus size={13} /> New render
               </button>
               <button
                 type="button"
                 onClick={() => gallery.refetch()}
-                className="border-line bg-surface text-ink/55 hover:text-ink inline-flex size-9 items-center justify-center rounded-xl border transition-[color,border-color,scale] duration-150 ease-out active:scale-[0.94] motion-reduce:active:scale-100"
+                className="border-line-strong bg-surface text-ink/65 hover:text-ink inline-flex size-9 items-center justify-center rounded-xl border transition-[color,border-color,scale] duration-150 ease-out active:scale-[0.94] motion-reduce:active:scale-100"
                 aria-label="Refresh gallery"
               >
                 <RefreshCw
@@ -174,11 +175,9 @@ function GalleryPage() {
                 className="border-error/20 bg-error/[0.04] mb-5 overflow-hidden rounded-xl border p-3"
               >
                 <div className="mb-2 flex items-center justify-between">
-                  <p className="text-error/80 text-[11px] font-semibold tracking-[0.08em] uppercase">
-                    Failed lately
-                  </p>
+                  <p className="text-error text-[11px] font-semibold">Failed lately</p>
                   <div className="flex items-center gap-2">
-                    <p className="text-error/50 text-[10px]">{failures.data?.length} unfinished</p>
+                    <p className="text-error text-[11px]">{failures.data?.length} unfinished</p>
                     <CleanupFailedButton count={failures.data?.length ?? 0} />
                   </div>
                 </div>
@@ -198,7 +197,7 @@ function GalleryPage() {
                             <p className="text-ink/65 truncate text-[11px] font-medium">
                               {failure.model} · {failure.prompt || 'No prompt'}
                             </p>
-                            <p className="text-error/70 line-clamp-2 text-[10px] leading-snug">
+                            <p className="text-error line-clamp-2 text-[11px] leading-snug">
                               {failure.error ?? 'Generation failed'}
                             </p>
                           </div>
@@ -215,7 +214,7 @@ function GalleryPage() {
                                 setDismissingId(null)
                               }
                             }}
-                            className="text-ink/35 hover:bg-ink/[0.05] hover:text-ink inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[10px] transition-[color,background-color,scale] duration-150 ease-out active:scale-[0.95] disabled:opacity-60 motion-reduce:active:scale-100"
+                            className="text-ink/65 hover:bg-ink/[0.05] hover:text-ink inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[11px] transition-[color,background-color,scale] duration-150 ease-out active:scale-[0.95] disabled:opacity-60 motion-reduce:active:scale-100"
                           >
                             <AnimatePresence initial={false}>
                               {dismissingId === failure.id ? (
@@ -251,7 +250,7 @@ function GalleryPage() {
             />
           </div>
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-            <div className="border-line bg-surface inline-flex rounded-xl border p-0.5">
+            <div className="border-line-strong bg-surface inline-flex rounded-xl border p-0.5">
               {(['all', 'image', 'video'] as const).map((option) => (
                 <button
                   key={option}
@@ -259,7 +258,7 @@ function GalleryPage() {
                   onClick={() => selectKind(option)}
                   className={cn(
                     'relative rounded-[10px] px-3 py-1.5 text-[11.5px] font-medium capitalize transition-colors duration-150 ease-out active:scale-[0.96] motion-reduce:active:scale-100',
-                    kind === option ? 'text-canvas' : 'text-ink/50 hover:text-ink',
+                    kind === option ? 'text-canvas' : 'text-ink/65 hover:text-ink',
                   )}
                 >
                   {kind === option ? (
@@ -274,7 +273,7 @@ function GalleryPage() {
               ))}
             </div>
             <div className="flex items-center gap-2">
-              <p className="text-ink/40 text-[11.5px]">
+              <p className="text-ink/65 text-[11.5px]">
                 <AnimatePresence mode="popLayout" initial={false}>
                   <motion.span
                     key={contentState === 'items' ? `count-${items.length}` : contentState}
@@ -288,13 +287,13 @@ function GalleryPage() {
                   </motion.span>
                 </AnimatePresence>
               </p>
-              <div className="border-line bg-surface inline-flex rounded-xl border p-0.5">
+              <div className="border-line-strong bg-surface inline-flex rounded-xl border p-0.5">
                 <button
                   type="button"
                   onClick={() => selectView('canvas')}
                   className={cn(
-                    'relative inline-flex items-center gap-1 rounded-[10px] px-2.5 py-1.5 text-[10.5px] font-medium transition-colors duration-150 ease-out active:scale-[0.96] motion-reduce:active:scale-100',
-                    view === 'canvas' ? 'text-canvas' : 'text-ink/50 hover:text-ink',
+                    'relative inline-flex items-center gap-1 rounded-[10px] px-2.5 py-1.5 text-[11px] font-medium transition-colors duration-150 ease-out active:scale-[0.96] motion-reduce:active:scale-100',
+                    view === 'canvas' ? 'text-canvas' : 'text-ink/65 hover:text-ink',
                   )}
                 >
                   {view === 'canvas' ? (
@@ -312,8 +311,8 @@ function GalleryPage() {
                   type="button"
                   onClick={() => selectView('grid')}
                   className={cn(
-                    'relative inline-flex items-center gap-1 rounded-[10px] px-2.5 py-1.5 text-[10.5px] font-medium transition-colors duration-150 ease-out active:scale-[0.96] motion-reduce:active:scale-100',
-                    view === 'grid' ? 'text-canvas' : 'text-ink/50 hover:text-ink',
+                    'relative inline-flex items-center gap-1 rounded-[10px] px-2.5 py-1.5 text-[11px] font-medium transition-colors duration-150 ease-out active:scale-[0.96] motion-reduce:active:scale-100',
+                    view === 'grid' ? 'text-canvas' : 'text-ink/65 hover:text-ink',
                   )}
                 >
                   {view === 'grid' ? (
@@ -330,6 +329,12 @@ function GalleryPage() {
               </div>
             </div>
           </div>
+
+          {gallery.isRefetchError ? (
+            <div className="mb-3">
+              <RefreshError message="Could not refresh the gallery." onRetry={() => void gallery.refetch()} />
+            </div>
+          ) : null}
 
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
@@ -350,7 +355,7 @@ function GalleryPage() {
                     {Array.from({ length: 8 }).map((_, index) => (
                       <div
                         key={index}
-                        className="border-line bg-surface overflow-hidden rounded-2xl border shadow-[0_14px_40px_-30px_rgba(42,30,23,0.4)]"
+                        className="border-line-strong bg-surface overflow-hidden rounded-2xl border"
                       >
                         <Skeleton className="aspect-[4/5] rounded-none" />
                         <div className="flex items-center justify-between gap-2 px-3 py-2.5">
@@ -364,9 +369,9 @@ function GalleryPage() {
                     ))}
                   </div>
                 ) : items.length === 0 ? (
-                  <div className="border-line bg-surface/50 rounded-2xl border border-dashed px-6 py-20 text-center">
+                  <div className="border-line-strong bg-surface/50 rounded-2xl border border-dashed px-6 py-20 text-center">
                     <p className="font-display text-ink text-[16px] font-semibold">The wall is empty.</p>
-                    <p className="text-ink/50 mx-auto mt-2 max-w-sm text-[12.5px] leading-relaxed">
+                    <p className="text-ink/65 mx-auto mt-2 max-w-sm text-[12.5px] leading-relaxed">
                       Generate from the canvas or build an outfit in Studio. Finished images and videos land
                       here.
                     </p>
@@ -374,13 +379,13 @@ function GalleryPage() {
                       <button
                         type="button"
                         onClick={() => setComposerOpen(true)}
-                        className="bg-accent hover:bg-accent/90 rounded-xl px-4 py-2 text-[12.5px] font-medium text-white transition-[background-color,scale] duration-150 ease-out active:scale-[0.97] motion-reduce:active:scale-100"
+                        className="bg-accent hover:bg-accent/90 text-accent-ink rounded-xl px-4 py-2 text-[12.5px] font-medium transition-[background-color,scale] duration-150 ease-out active:scale-[0.97] motion-reduce:active:scale-100"
                       >
                         New render
                       </button>
                       <Link
                         to="/studio"
-                        className="border-line bg-surface hover:border-ink/25 hover:bg-canvas rounded-xl border px-4 py-2 text-[12.5px] font-medium transition-[background-color,border-color,scale] duration-150 ease-out active:scale-[0.97] motion-reduce:active:scale-100"
+                        className="border-line-strong bg-surface hover:border-ink/60 hover:bg-canvas rounded-xl border px-4 py-2 text-[12.5px] font-medium transition-[background-color,border-color,scale] duration-150 ease-out active:scale-[0.97] motion-reduce:active:scale-100"
                       >
                         Open Studio
                       </Link>
@@ -441,24 +446,24 @@ function GalleryPage() {
             initial="hidden"
             animate="visible"
             exit="hidden"
-            className="bg-ink/55 fixed inset-0 z-[70] flex items-center justify-center p-4 backdrop-blur-sm"
+            className="bg-ink/55 fixed inset-0 z-[70] flex items-center justify-center p-4"
           >
             <motion.div
               variants={motionPop}
-              className="border-line bg-surface relative flex max-h-[92dvh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border shadow-2xl"
+              className="border-line-strong bg-surface shadow-dialog relative flex max-h-[92dvh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border"
             >
               <div className="border-line border-b px-4 py-3">
                 <div className="flex items-center gap-3">
                   <div className="min-w-0">
                     <p className="text-ink/75 truncate text-[12px] font-medium">{open.model}</p>
-                    <p className="text-ink/40 text-[10.5px]">
+                    <p className="text-ink/65 text-[11px]">
                       {open.provider} · {new Date(open.createdAt).toLocaleString()}
                     </p>
                   </div>
                   <button
                     type="button"
                     onClick={() => setOpen(null)}
-                    className="text-ink/50 hover:bg-ink/5 hover:text-ink ml-auto inline-flex size-8 shrink-0 items-center justify-center rounded-lg transition-[color,background-color,scale] duration-150 ease-out active:scale-[0.94] motion-reduce:active:scale-100"
+                    className="text-ink/65 hover:bg-ink/5 hover:text-ink ml-auto inline-flex size-8 shrink-0 items-center justify-center rounded-lg transition-[color,background-color,scale] duration-150 ease-out active:scale-[0.94] motion-reduce:active:scale-100"
                     aria-label="Close"
                   >
                     <X size={15} />
@@ -490,6 +495,8 @@ function GalleryPage() {
                     <FadeImage
                       shimmer
                       src={open.url}
+                      width={open.width ?? undefined}
+                      height={open.height ?? undefined}
                       alt={open.prompt || 'Generated image'}
                       className="max-h-[72dvh] w-full rounded-lg object-contain"
                     />
@@ -497,9 +504,7 @@ function GalleryPage() {
                 </div>
                 <div className="flex flex-col gap-4 p-5">
                   <div>
-                    <p className="text-ink/40 text-[10.5px] font-semibold tracking-[0.09em] uppercase">
-                      Prompt
-                    </p>
+                    <p className="text-ink/65 text-[11px] font-semibold">Prompt</p>
                     <p className="text-ink/70 mt-1.5 text-[12.5px] leading-relaxed whitespace-pre-wrap">
                       {open.prompt || 'No prompt recorded.'}
                     </p>
@@ -511,7 +516,7 @@ function GalleryPage() {
                     <Meta label="Model" value={open.model} />
                   </div>
                   <label className="flex flex-col gap-1.5">
-                    <span className="text-ink/40 flex items-center gap-1.5 text-[9.5px] font-semibold tracking-[0.08em] uppercase">
+                    <span className="text-ink/65 flex items-center gap-1.5 text-[11px] font-semibold">
                       Folder
                       <AnimatePresence initial={false}>
                         {move.isPending ? (
@@ -555,7 +560,7 @@ function GalleryPage() {
                           href={url}
                           target="_blank"
                           rel="noreferrer"
-                          className="border-line overflow-hidden rounded-lg border"
+                          className="border-line-strong overflow-hidden rounded-lg border"
                         >
                           {open.kind === 'video' ? (
                             <video src={url} muted className="aspect-square w-full object-cover" />
@@ -563,6 +568,8 @@ function GalleryPage() {
                             <FadeImage
                               shimmer
                               src={url}
+                              width={open.width ?? undefined}
+                              height={open.height ?? undefined}
                               alt={`Output ${index + 1}`}
                               className="aspect-square w-full object-cover"
                             />
@@ -588,8 +595,8 @@ function GalleryPage() {
 
 function Meta({ label, value }: { label: string; value: string }) {
   return (
-    <div className="border-line/70 bg-canvas/50 rounded-lg border px-2.5 py-2">
-      <p className="text-ink/35 text-[9.5px] font-semibold tracking-[0.08em] uppercase">{label}</p>
+    <div className="border-line-strong bg-canvas/50 rounded-lg border px-2.5 py-2">
+      <p className="text-ink/65 text-[11px] font-semibold">{label}</p>
       <p className="text-ink/70 mt-0.5 truncate text-[11.5px]">{value}</p>
     </div>
   )

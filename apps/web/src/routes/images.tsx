@@ -6,7 +6,6 @@ import {
   cn,
   motionFade,
   motionFast,
-  motionMountRise,
   motionPop,
   motionPress,
   motionSpring,
@@ -16,6 +15,7 @@ import { Download, FileAudio, Images, Play, Search, Upload, X } from 'lucide-rea
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useState, type ReactNode } from 'react'
 import { CleanupFailedButton } from '~/components/cleanup-failed'
+import { RefreshError } from '~/components/refresh-error'
 import { HomeComposer } from '~/components/home/composer'
 import {
   GroupCard,
@@ -162,9 +162,9 @@ function ImagesPage() {
     <>
       <PageScroll>
         <h1 className="sr-only">SunnyGen images</h1>
-        <div className="border-line/70 bg-canvas/85 sticky top-0 z-20 border-b backdrop-blur-xl">
+        <div className="border-line-strong bg-canvas sticky top-0 z-20 border-b">
           <div className="flex flex-wrap items-center gap-2 px-3 py-2.5 md:px-6">
-            <div className="border-line bg-surface/70 flex items-center rounded-xl border p-0.5">
+            <div className="border-line-strong bg-surface/70 flex items-center rounded-xl border p-0.5">
               <TabButton
                 active={tab === 'generated'}
                 onClick={() => setTab('generated')}
@@ -179,7 +179,11 @@ function ImagesPage() {
               />
             </div>
 
-            <div className="text-ink/35 hidden text-[10.5px] sm:block">
+            {tab === 'generated' && wall.isRefetchError && (wall.data?.length ?? 0) > 0 ? (
+              <RefreshError message="Could not refresh the wall." onRetry={() => void wall.refetch()} />
+            ) : null}
+
+            <div className="text-ink/65 hidden text-[11px] sm:block">
               {tab === 'generated'
                 ? `${renderCount} ${renderCount === 1 ? 'render' : 'renders'}${
                     activeCount > 0 ? ` · ${activeCount} active` : ''
@@ -190,7 +194,7 @@ function ImagesPage() {
             </div>
 
             <div className="ml-auto flex w-full items-center gap-2 sm:w-auto">
-              <div className="text-ink/40 hidden items-center gap-1.5 text-[10.5px] sm:flex">
+              <div className="text-ink/65 hidden items-center gap-1.5 text-[11px] sm:flex">
                 <span
                   className={cn(
                     'size-1.5 rounded-full transition-colors',
@@ -203,14 +207,14 @@ function ImagesPage() {
               </div>
               {tab === 'generated' ? <CleanupFailedButton count={failedCount} /> : null}
               {tab === 'generated' ? (
-                <label className="border-line bg-surface text-ink/45 focus-within:border-accent/40 flex h-9 w-full items-center gap-1.5 rounded-xl border px-2.5 transition-colors sm:w-[min(52vw,220px)]">
+                <label className="border-line-strong bg-surface text-ink/65 focus-within:border-accent/40 flex h-9 w-full items-center gap-1.5 rounded-xl border px-2.5 transition-colors sm:w-[min(52vw,220px)]">
                   <Search size={13} className="shrink-0" />
                   <input
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
                     placeholder="Search renders"
                     aria-label="Search renders"
-                    className="text-ink placeholder:text-ink/30 min-w-0 flex-1 bg-transparent text-[11.5px] outline-none"
+                    className="text-ink placeholder:text-ink/65 min-w-0 flex-1 bg-transparent text-[11.5px] outline-none"
                   />
                   {query ? (
                     <AnimatePresence initial={false} mode="popLayout">
@@ -224,7 +228,7 @@ function ImagesPage() {
                         transition={motionFast}
                         onClick={() => setQuery('')}
                         aria-label="Clear search"
-                        className="text-ink/35 hover:text-ink transition-[color,transform] active:scale-90"
+                        className="text-ink/65 hover:text-ink transition-[color,transform] active:scale-90"
                       >
                         <X size={12} />
                       </motion.button>
@@ -385,7 +389,7 @@ function TabButton({
       className={cn(
         'relative flex h-8 items-center gap-1.5 rounded-[10px] px-2.5 text-[11px] font-medium transition-[color,background-color,transform]',
         motionPress,
-        active ? 'text-canvas' : 'text-ink/50 hover:text-ink',
+        active ? 'text-canvas' : 'text-ink/65 hover:text-ink',
       )}
     >
       {active ? (
@@ -419,13 +423,12 @@ function EmptyWall({ title, body }: { title: string; body: string }) {
   return (
     <div
       className={cn(
-        'border-line bg-surface/35 mx-auto mt-[12vh] max-w-md rounded-3xl border border-dashed px-8 py-12 text-center',
-        motionMountRise,
+        'border-line-strong bg-surface/35 mx-auto mt-[12vh] max-w-md rounded-3xl border border-dashed px-8 py-12 text-center',
       )}
     >
-      <p className="text-accent/75 text-[10px] font-semibold tracking-[0.16em] uppercase">Empty wall</p>
+      <p className="text-accent text-[11px] font-semibold">Empty wall</p>
       <h2 className="font-display text-ink mt-2 text-[21px] font-semibold tracking-tight">{title}</h2>
-      <p className="text-ink/45 mt-2 text-[12.5px] leading-relaxed">{body}</p>
+      <p className="text-ink/65 mt-2 text-[12.5px] leading-relaxed">{body}</p>
     </div>
   )
 }
@@ -438,8 +441,7 @@ function UploadTile({ item, onOpen }: { item: PublicAsset; onOpen: () => void })
       onClick={onOpen}
       style={item.kind === 'audio' ? undefined : { aspectRatio: ratio }}
       className={cn(
-        'group border-line bg-surface hover:border-ink/25 relative shrink-0 overflow-hidden rounded-xl border text-left transition-[border-color,transform] active:scale-[0.99] motion-reduce:active:scale-100',
-        motionMountRise,
+        'group border-line-strong bg-surface hover:border-ink/60 relative shrink-0 overflow-hidden rounded-xl border text-left transition-[border-color,transform] active:scale-[0.99] motion-reduce:active:scale-100',
         WALL_CARD_HEIGHT,
         item.kind === 'audio' && WALL_FIXED_WIDTH,
       )}
@@ -447,7 +449,7 @@ function UploadTile({ item, onOpen }: { item: PublicAsset; onOpen: () => void })
       {item.kind === 'video' ? (
         <video src={item.url} muted loop playsInline preload="metadata" className="size-full object-cover" />
       ) : item.kind === 'audio' ? (
-        <div className="text-ink/30 bg-ink/[0.04] grid size-full place-items-center">
+        <div className="text-ink/65 bg-ink/[0.04] grid size-full place-items-center">
           <FileAudio size={26} />
         </div>
       ) : (
@@ -455,22 +457,24 @@ function UploadTile({ item, onOpen }: { item: PublicAsset; onOpen: () => void })
           src={thumbUrl(item.url, 640)}
           srcSet={thumbSrcSet(item.url, [320, 640])}
           sizes="(min-width: 768px) 320px, 280px"
+          width={item.width ?? undefined}
+          height={item.height ?? undefined}
           alt=""
           loading="lazy"
           decoding="async"
           className="size-full object-cover duration-500 group-hover:scale-[1.02]"
         />
       )}
-      <span className="bg-ink/70 text-canvas absolute top-2 left-2 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[9px] font-semibold tracking-[0.06em] uppercase backdrop-blur">
+      <span className="bg-ink/70 text-canvas absolute top-2 left-2 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-semibold">
         {item.kind === 'video' ? <Play size={8} fill="currentColor" /> : null}
         {item.kind}
       </span>
       {item.source === 'social' ? (
-        <span className="bg-accent/85 text-canvas absolute top-2 right-2 rounded px-1.5 py-0.5 text-[9px] font-semibold tracking-[0.05em] uppercase backdrop-blur">
+        <span className="bg-accent/85 text-canvas absolute top-2 right-2 rounded px-1.5 py-0.5 text-[11px] font-semibold">
           Cobalt
         </span>
       ) : null}
-      <span className="bg-ink/60 text-canvas absolute right-2 bottom-2 rounded px-1.5 py-0.5 text-[9px] font-medium backdrop-blur">
+      <span className="bg-ink/60 text-canvas absolute right-2 bottom-2 rounded px-1.5 py-0.5 text-[11px] font-medium">
         {formatBytes(item.byteSize)}
       </span>
     </button>
@@ -492,8 +496,7 @@ function UploadFolderCard({
       type="button"
       onClick={onOpen}
       className={cn(
-        'group border-line bg-surface hover:border-ink/25 relative flex shrink-0 flex-col overflow-hidden rounded-xl border text-left transition-[border-color,transform] active:scale-[0.99] motion-reduce:active:scale-100',
-        motionMountRise,
+        'group border-line-strong bg-surface hover:border-ink/60 relative flex shrink-0 flex-col overflow-hidden rounded-xl border text-left transition-[border-color,transform] active:scale-[0.99] motion-reduce:active:scale-100',
         WALL_CARD_HEIGHT,
         WALL_FIXED_WIDTH,
       )}
@@ -524,6 +527,8 @@ function UploadFolderCard({
                   src={thumbUrl(asset.url, 320)}
                   srcSet={thumbSrcSet(asset.url, [160, 320])}
                   sizes="(min-width: 768px) 160px, 140px"
+                  width={asset.width ?? undefined}
+                  height={asset.height ?? undefined}
                   alt=""
                   loading="lazy"
                   decoding="async"
@@ -533,13 +538,13 @@ function UploadFolderCard({
             </div>
           ))}
         </div>
-        <span className="bg-ink/70 text-canvas absolute top-2 right-2 rounded px-1.5 py-0.5 text-[9px] font-semibold backdrop-blur">
+        <span className="bg-ink/70 text-canvas absolute top-2 right-2 rounded px-1.5 py-0.5 text-[11px] font-semibold">
           {assets.length}
         </span>
       </div>
       <div className="flex items-center gap-1.5 px-2.5 py-2">
-        <span className="text-ink/40 shrink-0 text-[10px]">FOLDER</span>
-        <span className="text-ink/65 truncate text-[10.5px] font-medium">{folder.name}</span>
+        <span className="text-ink/65 shrink-0 text-[11px]">Folder</span>
+        <span className="text-ink/65 truncate text-[11px] font-medium">{folder.name}</span>
       </div>
     </button>
   )
@@ -567,26 +572,26 @@ function PreviewOverlay({ preview, onClose }: { preview: Preview; onClose: () =>
       initial="hidden"
       animate="visible"
       exit="hidden"
-      className="bg-ink/70 fixed inset-0 z-[60] flex items-center justify-center p-3 backdrop-blur-sm md:p-8"
+      className="bg-ink/70 fixed inset-0 z-[60] flex items-center justify-center p-3 md:p-8"
       onClick={onClose}
     >
       <motion.div
         variants={motionPop}
         onClick={(event) => event.stopPropagation()}
-        className="border-line bg-surface flex max-h-full w-full max-w-5xl flex-col overflow-hidden rounded-2xl border shadow-2xl"
+        className="border-line-strong bg-surface shadow-dialog flex max-h-full w-full max-w-5xl flex-col overflow-hidden rounded-2xl border"
       >
         <div className="border-line flex items-center gap-2 border-b px-3 py-2">
-          <span className="text-ink/40 text-[10px] font-semibold tracking-[0.1em] uppercase">
+          <span className="text-ink/65 text-[11px] font-semibold">
             {preview.type === 'folder' ? 'Folder' : 'Upload'}
           </span>
           {preview.type === 'folder' ? (
-            <span className="text-ink/60 truncate text-[11px] font-medium">{preview.folder.name}</span>
+            <span className="text-ink/65 truncate text-[11px] font-medium">{preview.folder.name}</span>
           ) : null}
           <div className="ml-auto flex items-center gap-1">
             <a
               href={current.url}
               download
-              className="text-ink/45 hover:bg-ink/5 hover:text-ink grid size-8 place-items-center rounded-lg transition-[color,background-color,transform] active:scale-90"
+              className="text-ink/65 hover:bg-ink/5 hover:text-ink grid size-8 place-items-center rounded-lg transition-[color,background-color,transform] active:scale-90"
               aria-label="Download"
             >
               <Download size={14} />
@@ -595,7 +600,8 @@ function PreviewOverlay({ preview, onClose }: { preview: Preview; onClose: () =>
               type="button"
               onClick={onClose}
               aria-label="Close preview"
-              className="text-ink/45 hover:bg-ink/5 hover:text-ink grid size-8 place-items-center rounded-lg transition-[color,background-color,transform] active:scale-90"
+              title="Close preview"
+              className="text-ink/65 hover:bg-ink/5 hover:text-ink grid size-8 place-items-center rounded-lg transition-[color,background-color,transform] active:scale-90"
             >
               <X size={15} />
             </button>
@@ -629,6 +635,8 @@ function PreviewOverlay({ preview, onClose }: { preview: Preview; onClose: () =>
               ) : (
                 <FadeImage
                   src={current.url}
+                  width={current.width ?? undefined}
+                  height={current.height ?? undefined}
                   alt=""
                   className="mx-auto max-h-[68vh] w-full rounded-xl object-contain"
                 />
@@ -646,17 +654,23 @@ function PreviewOverlay({ preview, onClose }: { preview: Preview; onClose: () =>
                 onClick={() => setIndex(itemIndex)}
                 className={cn(
                   'size-12 shrink-0 overflow-hidden rounded-lg border transition-[border-color,transform] active:scale-95 motion-reduce:active:scale-100',
-                  itemIndex === safeIndex ? 'border-accent' : 'border-line hover:border-ink/25',
+                  itemIndex === safeIndex ? 'border-accent' : 'border-line-strong hover:border-ink/60',
                 )}
               >
                 {item.kind === 'video' ? (
                   <video src={item.url} muted preload="metadata" className="size-full object-cover" />
                 ) : item.kind === 'audio' ? (
-                  <span className="text-ink/35 grid size-full place-items-center">
+                  <span className="text-ink/65 grid size-full place-items-center">
                     <FileAudio size={16} />
                   </span>
                 ) : (
-                  <FadeImage src={item.url} alt="" className="size-full object-cover" />
+                  <FadeImage
+                    src={item.url}
+                    width={item.width ?? undefined}
+                    height={item.height ?? undefined}
+                    alt=""
+                    className="size-full object-cover"
+                  />
                 )}
               </button>
             ))}
@@ -665,10 +679,10 @@ function PreviewOverlay({ preview, onClose }: { preview: Preview; onClose: () =>
 
         <div className="min-h-0 overflow-y-auto px-4 py-3">
           {preview.type === 'folder' ? (
-            <p className="text-ink/55 mb-2 text-[11px]">{preview.assets.length} items in this folder</p>
+            <p className="text-ink/65 mb-2 text-[11px]">{preview.assets.length} items in this folder</p>
           ) : null}
-          <div className="text-ink/40 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10.5px]">
-            <span className="uppercase">{current.kind}</span>
+          <div className="text-ink/65 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px]">
+            <span className="">{current.kind}</span>
             <span>·</span>
             <span>{current.mime}</span>
             <span>·</span>

@@ -24,6 +24,7 @@ import {
   type InputAsset,
   type PublicAsset,
 } from './media.server'
+import { readNsfwMode } from './nsfw.server'
 import { assetMediaKind, generationMediaKind } from '~/lib/media-kind'
 import { referenceAvatar, type ReferenceAvatar } from '~/lib/reference-avatar'
 
@@ -100,17 +101,20 @@ export const loadGenerationWall = createServerFn({ method: 'GET', strict: false 
   .handler(({ data }): GenerationWallItem[] => {
     const kind = data?.kind === 'video' ? 'video' : undefined
     const origin = data?.origin === 'studio' ? 'studio' : undefined
+    const includeNsfw = readNsfwMode()
     const generations = [
-      ...listGenerations({ status: 'running', kind, limit: 30 }),
-      ...listGenerations({ status: 'queued', kind, limit: 30 }),
-      ...listGenerations({ status: 'failed', kind, limit: 20 }),
-      ...listGenerations({ status: 'succeeded', kind, limit: 80 }),
+      ...listGenerations({ status: 'running', kind, limit: 30, includeNsfw }),
+      ...listGenerations({ status: 'queued', kind, limit: 30, includeNsfw }),
+      ...listGenerations({ status: 'failed', kind, limit: 20, includeNsfw }),
+      ...listGenerations({ status: 'succeeded', kind, limit: 80, includeNsfw }),
     ].filter(
       (generation) => generation.kind !== 'lora' && (origin ? generation.params.origin === 'studio' : true),
     )
     const outputIds = generations.flatMap((generation) => generation.outputAssetIds)
     const inputIds = generations.flatMap((generation) => generation.inputAssetIds)
-    const assets = new Map(getAssetsByIds([...outputIds, ...inputIds]).map((asset) => [asset.id, asset]))
+    const assets = new Map(
+      getAssetsByIds([...outputIds, ...inputIds], { includeNsfw }).map((asset) => [asset.id, asset]),
+    )
     const priority: Record<string, number> = {
       running: 0,
       queued: 1,
@@ -174,17 +178,21 @@ const galleryInput = z.object({
 export const loadGallery = createServerFn({ method: 'GET' })
   .validator(galleryInput)
   .handler(({ data }): GalleryItem[] => {
+    const includeNsfw = readNsfwMode()
     const generations = listGenerations({
       status: 'succeeded',
       kind: data.kind === 'all' ? undefined : data.kind,
       folderId: data.folderId,
       limit: data.limit,
       offset: data.offset,
+      includeNsfw,
     }).filter((generation) => generation.kind !== 'lora')
 
     const outputIds = generations.flatMap((generation) => generation.outputAssetIds)
     const inputIds = generations.flatMap((generation) => generation.inputAssetIds)
-    const assets = new Map(getAssetsByIds([...outputIds, ...inputIds]).map((asset) => [asset.id, asset]))
+    const assets = new Map(
+      getAssetsByIds([...outputIds, ...inputIds], { includeNsfw }).map((asset) => [asset.id, asset]),
+    )
 
     return generations.flatMap((generation) => {
       const outputs = generation.outputAssetIds
@@ -233,6 +241,7 @@ export const loadAssets = createServerFn({ method: 'GET' })
       // A file a studio item owns is shown in the Studio, not in the library.
       excludeStudioAssets: true,
       folderId: data.folderId,
+      includeNsfw: readNsfwMode(),
       limit: data.limit,
       offset: data.offset,
     })
@@ -240,7 +249,7 @@ export const loadAssets = createServerFn({ method: 'GET' })
   })
 
 export const loadFailedGenerations = createServerFn({ method: 'GET', strict: false }).handler(() =>
-  listGenerations({ status: 'failed', limit: 50 }),
+  listGenerations({ status: 'failed', limit: 50, includeNsfw: readNsfwMode() }),
 )
 
 export const loadMediaAssets = createServerFn({ method: 'GET', strict: false })
@@ -250,6 +259,7 @@ export const loadMediaAssets = createServerFn({ method: 'GET', strict: false })
       kind: data.kind === 'all' ? undefined : data.kind,
       sources: ['upload', 'social', 'generated'],
       excludeKind: 'lora',
+      includeNsfw: readNsfwMode(),
       limit: 200,
     }).map(toPublicAsset),
   )
@@ -281,6 +291,7 @@ export const loadReferenceLibrary = createServerFn({ method: 'GET', strict: fals
   .validator(z.object({ kind: z.enum(['image', 'video']).default('image') }).optional())
   .handler(async ({ data }): Promise<ReferenceLibrary> => {
     const kind = data?.kind ?? 'image'
+    const includeNsfw = readNsfwMode()
     const avatars =
       kind === 'video'
         ? []
@@ -288,11 +299,14 @@ export const loadReferenceLibrary = createServerFn({ method: 'GET', strict: fals
             .map((item) => referenceAvatar(item))
             .flatMap((reference) => {
               if (!reference) return []
+              const panels = getAssetsByIds(reference.assetIds, { includeNsfw })
+              // Safe mode drops a reference whose files were stored in NSFW mode.
+              if (panels.length !== reference.assetIds.length) return []
               return [
                 {
                   ...reference,
                   url: assetUrl(reference.id),
-                  ...largestImage(getAssetsByIds(reference.assetIds)),
+                  ...largestImage(panels),
                 },
               ]
             })
@@ -302,6 +316,7 @@ export const loadReferenceLibrary = createServerFn({ method: 'GET', strict: fals
         kind,
         sources: ['upload', 'social', 'generated', 'studio'],
         excludeKind: 'lora',
+        includeNsfw,
         limit: 120,
       }).map(toPublicAsset),
     }

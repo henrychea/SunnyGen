@@ -56,7 +56,7 @@ export async function deleteDerivedAssets(
   const candidates = derivedAssetIds(oldData)
   if (candidates.length === 0) return []
   const otherItems = listStudioItems().filter((item) => item.id !== itemId)
-  const generations = listGenerations()
+  const generations = listGenerations({ includeNsfw: true, limit: 1000 })
   const referenced = (id: string) => {
     if (otherItems.some((item) => JSON.stringify(item.data).includes(id))) return true
     return generations.some(
@@ -66,7 +66,7 @@ export async function deleteDerivedAssets(
 
   const deleted: string[] = []
   for (const id of candidates) {
-    const asset = getAsset(id)
+    const asset = getAsset(id, { includeNsfw: true })
     if (!asset || asset.source !== 'studio') continue
     if (referenced(id)) continue
     await removeAssetFile(id)

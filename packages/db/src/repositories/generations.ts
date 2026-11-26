@@ -27,6 +27,7 @@ interface GenerationRow {
   folder_id: string | null
   created_at: number
   updated_at: number
+  nsfw: number | null
 }
 
 function parseJson<T>(value: string, fallback: T): T {
@@ -56,6 +57,7 @@ function toRecord(row: GenerationRow): GenerationRecord {
     folderId: row.folder_id,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    nsfw: row.nsfw === 1,
   }
 }
 
@@ -67,6 +69,7 @@ export interface CreateGenerationInput {
   params?: GenerationParams
   inputAssetIds?: string[]
   folderId?: string | null
+  nsfw?: boolean
 }
 
 export function createGeneration(input: CreateGenerationInput): GenerationRecord {
@@ -76,8 +79,8 @@ export function createGeneration(input: CreateGenerationInput): GenerationRecord
     .prepare(
       `INSERT INTO generations
         (id, kind, provider, model, status, prompt, params, input_asset_ids,
-         output_asset_ids, folder_id, created_at, updated_at)
-       VALUES (?, ?, ?, ?, 'queued', ?, ?, ?, '[]', ?, ?, ?)`,
+         output_asset_ids, folder_id, nsfw, created_at, updated_at)
+       VALUES (?, ?, ?, ?, 'queued', ?, ?, ?, '[]', ?, ?, ?, ?)`,
     )
     .run(
       id,
@@ -88,10 +91,11 @@ export function createGeneration(input: CreateGenerationInput): GenerationRecord
       JSON.stringify(input.params ?? {}),
       JSON.stringify(input.inputAssetIds ?? []),
       input.folderId ?? null,
+      input.nsfw === true ? 1 : 0,
       timestamp,
       timestamp,
     )
-  return getGeneration(id) as GenerationRecord
+  return getGeneration(id, { includeNsfw: true }) as GenerationRecord
 }
 
 export interface UpdateGenerationPatch {
@@ -106,48 +110,57 @@ export interface UpdateGenerationPatch {
   model?: string
   prompt?: string
   params?: GenerationParams
+  nsfw?: boolean
 }
 
 export function updateGeneration(id: string, patch: UpdateGenerationPatch): GenerationRecord | null {
-  const columns: string[] = []
-  const values: Array<string | number | null> = []
-  const push = (column: string, value: string | number | null) => {
-    columns.push(`${column} = ?`)
-    values.push(value)
-  }
+  if (Object.keys(patch).length === 0) return getGeneration(id, { includeNsfw: true })
+  const current = getGeneration(id, { includeNsfw: true })
+  if (!current) return null
 
-  if (patch.status !== undefined) push('status', patch.status)
-  if (patch.outputAssetIds !== undefined) push('output_asset_ids', JSON.stringify(patch.outputAssetIds))
-  if (patch.providerJobId !== undefined) push('provider_job_id', patch.providerJobId)
-  if (patch.error !== undefined) {
-    push('error', patch.error)
-    if (patch.error === null) {
-      push('error_code', null)
-      push('error_reason', null)
-      push('error_retryable', null)
-    }
-  }
-  if (patch.errorCode !== undefined) push('error_code', patch.errorCode)
-  if (patch.errorReason !== undefined) push('error_reason', patch.errorReason)
-  if (patch.errorRetryable !== undefined) {
-    push('error_retryable', patch.errorRetryable === null ? null : patch.errorRetryable ? 1 : 0)
-  }
-  if (patch.folderId !== undefined) push('folder_id', patch.folderId)
-  if (patch.model !== undefined) push('model', patch.model)
-  if (patch.prompt !== undefined) push('prompt', patch.prompt)
-  if (patch.params !== undefined) push('params', JSON.stringify(patch.params))
-  if (columns.length === 0) return getGeneration(id)
+  // Cleared errors take their code, reason and retryability with them.
+  const clearsError = patch.error === null
+  const keep = <T>(patchValue: T | undefined, currentValue: T): T =>
+    patchValue === undefined ? currentValue : patchValue
+  const errorCode = clearsError ? null : keep(patch.errorCode, current.errorCode)
+  const errorReason = clearsError ? null : keep(patch.errorReason, current.errorReason)
+  const errorRetryable = clearsError ? null : keep(patch.errorRetryable, current.errorRetryable)
 
-  push('updated_at', Date.now())
-  values.push(id)
   getDb()
-    .prepare(`UPDATE generations SET ${columns.join(', ')} WHERE id = ?`)
-    .run(...values)
-  return getGeneration(id)
+    .prepare(
+      `UPDATE generations SET
+         status = ?, output_asset_ids = ?, provider_job_id = ?, error = ?, error_code = ?,
+         error_reason = ?, error_retryable = ?, folder_id = ?, model = ?, prompt = ?, params = ?,
+         nsfw = ?, updated_at = ?
+       WHERE id = ?`,
+    )
+    .run(
+      keep(patch.status, current.status),
+      JSON.stringify(keep(patch.outputAssetIds, current.outputAssetIds)),
+      keep(patch.providerJobId, current.providerJobId),
+      keep(patch.error, current.error),
+      errorCode,
+      errorReason,
+      errorRetryable === null ? null : Number(errorRetryable),
+      keep(patch.folderId, current.folderId),
+      keep(patch.model, current.model),
+      keep(patch.prompt, current.prompt),
+      JSON.stringify(keep(patch.params, current.params)),
+      keep(patch.nsfw, current.nsfw) ? 1 : 0,
+      Date.now(),
+      id,
+    )
+  return getGeneration(id, { includeNsfw: true })
 }
 
-export function getGeneration(id: string): GenerationRecord | null {
-  const row = getDb().prepare('SELECT * FROM generations WHERE id = ?').get(id) as GenerationRow | undefined
+export interface ReadGenerationOptions {
+  includeNsfw?: boolean
+}
+
+export function getGeneration(id: string, options: ReadGenerationOptions = {}): GenerationRecord | null {
+  const row = getDb()
+    .prepare('SELECT * FROM generations WHERE id = ? AND (? = 1 OR nsfw = 0)')
+    .get(id, options.includeNsfw ? 1 : 0) as GenerationRow | undefined
   return row ? toRecord(row) : null
 }
 
@@ -180,59 +193,51 @@ export interface ListGenerationsFilter {
   kind?: GenerationKind
   status?: GenerationStatus
   folderId?: string | null
+  includeNsfw?: boolean
   limit?: number
   offset?: number
 }
 
 export function listGenerations(filter: ListGenerationsFilter = {}): GenerationRecord[] {
-  const conditions: string[] = []
-  const values: Array<string | number | null> = []
-
-  if (filter.kind) {
-    conditions.push('kind = ?')
-    values.push(filter.kind)
-  }
-  if (filter.status) {
-    conditions.push('status = ?')
-    values.push(filter.status)
-  }
-  if (filter.folderId !== undefined) {
-    if (filter.folderId === null) {
-      conditions.push('folder_id IS NULL')
-    } else {
-      conditions.push('folder_id = ?')
-      values.push(filter.folderId)
-    }
-  }
-
-  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''
   const limit = Math.min(Math.max(filter.limit ?? 100, 1), 1000)
   const offset = Math.max(filter.offset ?? 0, 0)
-  values.push(limit, offset)
+  const folderScoped = filter.folderId !== undefined
+  const folderValue = folderScoped ? (filter.folderId ?? null) : null
 
   const rows = asRows<GenerationRow>(
     getDb()
-      .prepare(`SELECT * FROM generations ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`)
-      .all(...values),
+      .prepare(
+        `SELECT * FROM generations
+         WHERE (? = 1 OR nsfw = 0)
+           AND kind = COALESCE(?, kind)
+           AND status = COALESCE(?, status)
+           AND (? = 0 OR folder_id IS ?)
+         ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+      )
+      .all(
+        filter.includeNsfw ? 1 : 0,
+        filter.kind ?? null,
+        filter.status ?? null,
+        folderScoped ? 1 : 0,
+        folderValue,
+        limit,
+        offset,
+      ),
   )
   return rows.map(toRecord)
 }
 
-export function countGenerations(filter: { status?: GenerationStatus; kind?: GenerationKind } = {}): number {
-  const conditions: string[] = []
-  const values: string[] = []
-  if (filter.status) {
-    conditions.push('status = ?')
-    values.push(filter.status)
-  }
-  if (filter.kind) {
-    conditions.push('kind = ?')
-    values.push(filter.kind)
-  }
-  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''
+export function countGenerations(
+  filter: { status?: GenerationStatus; kind?: GenerationKind; includeNsfw?: boolean } = {},
+): number {
   const row = getDb()
-    .prepare(`SELECT COUNT(*) AS count FROM generations ${where}`)
-    .get(...values) as {
+    .prepare(
+      `SELECT COUNT(*) AS count FROM generations
+       WHERE (? = 1 OR nsfw = 0)
+         AND status = COALESCE(?, status)
+         AND kind = COALESCE(?, kind)`,
+    )
+    .get(filter.includeNsfw ? 1 : 0, filter.status ?? null, filter.kind ?? null) as {
     count: number
   }
   return Number(row.count)

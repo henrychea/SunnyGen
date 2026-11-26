@@ -16,6 +16,8 @@ import {
 import {
   getAdapter,
   isCodexAvailable,
+  localStatus,
+  LOCAL_DEFAULT_BASE,
   providerSupportsWebhooks,
   type AdapterContext,
   type ProviderAsset,
@@ -31,6 +33,7 @@ function envKey(provider: ProviderId): string | null {
   if (provider === 'sunra') return process.env.SUNRA_API_KEY ?? null
   if (provider === 'fal') return process.env.FAL_KEY ?? null
   if (provider === 'azure') return process.env.AZURE_API_KEY ?? null
+  if (provider === 'wiro') return process.env.WIRO_API_KEY ?? null
   return null
 }
 
@@ -42,10 +45,20 @@ export function providerApiKey(provider: ProviderId): string | null {
   return value.trim()
 }
 
+export function localBaseUrl(): string {
+  return readSetting('provider.local.baseUrl')?.trim() || LOCAL_DEFAULT_BASE
+}
+
+function providerBaseUrl(provider: ProviderId): string | null {
+  if (provider === 'azure') return readSetting('provider.azure.baseUrl')
+  if (provider === 'local') return localBaseUrl()
+  return null
+}
+
 export function providerContext(provider: ProviderId): AdapterContext {
   return {
     apiKey: providerApiKey(provider),
-    baseUrl: provider === 'azure' ? readSetting('provider.azure.baseUrl') : null,
+    baseUrl: providerBaseUrl(provider),
     deployment: provider === 'azure' ? readSetting('provider.azure.deployment') : null,
     fetch,
     uploads: {
@@ -58,6 +71,7 @@ export function providerContext(provider: ProviderId): AdapterContext {
 
 export async function providerConfigured(provider: ProviderId): Promise<boolean> {
   if (provider === 'codex') return isCodexAvailable()
+  if (provider === 'local') return (await localStatus(localBaseUrl())).reachable
   if (provider === 'azure') {
     return Boolean(
       providerApiKey('azure') &&
@@ -109,7 +123,7 @@ async function fitImageForProvider(buffer: Buffer, mime: string): Promise<{ buff
 
 export async function loadProviderAssets(assetIds: string[]): Promise<ProviderAsset[]> {
   if (assetIds.length === 0) return []
-  const records = getAssetsByIds(assetIds)
+  const records = getAssetsByIds(assetIds, { includeNsfw: true })
   if (records.length !== assetIds.length) {
     const found = new Set(records.map((record) => record.id))
     const missing = assetIds.filter((id) => !found.has(id))
@@ -136,6 +150,7 @@ export async function storeProviderOutputs(
   outputs: ProviderOutput[],
   folderId: string | null,
   forceKind?: AssetKind,
+  options: { nsfw?: boolean } = {},
 ): Promise<string[]> {
   const ids: string[] = []
   for (const output of outputs) {
@@ -148,6 +163,7 @@ export async function storeProviderOutputs(
       kind,
       source: 'generated',
       folderId,
+      nsfw: options.nsfw === true,
       ...(output.fileName ? { fileName: output.fileName } : {}),
     })
     ids.push(asset.id)

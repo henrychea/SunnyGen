@@ -1,8 +1,8 @@
 export const APP_NAME = 'SunnyGen'
-export const APP_VERSION = '2.1.0'
+export const APP_VERSION = '3.0.0'
 export const APP_TAGLINE = 'Build AI image and video pipelines visually.'
 
-export const PROVIDER_IDS = ['sunra', 'fal', 'azure', 'codex'] as const
+export const PROVIDER_IDS = ['sunra', 'fal', 'azure', 'codex', 'wiro', 'local'] as const
 export type ProviderId = (typeof PROVIDER_IDS)[number]
 
 export const ASSISTANT_PROVIDER_IDS = ['openrouter'] as const
@@ -70,6 +70,20 @@ export const PROVIDERS: readonly ProviderDescriptor[] = [
     capabilities: ['image'],
     keySetting: null,
     docsUrl: 'https://github.com/openai/codex',
+  },
+  {
+    id: 'wiro',
+    label: 'Wiro',
+    capabilities: ['image'],
+    keySetting: 'provider.wiro.key',
+    docsUrl: 'https://wiro.ai',
+  },
+  {
+    id: 'local',
+    label: 'Local sd-server',
+    capabilities: ['image'],
+    keySetting: null,
+    docsUrl: 'https://github.com/leejet/stable-diffusion.cpp',
   },
 ]
 

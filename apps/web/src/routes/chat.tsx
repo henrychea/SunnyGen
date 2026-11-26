@@ -113,7 +113,7 @@ function ChatPage() {
               <MessageSquarePlus size={13} /> New
             </Button>
             {id ? (
-              <span className="bg-ink/[0.05] text-ink/45 hidden rounded-md px-1.5 py-0.5 text-[10px] font-medium sm:inline">
+              <span className="bg-ink/[0.05] text-ink/65 hidden rounded-md px-1.5 py-0.5 text-[11px] font-medium sm:inline">
                 <motion.span
                   key={chat.model}
                   variants={motionFade}

@@ -18,8 +18,8 @@ export function DropdownMenuContent({
       <Menu.Positioner align={align} sideOffset={6} className="z-50 outline-none">
         <Menu.Popup
           className={cn(
-            'border-line bg-surface min-w-44 rounded-xl border p-1.5',
-            'shadow-[0_18px_50px_-24px_rgba(42,30,23,0.45)] outline-none',
+            'border-line-strong bg-surface min-w-44 rounded-xl border p-1.5',
+            'shadow-menu outline-none',
             'transition-[opacity,scale,translate] duration-200 ease-out motion-reduce:transition-none',
             'origin-(--transform-origin) data-[ending-style]:scale-[0.97] data-[ending-style]:opacity-0',
             'data-[starting-style]:scale-[0.97] data-[starting-style]:opacity-0',

@@ -72,13 +72,13 @@ export function RouteError({ error, reset }: ErrorComponentProps) {
         animate="visible"
         className="max-w-sm text-center"
       >
-        <p className="font-display text-accent text-[11px] font-semibold tracking-[0.18em] uppercase">
+        <p className="font-display text-accent text-[11px] font-semibold">
           {chunkError ? 'New build' : 'Error'}
         </p>
         <h1 className="font-display text-ink mt-3 text-2xl font-semibold">
-          {chunkError ? 'This page needs a refresh.' : 'Something went wrong.'}
+          {chunkError ? 'This page needs a refresh.' : 'This page could not be rendered.'}
         </h1>
-        <p className="text-ink/55 mt-2 text-[13px] leading-relaxed">
+        <p className="text-ink/65 mt-2 text-[13px] leading-relaxed">
           {chunkError
             ? 'SunnyGen was updated while this tab was open. Reload to load the current files.'
             : 'The page could not be rendered. Try again, or head back to the studio.'}
@@ -87,19 +87,19 @@ export function RouteError({ error, reset }: ErrorComponentProps) {
           <button
             type="button"
             onClick={retry}
-            className="bg-accent inline-flex h-10 items-center rounded-xl px-4 text-[13px] font-medium text-white transition-[background-color,transform] duration-150 ease-out active:scale-[0.97]"
+            className="bg-accent text-accent-ink inline-flex h-10 items-center rounded-xl px-4 text-[13px] font-medium transition-[background-color,transform] duration-150 ease-out active:scale-[0.97]"
           >
             Reload
           </button>
           <a
             href="/"
-            className="border-line bg-surface text-ink hover:border-ink/25 inline-flex h-10 items-center rounded-xl border px-4 text-[13px] font-medium transition-[border-color,background-color,transform] duration-150 ease-out active:scale-[0.97]"
+            className="border-line-strong bg-surface text-ink hover:border-ink/60 inline-flex h-10 items-center rounded-xl border px-4 text-[13px] font-medium transition-[border-color,background-color,transform] duration-150 ease-out active:scale-[0.97]"
           >
             Return home
           </a>
         </div>
         {!chunkError ? (
-          <details className="text-ink/40 mt-6 text-left text-[11.5px]">
+          <details className="text-ink/65 mt-6 text-left text-[11.5px]">
             <summary className="cursor-pointer select-none">Details</summary>
             <pre className="mt-2 overflow-auto whitespace-pre-wrap">
               {error instanceof Error ? error.message : String(error)}

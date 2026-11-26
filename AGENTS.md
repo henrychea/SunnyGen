@@ -51,6 +51,7 @@ apps/cli                 sunnygen launcher
 ## Data
 
 - `data/sunnygen.db` — SQLite, WAL mode.
+- `data/backups/` — automatic pre-migration database copies, newest five kept.
 - `data/media/` — uploads, references, generated results.
 - `SUNNYGEN_DATA_DIR` and `SUNNYGEN_MEDIA_DIR` override both.
 - Provider keys live in `settings`; environment variables are the fallback.

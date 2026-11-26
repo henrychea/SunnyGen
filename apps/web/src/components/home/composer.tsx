@@ -33,7 +33,7 @@ import {
   Minimize2,
   Minus,
   Replace,
-  Sparkles,
+  TextCursorInput,
   X,
 } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
@@ -70,6 +70,7 @@ import {
 import type { ReferenceAvatar } from '~/lib/reference-avatar'
 import { useModelChoices } from '~/lib/use-model-choices'
 import { usePromptBridge } from '~/lib/assistant-context'
+import { takeEditHandoff } from '~/lib/edit-handoff'
 import { oversizedReferences, referenceIsOversized, shouldConfirmResize } from '~/lib/oversized-images'
 import { ResizeImagesDialog } from '~/components/resize-images-dialog'
 import { ReferencePicker } from './reference-picker'
@@ -125,7 +126,8 @@ export function HomeComposer({
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const startModelId = initialAvatar?.lora ? LORA_MODEL_ID : 'gpt-image-2'
   const [loraStrength, setLoraStrength] = useState(LORA_SCALE_DEFAULT)
-  const [mode, setMode] = useState<ComposerMode>('generate')
+  const [handoff] = useState<ReferenceItem[]>(() => takeEditHandoff())
+  const [mode, setMode] = useState<ComposerMode>(handoff.length > 0 ? 'edit' : 'generate')
   const [prompt, setPrompt] = useState('')
   const [modelId, setModelId] = useState(startModelId)
   const [ratio, setRatio] = useState(() => defaultAspectRatio(modelFor(startModelId)))
@@ -152,7 +154,7 @@ export function HomeComposer({
         ]
       : [],
   )
-  const [editTargets, setEditTargets] = useState<ReferenceItem[]>([])
+  const [editTargets, setEditTargets] = useState<ReferenceItem[]>(handoff)
   const [editReferences, setEditReferences] = useState<ReferenceItem[]>([])
   const [picker, setPicker] = useState<PickerTarget | null>(null)
   const [expanded, setExpanded] = useState(false)
@@ -439,7 +441,7 @@ export function HomeComposer({
           queryClient.invalidateQueries({ queryKey: ['folders'] }),
         ])
         setNotice(
-          `Queued ${ids.length} ${ids.length === 1 ? 'result' : 'results'} — the wall updates as each finishes.`,
+          `Queued ${ids.length} ${ids.length === 1 ? 'result' : 'results'}. The wall updates as each finishes.`,
         )
         toast(`${ids.length} ${ids.length === 1 ? 'generation' : 'generations'} started`, { tone: 'info' })
       }
@@ -521,14 +523,14 @@ export function HomeComposer({
           onClick={() => setMinimized(false)}
           aria-label="Open prompt"
           className={cn(
-            'border-line bg-surface md:bg-surface/92 text-ink/65 hover:border-ink/25 hover:text-ink pointer-events-auto flex items-center gap-2 rounded-full border px-4 py-2.5 text-[12px] font-medium shadow-[0_18px_50px_-24px_rgba(42,30,23,0.55)] transition-[color,border-color,transform] md:backdrop-blur-xl',
+            'border-line-strong bg-surface text-ink/65 hover:border-ink/60 hover:text-ink pointer-events-auto flex items-center gap-2 rounded-full border px-4 py-2.5 text-[12px] font-medium shadow-toast transition-[color,border-color,transform]',
             motionPress,
           )}
         >
-          <Sparkles size={13} className="text-accent/80" />
+          <TextCursorInput size={13} className="text-accent" />
           Prompt
-          <span className="text-ink/35 hidden max-w-32 truncate text-[10.5px] sm:block">{model.label}</span>
-          <ChevronUp size={13} className="text-ink/35" />
+          <span className="text-ink/65 hidden max-w-32 truncate text-[11px] sm:block">{model.label}</span>
+          <ChevronUp size={13} className="text-ink/65" />
         </motion.button>
       </div>
     )
@@ -547,7 +549,7 @@ export function HomeComposer({
             initial="hidden"
             animate="visible"
             exit="hidden"
-            className="bg-ink/25 fixed inset-0 z-40 md:backdrop-blur-[2px]"
+            className="bg-ink/25 fixed inset-0 z-40"
           />
         ) : null}
       </AnimatePresence>
@@ -564,7 +566,7 @@ export function HomeComposer({
           transition={motionSpring}
           data-assistant-clearance=""
           className={cn(
-            'border-line bg-surface md:bg-surface/92 pointer-events-auto relative mx-auto flex w-full flex-col overflow-hidden border shadow-[0_28px_80px_-30px_rgba(42,30,23,0.55)] transition-[border-radius,border-color] focus-within:border-accent/25 md:backdrop-blur-xl',
+            'border-line-strong bg-surface pointer-events-auto relative mx-auto flex w-full flex-col overflow-hidden border shadow-dialog transition-[border-radius,border-color] focus-within:border-accent/25',
             expanded ? 'h-full max-h-[840px] max-w-[1000px] rounded-[26px]' : 'max-w-[860px] rounded-[22px]',
           )}
         >
@@ -593,7 +595,7 @@ export function HomeComposer({
                     setMulti(false)
                   }}
                   aria-label="Clear prompt"
-                  className="text-ink/35 hover:bg-ink/[0.06] hover:text-ink grid size-7 place-items-center rounded-lg transition-[color,background-color,transform] active:scale-90"
+                  className="text-ink/65 hover:bg-ink/[0.06] hover:text-ink grid size-7 place-items-center rounded-lg transition-[color,background-color,transform] active:scale-90"
                 >
                   <X size={13} />
                 </motion.button>
@@ -610,7 +612,7 @@ export function HomeComposer({
                 }}
                 aria-label="Minimize prompt"
                 title="Minimize"
-                className="text-ink/40 hover:bg-ink/[0.06] hover:text-ink grid size-7 place-items-center rounded-lg transition-[color,background-color,transform] active:scale-90"
+                className="text-ink/65 hover:bg-ink/[0.06] hover:text-ink grid size-7 place-items-center rounded-lg transition-[color,background-color,transform] active:scale-90"
               >
                 <Minus size={13} />
               </motion.button>
@@ -621,7 +623,7 @@ export function HomeComposer({
               onClick={() => setExpanded((value) => !value)}
               aria-label={expanded ? 'Minimize prompt' : 'Expand prompt'}
               title={expanded ? 'Minimize' : 'Expand'}
-              className="text-ink/40 hover:bg-ink/[0.06] hover:text-ink relative grid size-7 place-items-center rounded-lg transition-[color,background-color,transform] active:scale-90"
+              className="text-ink/65 hover:bg-ink/[0.06] hover:text-ink relative grid size-7 place-items-center rounded-lg transition-[color,background-color,transform] active:scale-90"
             >
               <AnimatePresence initial={false} mode="popLayout">
                 <motion.span
@@ -647,7 +649,7 @@ export function HomeComposer({
               className={cn(
                 'relative flex h-8 items-center gap-1.5 rounded-lg px-3 text-[11.5px] font-medium transition-[color,background-color,transform]',
                 motionPress,
-                mode === 'generate' ? 'text-canvas' : 'text-ink/45 hover:bg-ink/[0.05] hover:text-ink',
+                mode === 'generate' ? 'text-canvas' : 'text-ink/65 hover:bg-ink/[0.05] hover:text-ink',
               )}
             >
               {mode === 'generate' ? (
@@ -658,7 +660,7 @@ export function HomeComposer({
                 />
               ) : null}
               <span className="relative flex items-center gap-1.5">
-                <Sparkles size={12} />
+                <ImagePlus size={12} />
                 Generate
               </span>
             </button>
@@ -669,7 +671,7 @@ export function HomeComposer({
               className={cn(
                 'relative flex h-8 items-center gap-1.5 rounded-lg px-3 text-[11.5px] font-medium transition-[color,background-color,transform]',
                 motionPress,
-                mode === 'edit' ? 'text-canvas' : 'text-ink/45 hover:bg-ink/[0.05] hover:text-ink',
+                mode === 'edit' ? 'text-canvas' : 'text-ink/65 hover:bg-ink/[0.05] hover:text-ink',
               )}
             >
               {mode === 'edit' ? (
@@ -736,7 +738,7 @@ export function HomeComposer({
                     }
                     onImageLoadChange={handleChipLoadChange}
                   />
-                  <p className="text-ink/30 px-3 pt-1 text-[9px] leading-snug">
+                  <p className="text-ink/65 px-3 pt-1 text-[11px] leading-snug">
                     Avatars use their clean sheet and 4x4 panel for face and body. Extra references are
                     supporting only.
                   </p>
@@ -781,7 +783,7 @@ export function HomeComposer({
               aria-label="Prompt"
               disabled={busy}
               className={cn(
-                'text-ink placeholder:text-ink/30 w-full resize-none bg-transparent text-[14.5px] leading-[22px] tracking-[-0.01em] outline-none transition-[height] duration-150 ease-out disabled:opacity-60 motion-reduce:transition-none',
+                'text-ink placeholder:text-ink/65 w-full resize-none bg-transparent text-[14.5px] leading-[22px] tracking-[-0.01em] outline-none transition-[height] duration-150 ease-out disabled:opacity-60 motion-reduce:transition-none',
                 expanded ? 'min-h-0 flex-1' : 'max-h-[180px]',
               )}
               style={expanded ? undefined : { height: 22 }}
@@ -796,7 +798,7 @@ export function HomeComposer({
                 initial="hidden"
                 animate="visible"
                 exit="hidden"
-                className={cn('px-3 pt-1.5 text-[10.5px]', error ? 'text-error' : 'text-ink/40')}
+                className={cn('px-3 pt-1.5 text-[11px]', error ? 'text-error' : 'text-ink/65')}
               >
                 {error ?? notice}
               </motion.p>
@@ -811,7 +813,7 @@ export function HomeComposer({
                 initial="hidden"
                 animate="visible"
                 exit="hidden"
-                className="border-warning/25 bg-warning/10 text-ink/65 mx-3 mt-2 flex items-center gap-2 rounded-lg border px-2 py-1.5 text-[10.5px]"
+                className="border-warning/25 bg-warning/10 text-ink/65 mx-3 mt-2 flex items-center gap-2 rounded-lg border px-2 py-1.5 text-[11px]"
               >
                 <span>
                   LoRA not used with <span className="text-ink/85 font-medium">{model.label}</span>
@@ -820,7 +822,7 @@ export function HomeComposer({
                   <button
                     type="button"
                     onClick={() => chooseModel(loraModelChoice.modelId as string)}
-                    className="text-accent hover:text-accent/80 ml-auto font-semibold transition-colors"
+                    className="text-accent hover:text-accent ml-auto font-semibold transition-colors"
                   >
                     Switch model
                   </button>
@@ -868,12 +870,10 @@ export function HomeComposer({
                   animate="visible"
                   exit="hidden"
                   transition={motionFast}
-                  className="border-line bg-canvas/55 flex h-8 items-center gap-1.5 rounded-lg border px-2"
+                  className="border-line-strong bg-canvas/55 flex h-8 items-center gap-1.5 rounded-lg border px-2"
                   title={`${loraReference.lora?.triggerWord ?? 'LoRA'} strength`}
                 >
-                  <span className="text-accent text-[9.5px] font-semibold tracking-[0.06em] uppercase">
-                    LoRA
-                  </span>
+                  <span className="text-accent text-[11px] font-semibold">LoRA</span>
                   <input
                     type="range"
                     min={LORA_SCALE_MIN}
@@ -885,7 +885,7 @@ export function HomeComposer({
                     aria-label="LoRA strength"
                     className="accent-accent h-1 w-14 cursor-pointer disabled:opacity-40"
                   />
-                  <span className="text-ink/60 w-6 text-[10px] tabular-nums">{loraStrength.toFixed(2)}</span>
+                  <span className="text-ink/65 w-6 text-[11px] tabular-nums">{loraStrength.toFixed(2)}</span>
                 </motion.div>
               ) : null}
             </AnimatePresence>
@@ -928,13 +928,13 @@ export function HomeComposer({
             ) : null}
 
             {!isVideo && !multi && mode === 'generate' ? (
-              <div className="border-line bg-canvas/55 relative flex h-8 items-center overflow-hidden rounded-lg border">
+              <div className="border-line-strong bg-canvas/55 relative flex h-8 items-center overflow-hidden rounded-lg border">
                 <button
                   type="button"
                   aria-label="Fewer results"
                   onClick={() => setCount((value) => Math.max(1, value - 1))}
                   disabled={busy || count <= 1}
-                  className="text-ink/55 hover:text-ink h-full w-7 text-[14px] transition-[color,transform,opacity] duration-150 active:scale-90 disabled:opacity-25"
+                  className="text-ink/65 hover:text-ink h-full w-7 text-[14px] transition-[color,transform,opacity] duration-150 active:scale-90 disabled:opacity-25"
                 >
                   −
                 </button>
@@ -956,7 +956,7 @@ export function HomeComposer({
                   aria-label="More results"
                   onClick={() => setCount((value) => Math.min(MAX_IMAGE_RESULTS, value + 1))}
                   disabled={busy || count >= MAX_IMAGE_RESULTS}
-                  className="text-ink/55 hover:text-ink h-full w-7 text-[14px] transition-[color,transform,opacity] duration-150 active:scale-90 disabled:opacity-25"
+                  className="text-ink/65 hover:text-ink h-full w-7 text-[14px] transition-[color,transform,opacity] duration-150 active:scale-90 disabled:opacity-25"
                 >
                   +
                 </button>
@@ -977,18 +977,18 @@ export function HomeComposer({
                   motionPress,
                   multi
                     ? 'border-accent/30 bg-accent/10 text-accent'
-                    : 'border-line bg-canvas/55 text-ink/55 hover:text-ink',
+                    : 'border-line-strong bg-canvas/55 text-ink/65 hover:text-ink',
                 )}
               >
                 <span
                   className={cn(
                     'relative h-3.5 w-6 rounded-full transition-colors',
-                    multi ? 'bg-accent' : 'bg-ink/20',
+                    multi ? 'bg-accent' : 'bg-ink/60',
                   )}
                 >
                   <span
                     className={cn(
-                      'absolute top-0.5 size-2.5 rounded-full bg-white transition-[left] duration-150 ease-out',
+                      'absolute top-0.5 bg-canvas size-2.5 rounded-full transition-[left] duration-150 ease-out',
                       multi ? 'left-[13px]' : 'left-0.5',
                     )}
                   />
@@ -1000,8 +1000,8 @@ export function HomeComposer({
             <div className="ml-auto flex items-center gap-2">
               <span
                 className={cn(
-                  'text-[10px] tabular-nums transition-colors duration-300',
-                  overLimit ? 'text-error' : 'text-ink/30',
+                  'text-[11px] tabular-nums transition-colors duration-300',
+                  overLimit ? 'text-error' : 'text-ink/65',
                 )}
               >
                 {prompt.length.toLocaleString()}/{PROMPT_LIMIT.toLocaleString()}
@@ -1012,7 +1012,7 @@ export function HomeComposer({
                 disabled={disabled}
                 aria-label={mode === 'edit' ? 'Apply edit' : 'Generate'}
                 title={busy ? 'Submitting' : mode === 'edit' ? 'Apply edit' : 'Generate'}
-                className="bg-accent hover:bg-accent/90 relative grid size-9 place-items-center rounded-full text-white shadow-[0_8px_20px_-10px_rgba(163,22,33,0.7)] transition-[background-color,transform] duration-150 hover:scale-[1.03] active:scale-95 disabled:pointer-events-none disabled:opacity-35 motion-reduce:hover:scale-100 motion-reduce:active:scale-100"
+                className="bg-accent hover:bg-accent/90 text-accent-ink relative grid size-9 place-items-center rounded-full transition-[background-color,transform] duration-150 hover:scale-[1.03] active:scale-95 disabled:pointer-events-none disabled:opacity-35 motion-reduce:hover:scale-100 motion-reduce:active:scale-100"
               >
                 <AnimatePresence initial={false} mode="popLayout">
                   <motion.span
@@ -1088,8 +1088,8 @@ function SelectionBox({
   return (
     <div className="px-3 pt-2">
       <div className="flex items-center justify-between">
-        <span className="text-ink/35 text-[9px] font-semibold tracking-[0.1em] uppercase">{label}</span>
-        <span className="text-ink/25 text-[9px] tabular-nums">
+        <span className="text-ink/65 text-[11px] font-semibold">{label}</span>
+        <span className="text-ink/65 text-[11px] tabular-nums">
           {Number.isFinite(max) ? `${items.length}/${max}` : items.length}
         </span>
       </div>
@@ -1104,19 +1104,21 @@ function SelectionBox({
               animate="visible"
               exit="hidden"
               transition={motionFast}
-              className="border-line group relative overflow-hidden rounded-lg border"
+              className="border-line-strong group relative overflow-hidden rounded-lg border"
             >
               <FadeImage
                 src={thumbUrl(item.url, 160)}
                 srcSet={thumbSrcSet(item.url, [160, 320])}
                 sizes="48px"
+                width={item.width ?? undefined}
+                height={item.height ?? undefined}
                 alt=""
                 decoding="async"
                 onLoadedChange={(loaded) => onImageLoadChange(item.id, loaded)}
                 className="size-12 object-cover"
               />
               {item.lora ? (
-                <span className="bg-accent text-canvas absolute bottom-0 left-0 rounded-tr px-1 py-px text-[7px] font-semibold tracking-[0.04em] uppercase">
+                <span className="bg-accent text-canvas absolute bottom-0 left-0 rounded-tr px-1 py-px text-[11px] font-semibold">
                   LoRA
                 </span>
               ) : null}
@@ -1125,7 +1127,7 @@ function SelectionBox({
                   tone="warning"
                   title="Larger than providers accept; will be resized"
                   aria-label="Larger than providers accept; will be resized"
-                  className="absolute top-0.5 left-0.5 px-1 py-px text-[7px]"
+                  className="absolute top-0.5 left-0.5 px-1 py-px text-[11px]"
                 >
                   Large
                 </Badge>
@@ -1134,7 +1136,7 @@ function SelectionBox({
                 type="button"
                 onClick={() => onRemove(item.id)}
                 aria-label={`Remove ${item.name}`}
-                className="bg-ink/75 text-canvas absolute top-0.5 right-0.5 grid size-4 place-items-center rounded opacity-100 transition-[opacity,transform] hover:scale-110 active:scale-95 md:opacity-0 md:group-hover:opacity-100"
+                className="bg-ink/75 text-canvas absolute top-0.5 right-0.5 grid size-6 place-items-center rounded opacity-100 transition-[opacity,transform] hover:scale-110 active:scale-95 md:opacity-0 md:group-hover:opacity-100"
               >
                 <X size={9} />
               </button>
@@ -1152,12 +1154,12 @@ function SelectionBox({
               animate="visible"
               exit="hidden"
               transition={motionFast}
-              className="border-line bg-canvas/50 text-ink/45 hover:border-accent/35 hover:text-accent flex size-12 flex-col items-center justify-center gap-0.5 rounded-lg border border-dashed transition-[color,border-color,transform] active:scale-95 disabled:opacity-40"
+              className="border-line-strong bg-canvas/50 text-ink/65 hover:border-accent/35 hover:text-accent flex size-12 flex-col items-center justify-center gap-0.5 rounded-lg border border-dashed transition-[color,border-color,transform] active:scale-95 disabled:opacity-40"
             >
               <ImagePlus size={13} />
-              <span className="text-[7.5px] font-semibold tracking-[0.04em]">{tileLabel}</span>
+              <span className="text-[11px] font-semibold">{tileLabel}</span>
               {Number.isFinite(remaining) ? (
-                <span className="text-[7.5px] opacity-60">{remaining} left</span>
+                <span className="text-[11px] opacity-60">{remaining} left</span>
               ) : null}
             </motion.button>
           ) : null}

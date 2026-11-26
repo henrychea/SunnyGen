@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdtempSync, readdirSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
@@ -32,10 +32,21 @@ after(() => {
   rmSync(dataDir, { recursive: true, force: true })
 })
 
-test('v3 to v4 keeps rows, adds an asset name and allows duplicate hashes', () => {
+test('v3 to v6 keeps rows, adds an asset name, NSFW flags and a copy table', () => {
   const db = getDb()
-  assert.equal(SCHEMA_VERSION, 4)
-  assert.equal(MIGRATIONS.length, 4)
+  assert.equal(SCHEMA_VERSION, 6)
+  assert.equal(MIGRATIONS.length, 6)
+
+  // Opening an existing database backs it up before the pending steps run.
+  const backups = readdirSync(join(dataDir, 'backups'))
+  assert.equal(backups.length, 1)
+  const backup = new DatabaseSync(join(dataDir, 'backups', backups[0] as string), { readOnly: true })
+  try {
+    const row = backup.prepare('PRAGMA user_version').get() as { user_version: number }
+    assert.equal(row.user_version, 3)
+  } finally {
+    backup.close()
+  }
 
   const columns = db.prepare('PRAGMA table_info(assets)').all() as Array<{ name: string }>
   assert.ok(columns.some((column) => column.name === 'name'))
@@ -57,4 +68,33 @@ test('v3 to v4 keeps rows, adds an asset name and allows duplicate hashes', () =
     sql: string
   }
   assert.match(index.sql, /^CREATE INDEX assets_sha256/)
+
+  // Migration 5: the NSFW flag arrives with a safe default, so no existing row changes visibility.
+  const assetColumns = db.prepare('PRAGMA table_info(assets)').all() as Array<{ name: string }>
+  assert.ok(assetColumns.some((column) => column.name === 'nsfw'))
+  const generationColumns = db.prepare('PRAGMA table_info(generations)').all() as Array<{
+    name: string
+  }>
+  assert.ok(generationColumns.some((column) => column.name === 'nsfw'))
+  const existingAsset = db.prepare("SELECT nsfw FROM assets WHERE id = 'existing'").get() as {
+    nsfw: number
+  }
+  assert.equal(existingAsset.nsfw, 0)
+
+  db.prepare(
+    `INSERT INTO generations (id, kind, provider, model, status, created_at, updated_at)
+     VALUES ('old-generation', 'image', 'sunra', 'gpt-image-2', 'succeeded', 1, 1)`,
+  ).run()
+  const existingGeneration = db.prepare("SELECT nsfw FROM generations WHERE id = 'old-generation'").get() as {
+    nsfw: number
+  }
+  assert.equal(existingGeneration.nsfw, 0)
+
+  const copyColumns = db.prepare('PRAGMA table_info(video_copies)').all() as Array<{ name: string }>
+  assert.ok(copyColumns.some((column) => column.name === 'output_asset_id'))
+  assert.ok(copyColumns.some((column) => column.name === 'frame_asset_ids'))
+  const copyIndex = db.prepare("SELECT name FROM sqlite_master WHERE name = 'video_copies_created'").get() as
+    | { name: string }
+    | undefined
+  assert.equal(copyIndex?.name, 'video_copies_created')
 })

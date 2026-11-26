@@ -11,6 +11,7 @@ import {
   type RequestSchema,
 } from '../schema'
 import { gptImageSize } from '../sizes'
+import { applySafetyFields, nsfwMode } from '../safety'
 import { ProviderError, type AdapterContext, type ProviderFlow, type ProviderRequest } from '../types'
 import { requireFalKey, submitFalQueue, uploadFalAsset } from './client'
 
@@ -191,6 +192,7 @@ function buildSchemaBody(
     else if (formats.includes('jpeg')) body.output_format = 'jpeg'
   }
   if ('enable_safety_checker' in properties) body.enable_safety_checker = false
+  applySafetyFields(body, properties, components, nsfwMode(request))
 
   const aspectRatio = request.params.aspectRatio
   if (aspectRatio && aspectRatio !== 'auto') {

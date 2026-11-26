@@ -23,8 +23,8 @@ export function ratioName(value: string): string {
 export function RatioGlyph({ ratio }: { ratio: string }) {
   if (ratio === 'auto') {
     return (
-      <span className="text-ink/40 grid size-5 place-items-center text-[6px] font-semibold tracking-wide">
-        AUTO
+      <span className="grid size-5 place-items-center" aria-hidden="true">
+        <span className="border-ink/50 size-3.5 rounded-[2px] border border-dashed" />
       </span>
     )
   }

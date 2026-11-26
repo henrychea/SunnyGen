@@ -21,7 +21,7 @@ import {
   motionSwap,
   toast,
 } from '@sunnygen/ui'
-import { Check, Sparkles, X } from 'lucide-react'
+import { Check, GraduationCap, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useState } from 'react'
 import type { LoraTrainingRun, StudioItemDto } from '~/server/studio.functions'
@@ -124,14 +124,14 @@ export function StudioTrainDialog({
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="text-ink/40 hover:bg-ink/5 grid size-8 place-items-center rounded-lg transition-[color,background-color,scale] duration-150 ease-out active:scale-[0.94] motion-reduce:active:scale-100"
+            className="text-ink/65 hover:bg-ink/5 grid size-8 place-items-center rounded-lg transition-[color,background-color,scale] duration-150 ease-out active:scale-[0.94] motion-reduce:active:scale-100"
             aria-label="Close"
           >
             <X size={15} />
           </button>
         </div>
 
-        <div className="border-line mt-3 inline-flex rounded-xl border p-0.5">
+        <div className="border-line-strong mt-3 inline-flex rounded-xl border p-0.5">
           {STEP_LABELS.map((entry) => (
             <button
               key={entry.id}
@@ -140,7 +140,7 @@ export function StudioTrainDialog({
               disabled={busy}
               className={cn(
                 'relative rounded-[10px] px-2.5 py-1.5 text-[11px] font-medium transition-colors duration-150 ease-out disabled:opacity-50',
-                step === entry.id ? 'text-canvas' : 'text-ink/50 hover:text-ink',
+                step === entry.id ? 'text-canvas' : 'text-ink/65 hover:text-ink',
               )}
             >
               {step === entry.id ? (
@@ -170,7 +170,7 @@ export function StudioTrainDialog({
               {step === 1 ? (
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center gap-2">
-                    <p className="text-ink/45 text-[11px]">
+                    <p className="text-ink/65 text-[11px]">
                       {images === null
                         ? 'Cutting the panels into training images…'
                         : `${selected.length} of ${candidates.length} images selected`}
@@ -199,7 +199,7 @@ export function StudioTrainDialog({
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ ...motionFast, delay: Math.min(index * 0.01, 0.12) }}
                             className={cn(
-                              'group border-line relative aspect-square overflow-hidden rounded-lg border transition-[border-color,opacity] duration-150',
+                              'group border-line-strong relative aspect-square overflow-hidden rounded-lg border transition-[border-color,opacity] duration-150',
                               active ? 'border-accent/60' : 'opacity-40 hover:opacity-70',
                             )}
                           >
@@ -215,11 +215,11 @@ export function StudioTrainDialog({
                             <motion.span
                               animate={{ scale: active ? 1 : 0.85, opacity: active ? 1 : 0 }}
                               transition={motionFast}
-                              className="border-accent bg-accent absolute top-1 right-1 grid size-4 place-items-center rounded-full border text-white"
+                              className="border-accent bg-accent text-accent-ink absolute top-1 right-1 grid size-4 place-items-center rounded-full border"
                             >
                               <Check size={9} />
                             </motion.span>
-                            <span className="bg-ink/55 text-canvas absolute bottom-0 left-0 w-full truncate px-1 py-0.5 text-[8px]">
+                            <span className="bg-ink/55 text-canvas absolute bottom-0 left-0 w-full truncate px-1 py-0.5 text-[11px]">
                               {image.label}
                             </span>
                           </motion.button>
@@ -245,17 +245,17 @@ export function StudioTrainDialog({
                             'relative flex flex-col gap-1 rounded-xl border px-3 py-2.5 text-left transition-[border-color,background-color,scale] duration-150 ease-out active:scale-[0.99] motion-reduce:active:scale-100',
                             presetId === entry.id
                               ? 'border-accent/45 bg-accent/[0.06]'
-                              : 'border-line bg-surface/60 hover:border-ink/20',
+                              : 'border-line-strong bg-surface/60 hover:border-ink/60',
                           )}
                         >
                           <span className="text-ink/80 text-[11.5px] font-semibold">{entry.label}</span>
-                          <span className="text-ink/40 text-[10px]">
+                          <span className="text-ink/65 text-[11px]">
                             {entry.steps} steps · {costLabel(loraTrainingCost(entry.steps))}
                           </span>
                         </button>
                       ))}
                     </div>
-                    <p className="text-ink/35 text-[10px]">{preset.hint}</p>
+                    <p className="text-ink/65 text-[11px]">{preset.hint}</p>
                   </div>
                   <label className="flex flex-col gap-1.5">
                     <Label>Trigger word</Label>
@@ -265,7 +265,7 @@ export function StudioTrainDialog({
                       placeholder="aria"
                       maxLength={64}
                     />
-                    <span className="text-ink/35 text-[10px]">
+                    <span className="text-ink/65 text-[11px]">
                       Added to the front of every prompt that uses this model.
                     </span>
                   </label>
@@ -274,27 +274,29 @@ export function StudioTrainDialog({
 
               {step === 3 ? (
                 <div className="flex flex-col gap-3">
-                  <div className="border-line bg-canvas/40 flex flex-col gap-1.5 rounded-xl border px-3 py-2.5 text-[11px]">
+                  <div className="border-line-strong bg-canvas/40 flex flex-col gap-1.5 rounded-xl border px-3 py-2.5 text-[11px]">
                     <div className="flex items-center justify-between">
-                      <span className="text-ink/45">Images</span>
+                      <span className="text-ink/65">Images</span>
                       <span className="text-ink/75 tabular-nums">{selected.length}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-ink/45">Training length</span>
+                      <span className="text-ink/65">Training length</span>
                       <span className="text-ink/75 tabular-nums">
                         {preset.label} · {preset.steps} steps
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-ink/45">Trigger word</span>
-                      <span className="text-ink/75 font-mono text-[10.5px]">{triggerWord.trim() || '—'}</span>
+                      <span className="text-ink/65">Trigger word</span>
+                      <span className="text-ink/75 font-mono text-[11px]">
+                        {triggerWord.trim() || 'Not set'}
+                      </span>
                     </div>
                     <div className="border-line/70 flex items-center justify-between border-t pt-1.5">
-                      <span className="text-ink/55 font-medium">Total cost</span>
+                      <span className="text-ink/65 font-medium">Total cost</span>
                       <span className="text-ink/85 font-semibold tabular-nums">{costLabel(cost)}</span>
                     </div>
                   </div>
-                  <label className="text-ink/60 flex items-start gap-2 text-[11px] leading-snug">
+                  <label className="text-ink/65 flex items-start gap-2 text-[11px] leading-snug">
                     <input
                       type="checkbox"
                       checked={consent}
@@ -339,7 +341,7 @@ export function StudioTrainDialog({
             </Button>
           ) : (
             <Button onClick={() => void start()} loading={busy} disabled={!consent || !enough}>
-              <Sparkles size={12} /> Start training · {costLabel(cost)}
+              <GraduationCap size={12} /> Start training · {costLabel(cost)}
             </Button>
           )}
         </div>

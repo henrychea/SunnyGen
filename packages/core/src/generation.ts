@@ -1,4 +1,5 @@
 import type { AssetKind, AssetSource, GenerationKind, GenerationStatus, ProviderId } from './domain'
+import type { VideoShot } from './video-shot-list'
 
 export interface GenerationParams {
   aspectRatio?: string
@@ -10,6 +11,8 @@ export interface GenerationParams {
   sound?: boolean
   seed?: number
   negativePrompt?: string
+  /** Set on submit from the cookie-held NSFW mode; adapters use it for provider safety fields. */
+  nsfw?: boolean
   [key: string]: unknown
 }
 
@@ -40,6 +43,8 @@ export interface GenerationRecord {
   folderId: string | null
   createdAt: number
   updatedAt: number
+  /** Made while NSFW mode was on: hidden from every read path in safe mode. */
+  nsfw: boolean
 }
 
 export interface AssetRecord {
@@ -56,6 +61,8 @@ export interface AssetRecord {
   path: string
   folderId: string | null
   createdAt: number
+  /** Stored while NSFW mode was on: hidden from every read path in safe mode. */
+  nsfw: boolean
 }
 
 export interface ProviderSubmitResult {
@@ -69,4 +76,31 @@ export interface ProviderJobState {
   status: GenerationStatus
   outputUrls?: string[]
   error?: string
+}
+
+export const VIDEO_COPY_STATUSES = [
+  'extracted',
+  'analyzed',
+  'generating',
+  'joining',
+  'done',
+  'failed',
+] as const
+
+export type VideoCopyStatus = (typeof VIDEO_COPY_STATUSES)[number]
+
+export type VideoCopyShot = VideoShot & { generationId?: string }
+
+export interface VideoCopyRecord {
+  id: string
+  sourceAssetId: string
+  status: VideoCopyStatus
+  agent: string | null
+  shots: VideoCopyShot[]
+  frameAssetIds: string[]
+  outputAssetId: string | null
+  error: string | null
+  folderId: string | null
+  createdAt: number
+  updatedAt: number
 }

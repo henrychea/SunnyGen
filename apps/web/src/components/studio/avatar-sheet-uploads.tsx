@@ -44,7 +44,7 @@ function UploadSlot({
         type="button"
         onClick={onPick}
         aria-label={asset ? `Replace ${label}` : `Upload ${label}`}
-        className="border-line bg-canvas/40 text-ink/65 hover:border-accent/40 hover:text-accent focus-visible:ring-accent/50 relative grid h-28 place-items-center overflow-hidden rounded-xl border border-dashed transition-[color,border-color,background-color] duration-200 ease-out focus-visible:ring-2 focus-visible:outline-none"
+        className="border-line-strong bg-canvas/40 text-ink/65 hover:border-accent/40 hover:text-accent focus-visible:ring-accent/70 relative grid h-28 place-items-center overflow-hidden rounded-xl border border-dashed transition-[color,border-color,background-color] duration-200 ease-out focus-visible:ring-2 focus-visible:outline-none"
       >
         {asset ? (
           <FadeImage
@@ -54,23 +54,21 @@ function UploadSlot({
             className="size-full object-contain"
           />
         ) : (
-          <span className="flex flex-col items-center gap-1 text-[10.5px]">
+          <span className="flex flex-col items-center gap-1 text-[11px]">
             <ImagePlus size={16} aria-hidden="true" />
             Upload image
           </span>
         )}
       </button>
-      <p className="text-ink/65 truncate text-[10px]">{asset ? slotLabel(asset) : 'No file yet'}</p>
+      <p className="text-ink/65 truncate text-[11px]">{asset ? slotLabel(asset) : 'No file yet'}</p>
       {note ? (
-        <p className={noteTone === 'error' ? 'text-error text-[10.5px]' : 'text-ink/65 text-[10.5px]'}>
-          {note}
-        </p>
+        <p className={noteTone === 'error' ? 'text-error text-[11px]' : 'text-ink/65 text-[11px]'}>{note}</p>
       ) : null}
       <div className="flex flex-wrap gap-1.5">
         <Button
           variant="outline"
           size="sm"
-          className="min-h-11 text-[11px] sm:h-7 sm:min-h-0 sm:text-[10.5px]"
+          className="min-h-11 text-[11px] sm:h-7 sm:min-h-0 sm:text-[11px]"
           onClick={onPick}
         >
           {asset ? 'Replace' : 'Choose'}
@@ -79,7 +77,7 @@ function UploadSlot({
           <Button
             variant="ghost"
             size="sm"
-            className="min-h-11 text-[11px] sm:h-7 sm:min-h-0 sm:text-[10.5px]"
+            className="min-h-11 text-[11px] sm:h-7 sm:min-h-0 sm:text-[11px]"
             onClick={onClear}
           >
             Clear
@@ -89,7 +87,7 @@ function UploadSlot({
           <Button
             variant="ghost"
             size="sm"
-            className="min-h-11 text-[11px] sm:h-7 sm:min-h-0 sm:text-[10.5px]"
+            className="min-h-11 text-[11px] sm:h-7 sm:min-h-0 sm:text-[11px]"
             onClick={onCopy}
           >
             {copyLabel ?? 'Copy prompt'}
@@ -207,7 +205,7 @@ export function AvatarSheetUploads({
             variant="outline"
             size="sm"
             onClick={onSwapPanels}
-            className="min-h-9 text-[10.5px]"
+            className="min-h-9 text-[11px]"
             title="Swap the body and face panel images"
           >
             Swap panels
