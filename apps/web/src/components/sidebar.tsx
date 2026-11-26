@@ -19,6 +19,7 @@ import {
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useState, type ComponentType } from 'react'
 import { loadSettings } from '~/server/settings.functions'
+import { useNsfwMode } from '~/lib/nsfw-mode'
 
 interface NavItem {
   to: string
@@ -54,6 +55,7 @@ function SidebarBody({
 }) {
   const pathname = useRouterState({ select: (state) => state.location.pathname })
   const settings = useQuery({ queryKey: ['settings'], queryFn: () => loadSettings() })
+  const nsfw = useNsfwMode()
   const configured = settings.data?.providers.filter((provider) => provider.configured).length ?? 0
 
   return (
@@ -167,6 +169,18 @@ function SidebarBody({
             Settings
           </span>
         </Link>
+        {nsfw ? (
+          <Link
+            to="/settings"
+            onClick={onNavigate}
+            className="border-accent/35 bg-accent/10 text-accent flex items-center gap-2 rounded-xl border px-2.5 py-1.5 text-[11px] font-medium transition-colors duration-150"
+          >
+            <span aria-hidden="true" className="text-[13px] leading-none">
+              😈
+            </span>
+            NSFW mode on
+          </Link>
+        ) : null}
         <p className="text-ink/65 px-2.5 text-[11px]">v{APP_VERSION}</p>
       </div>
     </div>

@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { MAX_UPLOAD_BYTES, kindForMime, storeBuffer, toPublicAsset } from '~/server/media.server'
 import { payloadTooLarge } from '~/server/guards.server'
+import { readNsfwMode } from '~/server/nsfw.server'
 
 export const Route = createFileRoute('/api/upload')({
   server: {
@@ -41,6 +42,7 @@ export const Route = createFileRoute('/api/upload')({
             folderId: typeof folderId === 'string' && folderId ? folderId : null,
             unique: true,
             name: file.name,
+            nsfw: readNsfwMode(),
           })
           return Response.json({ asset: toPublicAsset(asset) })
         } catch (error) {

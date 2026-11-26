@@ -13,6 +13,9 @@ interface RouterContext {
   queryClient: QueryClient
 }
 
+/** Runs after the theme script, so NSFW mode wins over light and dark while the cookie says it is on. */
+const NSFW_BOOTSTRAP = `try{if(document.cookie.split('; ').includes('sunnygen.nsfw=1'))document.documentElement.dataset.theme='nsfw'}catch(e){}`
+
 export const Route = createRootRouteWithContext<RouterContext>()({
   head: () => ({
     meta: [
@@ -49,6 +52,7 @@ function RootComponent() {
       <head>
         <HeadContent />
         <script>{THEME_BOOT_SCRIPT}</script>
+        <script>{NSFW_BOOTSTRAP}</script>
       </head>
       <body>
         <PwaRegister />

@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { snapThumbWidth } from '~/lib/media-thumbs'
 import { openAssetFile, openAssetThumbFile, kindForMime } from '~/server/media.server'
+import { readNsfwMode } from '~/server/nsfw.server'
 
 const IMMUTABLE_CACHE = 'public, max-age=31536000, immutable'
 
@@ -34,19 +35,20 @@ export const Route = createFileRoute('/api/media/$id')({
     handlers: {
       GET: async ({ params, request }) => {
         const url = new URL(request.url)
+        const includeNsfw = readNsfwMode()
         const width = url.searchParams.has('download') ? null : snapThumbWidth(url.searchParams.get('w'))
         if (width) {
-          const thumb = await openAssetThumbFile(params.id, width).catch(() => null)
+          const thumb = await openAssetThumbFile(params.id, width, { includeNsfw }).catch(() => null)
           if (thumb) {
             return new Response(thumb.stream, { status: 200, headers: thumbHeaders(thumb.totalBytes) })
           }
         }
 
-        const initial = await openAssetFile(params.id)
+        const initial = await openAssetFile(params.id, undefined, { includeNsfw })
         if (!initial) return new Response('Not found', { status: 404 })
 
         const range = parseRange(request.headers.get('range'), initial.totalBytes)
-        const file = range ? await openAssetFile(params.id, range) : initial
+        const file = range ? await openAssetFile(params.id, range, { includeNsfw }) : initial
         if (!file) return new Response('Not found', { status: 404 })
 
         const length = file.end - file.start + 1
@@ -75,12 +77,13 @@ export const Route = createFileRoute('/api/media/$id')({
         })
       },
       HEAD: async ({ params, request }) => {
+        const includeNsfw = readNsfwMode()
         const width = snapThumbWidth(new URL(request.url).searchParams.get('w'))
         if (width) {
-          const thumb = await openAssetThumbFile(params.id, width).catch(() => null)
+          const thumb = await openAssetThumbFile(params.id, width, { includeNsfw }).catch(() => null)
           if (thumb) return new Response(null, { status: 200, headers: thumbHeaders(thumb.totalBytes) })
         }
-        const file = await openAssetFile(params.id)
+        const file = await openAssetFile(params.id, undefined, { includeNsfw })
         if (!file) return new Response(null, { status: 404 })
         return new Response(null, {
           status: 200,

@@ -32,10 +32,10 @@ after(() => {
   rmSync(dataDir, { recursive: true, force: true })
 })
 
-test('v3 to v4 keeps rows, adds an asset name and allows duplicate hashes', () => {
+test('v3 to v5 keeps rows, adds an asset name, allows duplicate hashes and tags nothing NSFW', () => {
   const db = getDb()
-  assert.equal(SCHEMA_VERSION, 4)
-  assert.equal(MIGRATIONS.length, 4)
+  assert.equal(SCHEMA_VERSION, 5)
+  assert.equal(MIGRATIONS.length, 5)
 
   const columns = db.prepare('PRAGMA table_info(assets)').all() as Array<{ name: string }>
   assert.ok(columns.some((column) => column.name === 'name'))
@@ -57,4 +57,25 @@ test('v3 to v4 keeps rows, adds an asset name and allows duplicate hashes', () =
     sql: string
   }
   assert.match(index.sql, /^CREATE INDEX assets_sha256/)
+
+  // Migration 5: the NSFW flag arrives with a safe default, so no existing row changes visibility.
+  const assetColumns = db.prepare('PRAGMA table_info(assets)').all() as Array<{ name: string }>
+  assert.ok(assetColumns.some((column) => column.name === 'nsfw'))
+  const generationColumns = db.prepare('PRAGMA table_info(generations)').all() as Array<{
+    name: string
+  }>
+  assert.ok(generationColumns.some((column) => column.name === 'nsfw'))
+  const existingAsset = db.prepare("SELECT nsfw FROM assets WHERE id = 'existing'").get() as {
+    nsfw: number
+  }
+  assert.equal(existingAsset.nsfw, 0)
+
+  db.prepare(
+    `INSERT INTO generations (id, kind, provider, model, status, created_at, updated_at)
+     VALUES ('old-generation', 'image', 'sunra', 'gpt-image-2', 'succeeded', 1, 1)`,
+  ).run()
+  const existingGeneration = db.prepare("SELECT nsfw FROM generations WHERE id = 'old-generation'").get() as {
+    nsfw: number
+  }
+  assert.equal(existingGeneration.nsfw, 0)
 })

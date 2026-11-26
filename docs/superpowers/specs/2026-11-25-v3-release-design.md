@@ -15,9 +15,9 @@ those four gaps in one release train:
   `@theme` tokens, so the work is mostly a second token set, not a rewrite.
 - A full antislop audit of both themes, because the UI was built fast and nobody has
   checked contrast, tap targets, copy and comment hygiene against a written standard.
-- An NSFW mode, because the owner's own generations are hidden from the app today while
-  provider safety checkers are already off, which is the worst of both arrangements:
-  filtering in neither layer, tagging in neither table.
+- An NSFW mode, because the owner's own generations are unfiltered at the provider while the
+  app has no single switch that says so: safe mode is today's behaviour, and NSFW mode turns
+  every documented provider safety field off and unlocks the uncensored providers.
 - A video copy pipeline: extract frames from a source video, edit the frames, let a
   coding agent read them into a shot list, regenerate each shot with the existing
   start+end frame mode, concatenate the results. That turns a reference clip into a
@@ -31,8 +31,9 @@ those four gaps in one release train:
   replaced by a token.
 - One findings report at `docs/audits/2026-v3-antislop.md`, ranked, `file:line`, with
   each finding tied to a rule ID, then the fixes landed from it.
-- NSFW mode as a stored setting that changes what the server returns and what providers
-  are asked for, with its own theme variant and a short 😈 transition.
+- NSFW mode as a per-device cookie that changes what providers are asked for, unlocks the
+  uncensored providers (Wiro, local sd-server), and brings its own theme variant and a
+  short 😈 transition.
 - A four-stage video copy pipeline on the Video tab that persists like any other job.
 - `3.0.0` version bump across the eight places 2.1.0 touched, plus an update note.
 
@@ -41,19 +42,17 @@ those four gaps in one release train:
 - No redesign of the light theme. Its values stay, except the ones the audit proves
   fail AA (`--color-warning` and the `text-ink/55` tier are already failing, see
   Constraints).
-- No new providers, no new model catalog, no change to `CATALOG_VERSION`.
+- No new providers on the safe path. Wiro and the local sd-server exist only as NSFW-mode
+  providers; the Sunra, fal, Azure and Codex catalogues are untouched.
 - No timeline, trim, mask, or keyframe curve editor. The 2026-11-23 spec listed those as
   non-goals and they stay non-goals; the copy pipeline is new scope beside them, not a
   reversal.
 - No change to Assistant chat behaviour in NSFW mode (listed as an open question).
 - No marketing site work. `site/` gets the dark treatment only if it is a token swap.
 - No per-user accounts, sessions, or multi-tenant anything. One owner, one local database.
-- No client-side NSFW blur, placeholder, or "click to reveal". Hidden means not sent.
+- No PIN or lock in front of NSFW mode; it is a per-device switch, not a credential.
 
 ## Anti-goals
-
-- Do not hide NSFW assets with CSS, opacity, or a client-side filter. Safe mode must never
-  receive the rows or the bytes.
 - Do not fork components per theme. One component tree, tokens switch under it.
 - Do not add a `dark:` Tailwind variant to individual elements. That is how a token
   system rots into per-element overrides.
@@ -94,19 +93,31 @@ Facts from the code as it stands on 2026-11-25:
   canvas 3.64 (fail)**, **line/canvas 1.22 (fail for control borders, needs 3:1)**.
   `text-ink/55` is used in 27 places.
 - `packages/db` hand-writes migrations: `packages/db/src/migrations.ts` holds
-  `SCHEMA_VERSION = 4` and a `MIGRATIONS` string array, `database.ts` applies them by
+  `SCHEMA_VERSION = 5` and a `MIGRATIONS` string array, `database.ts` applies them by
   `PRAGMA user_version`. There is no `db:generate` script in this repo, so a schema
   change means a new array entry, a version bump, and an updated
   `packages/db/src/migrations.test.ts` (which asserts `MIGRATIONS.length`).
-- Provider safety checkers are **already off unconditionally**:
-  `packages/providers/src/fal/image.ts:155,193`,
-  `packages/providers/src/sunra/image.ts:104`, and
-  `packages/providers/src/models.ts:52,65`. Safe mode turning
-  them back on is a behaviour fix, not a new feature.
-- NSFW filtering points that must all agree: `listAssets` / `listGenerations`
-  (`packages/db/src/repositories/`), `loadGenerationWall`, `loadGallery`, `loadAssets`,
+- Provider safety fields are the only thing the mode changes about a request: in NSFW mode
+  every field the request schema documents (`enable_safety_checker`, `safety_tolerance`,
+  `moderation`, and anything else matching a safety name) gets its least restrictive
+  documented value. Safe mode sends exactly what is sent today, including today's
+  unconditional `enable_safety_checker: false` on images
+  (`packages/providers/src/fal/image.ts:155,193`,
+  `packages/providers/src/sunra/image.ts:104`,
+  `packages/providers/src/models.ts:52,65`).
+- The two NSFW-only providers are gated in exactly two places and they must agree:
+  `useModelChoices` (every picker reads its `choices` from there) hides a model with
+  `nsfwOnly`, and `submitGeneration` refuses one when the cookie is off.
+- Visibility points that must all agree, and every one is filtered in SQL by the row flag:
+  `listAssets` / `countAssets` / `getAsset` / `getAssetsByIds` and `listGenerations` /
+  `countGenerations` / `getGeneration` in `packages/db/src/repositories/`; the loaders
+  `loadGenerationWall`, `loadGallery`, `loadAssets`, `loadFailedGenerations`,
   `loadMediaAssets`, `loadReferenceLibrary` (`apps/web/src/server/library.functions.ts`),
-  and `openAssetFile` / `openAssetThumbFile` behind `apps/web/src/routes/api/media/$id.ts`.
+  `loadDashboard` / `loadToday` (`dashboard.functions.ts`), `loadStudioLibrary` /
+  `loadLoraRuns` (`studio.functions.ts`), and `getGenerationView` /
+  `cancelGeneration` / `setGenerationReview`; the job pipeline (poller, webhook, provider
+  input loading) is the only reader that asks for every row, because it resolves ids the
+  server already owns.
 - No ffmpeg or ffprobe call exists anywhere in the repo. `Dockerfile` builds a
   `node:24-slim` runtime that installs `ca-certificates` only, so a container has no
   ffmpeg until the image adds it. `compose.yaml` mounts one volume, `/data`.
@@ -160,19 +171,27 @@ for `'system'` and a `matchMedia` listener keeps it live.
 
 ### 3. NSFW mode
 
-1. **Stored mode + server-enforced flag + media-route gate (picked).** One settings key
-   (`nsfw.enabled`) decides the mode server-side; a `nsfw` column on `assets` and
-   `generations` decides visibility; the repositories filter by it unless the mode is on;
-   `/api/media/$id` returns 404 for a hidden asset. Safe mode cannot leak a row or a byte,
-   and the same server-side flag tells the adapters whether to ask providers to run their
-   safety checker.
-2. **Client-side blur or a CSS class.** Rejected as an anti-goal. The bytes still arrive.
-3. **Separate tables or a separate media root for NSFW.** Rejected: doubles every query,
-   breaks the single media gateway, and gains nothing a boolean column does not.
-4. **Per-generation tag only, no asset tag.** Rejected: an edited frame or an uploaded
-   reference is an asset with no generation, and it would show in Assets, pickers, and
-   the media route.
-
+1. **Per-device cookie for the switch, a row flag for visibility (picked).** The mode lives
+   in one cookie (`sunnygen.nsfw`), so the server can read it on every request without a
+   settings round trip. What a request _made_ is stored on the row: `generations.nsfw` and
+   `assets.nsfw`. Reads filter on the row, never on the cookie alone, because a generation
+   or an upload keeps its class no matter which mode is looking at it. The adapters write
+   the least restrictive value for whatever safety field the request schema documents, and
+   the two uncensored providers are hidden from pickers and refused server-side while the
+   mode is off.
+2. **Cookie only, no row flag (the first cut of this scope).** Rejected: a generation made
+   in NSFW mode would reappear in safe mode as soon as the switch was turned back on in
+   another device or after a re-upload, and there is no way to hide a file whose bytes are
+   still addressable.
+3. **Filter in the loader, not in SQL.** Rejected: the page size, the offset and the count
+   would describe a list that does not exist, and one forgotten loader leaks rows.
+4. **Client-side hiding, blur, or a "click to reveal" placeholder.** Rejected: the bytes and
+   the prompt text still arrive.
+5. **A PIN or lock in front of the mode.** Rejected: one owner, one device, no threat model
+   a cookie does not already cover.
+6. **A provider-agnostic allowlist of "safe" models.** Rejected: the provider schemas
+   already say which safety fields exist, and a hardcoded list rots the moment a provider
+   adds one.
 ### 4. Video copy pipeline
 
 1. **Frames → edited keyframes → agent shot list → per-shot prompts → frames mode →
@@ -210,7 +229,8 @@ using `~/.claude/skills/antislop-human/contrast-check.py`.
 
 Dark theme ratios: ink/canvas 15.87, ink/surface 14.65, accent/canvas 5.62,
 accent/surface 5.18, accent-ink/accent 5.62, success 8.21, warning 8.61, error 6.73,
-line-strong/canvas 4.17, line-strong/surface 3.85. Ink at 55% over canvas is 5.45, so the
+line-strong/canvas 4.17, line-strong/surface 3.
+85. Ink at 55% over canvas is 5.45, so the
 27 `text-ink/55` call sites pass in dark without edits. Light theme after the two fixes:
 warning/canvas 5.44, line-strong/canvas 3.63, line-strong/surface 3.85.
 
@@ -297,60 +317,79 @@ change can re-run the same thing.
 
 State:
 
-- Setting `nsfw.enabled` in `settings` (`'true' | 'false'`, default absent = safe).
-  Server functions `loadNsfwMode()` and `setNsfwMode({ data: { enabled } })` in
-  `apps/web/src/server/settings.functions.ts`; `SettingsSnapshot` gains `nsfwEnabled`.
-- Mode is global to the install, not per device. Per-device is an open question.
+- One cookie, `sunnygen.nsfw` (`'1'` on, anything else off), `path=/`, `sameSite=lax`,
+  one year, readable by script. Per device, no PIN.
+- Schema, migration 5 (`SCHEMA_VERSION = 5`): `generations.nsfw INTEGER NOT NULL DEFAULT 0`,
+  `assets.nsfw INTEGER NOT NULL DEFAULT 0`, plus `assets_nsfw` and `generations_nsfw`
+  indexes. `DEFAULT 0` is what keeps every row that predates the mode visible. The video
+  branch also claims version 5; whichever merges second renumbers.
+- Tagging: `submitGeneration` reads the cookie once and writes the generation's flag, and
+  every stored output inherits it from that row, including the poller, the webhook path and
+  the inline success path. Uploads, studio uploads, pack imports and social imports tag from
+  the cookie at the moment they are stored; avatar training cells inherit the panel they
+  were cut from. A retry re-submits through `submitGeneration`, and an NSFW generation is
+  only reachable from NSFW mode, so it stays tagged.
+- Reads: every repository list, count and by-id read defaults to `nsfw = 0` and takes
+  `includeNsfw` only from the cookie or from a job row the server already owns. The
+  predicates are bound parameters and `json_each(...)` id lists, never SQL text assembled
+  from data.
+- Media: `/api/media/<id>` reads the cookie once per request and answers the existing 404
+  for both the byte stream and the thumbnail of a hidden asset, so no URL becomes a way
+  around the filter.
+- Derived files: thumbnails are built on demand behind that same gate and are never rows of
+  their own; a studio item is hidden in safe mode when any file it owns is hidden, because
+  `studio_items` carries no flag of its own.
+- Out of scope: manual tag/untag, per-card badges, and any change to what safe mode sends to
+  a provider.
+- `apps/web/src/server/nsfw.server.ts` holds `readNsfwMode()` and `writeNsfwMode(enabled)`;
+  `apps/web/src/server/nsfw.functions.ts` exposes `loadNsfwMode()` and
+  `setNsfwMode({ data: { enabled } })` as server functions.
+- The root route renders a small inline script that reads the cookie and sets
+  `html[data-theme='nsfw']` before first paint, so a device that left the mode on never
+  flashes the light palette.
 
-Server enforcement (the part that matters):
+Provider fields (the part that matters):
 
-- Schema: `assets.nsfw INTEGER NOT NULL DEFAULT 0`, `generations.nsfw INTEGER NOT NULL
-  DEFAULT 0`, plus `CREATE INDEX assets_nsfw ON assets(nsfw)`.
-- `packages/db/src/repositories/assets.ts`: `ListAssetsFilter` gains `includeNsfw?: boolean`
-  and `nsfwOnly?: boolean`; the WHERE clause adds `nsfw = 0` when `includeNsfw` is not
-  true. Same shape in `packages/db/src/repositories/generations.ts`
-  (`ListGenerationsFilter.includeNsfw`).
-- `apps/web/src/server/library.functions.ts`: every read resolves the mode once
-  (`readSetting('nsfw.enabled')`) and passes `includeNsfw: mode`. That covers
-  `loadGenerationWall`, `loadGallery`, `loadAssets`, `loadMediaAssets`,
-  `loadReferenceLibrary`. Safe mode returns no NSFW row, so no title, prompt, or URL
-  reaches the client.
-- `apps/web/src/routes/api/media/$id.ts`: `openAssetFile` and `openAssetThumbFile` take an
-  `includeNsfw` flag; when the asset is NSFW and the mode is off, return the existing
-  404 (`Not found`). Thumbs are refused the same way, or a 404 body leaks a preview.
-- `packages/db/src/repositories/assets.ts` `CreateAssetInput` gains `nsfw?: boolean`;
-  `storeBuffer` passes it through.
-- Auto-tag: `submitGeneration` in `apps/web/src/server/generation.functions.ts` reads the
-  mode and writes `nsfw: mode` on the generation row and on every stored output
-  (`storeProviderOutputs`, `storeBuffer`). A generation made in safe mode is tagged 0 even
-  if the provider returns something explicit.
-- Manual: `setAssetNsfwFn({ id, nsfw })` server fn; the asset action bar in
-  `apps/web/src/routes/assets.tsx` and the wall modal get a Tag NSFW / Remove tag item.
-- Providers: `GenerationParams` gains `safetyCheckers?: 'on' | 'off'` (absent means `'on'`,
-  so a legacy row keeps today's image behaviour). `generation.server.ts`
-  sets it from the mode when it builds params. `packages/providers/src/fal/image.ts` (two
-  spots), `packages/providers/src/sunra/image.ts`, and
-  `packages/providers/src/models.ts` stop writing
-  `enable_safety_checker = false` unconditionally and write
-  `body.enable_safety_checker = request.params.safetyCheckers !== 'off'` only when the
-  field exists in the schema. Video flows get the same branch where the schema documents
-  the field. Providers whose schema has no such field are left alone; the mode cannot
-  switch off what does not exist.
+- `GenerationParams.nsfw?: boolean` is written once by `submitGeneration` from the cookie
+  and stored with the generation, so a job replays the mode it started in.
+- `packages/providers/src/safety.ts` walks the request schema's properties. In NSFW mode a
+  safety-named boolean field (`enable_safety_checker`, `moderation`, …) becomes `false` and
+  a safety-named numeric enum (`safety_tolerance`) becomes its highest documented value. In
+  safe mode it writes nothing, so every endpoint keeps exactly the body it sends today.
+- Wired into `fal/image.ts` (`buildSchemaBody`), `sunra/image.ts` (`schemaBody`),
+  `fal/video.ts` (after the body is assembled, before `conformBody`), and `sunra/video.ts`
+  (`capabilityBody`, `schemaBody`). Endpoints whose schema has no safety field are left
+  alone: the mode cannot switch off what does not exist.
+
+Uncensored providers:
+
+- `wiro` (`packages/providers/src/wiro/`): `POST /v1/Run/{owner}/{slug}` then
+  `POST /v1/Task/Detail` polling, `x-api-key` auth, key in `settings` like the other
+  providers. Over-limit is HTTP 200 with `result: false` and `errors[].code == 96`; it is
+  surfaced as a retryable failure. Outputs are CDN URLs, downloaded and stored as local
+  media as soon as the task finishes. Models: Z Image Uncensored, Z Image Pro Uncensored,
+  and Qwen Image Edit Uncensored (multipart `inputImage` uploads).
+- `local` (`packages/providers/src/local/`): the `sd-server` native API,
+  `POST /sdcpp/v1/img_gen` then `GET /sdcpp/v1/jobs/{id}`, no key, base URL setting
+  `provider.local.baseUrl` defaulting to `http://127.0.0.1:1234`. SunnyGen only talks to a
+  server that is already running: `localStatus()` probes `/v1/models` and the Settings card
+  and model picker show the model as unavailable when the probe fails. Installing,
+  building, downloading models, and supervising the process are out of scope.
+- Both providers' models carry `nsfwOnly: true`. `useModelChoices` filters them out when
+  the mode is off, and `submitGeneration` throws before resolving a provider.
 
 Presentation:
 
-- Theme variant `html[data-theme='nsfw']` layered over the dark tokens: canvas `#1A0F0D`,
-  surface `#241513`, ink `#F6E9E4`, line `#4A2C28`, line-strong `#8C6159`, accent
-  `#FF6B5E` (6.72 on canvas, 6.31 on surface), accent-ink `#1A0F0D`, success `#5FBF84`,
-  warning `#E0A64A`, error `#F0786C`. `data-theme` is `'nsfw'` only when the mode is on;
-  the theme choice still decides the base, so `nsfw` implies the dark base.
-- Transition: entering the mode plays a short 😈 sweep, roughly 700ms, a large devil glyph
-  that crosses the viewport and settles into the mode pill. `useReducedMotion` from
-  `motion/react` (the app already wraps everything in `MotionConfig reducedMotion="user"`)
-  skips to a 120ms opacity change. Leaving the mode plays nothing.
-- Badges: NSFW cards carry a badge using the existing `Badge` tone `error`, in both modes,
-  because the owner needs to see what is tagged even when everything is visible.
-
+- Theme variant `html[data-theme='nsfw']` with its own complete token set, so it never
+  depends on another theme block: canvas `#1A0F0D`, surface `#241513`, ink `#F6E9E4`,
+  line `#4A2C28`, accent `#FF6B5E` (6.72 on canvas, 6.31 on surface), success `#5FBF84`,
+  warning `#E0A64A`, error `#F0786C`. Ink on canvas is 15.83 and ink on surface 14.85.
+- Transition: entering the mode plays one 😈 glyph across the viewport for about 700ms
+  over a tinted wash. `useReducedMotion` from `motion/react` turns it into a 120ms opacity
+  fade with no glyph travel. Leaving the mode plays nothing.
+- Controls: a `role="switch"` labelled "Unlock adult content" with the state as text in
+  Settings, and a 😈 pill in the app shell (sidebar and mobile drawer) while the mode is
+  on, linking back to Settings.
 ### 4. Video copy pipeline
 
 Stages, all server-side, all resumable:
@@ -432,10 +471,13 @@ from a reference, not as an editable timeline.
 - v3.1 dark theme: none. Theme mode is `localStorage` only.
 - v3.2 audit: none. Docs only.
 - v3.3 NSFW, migration 5 (`packages/db/src/migrations.ts`, `SCHEMA_VERSION = 5`):
-  - `ALTER TABLE assets ADD COLUMN nsfw INTEGER NOT NULL DEFAULT 0;`
   - `ALTER TABLE generations ADD COLUMN nsfw INTEGER NOT NULL DEFAULT 0;`
+  - `ALTER TABLE assets ADD COLUMN nsfw INTEGER NOT NULL DEFAULT 0;`
   - `CREATE INDEX assets_nsfw ON assets(nsfw);`
-  - Settings key `nsfw.enabled`, no table change.
+  - `CREATE INDEX generations_nsfw ON generations(nsfw);`
+  - Two new settings keys, no table change: `provider.wiro.key`,
+    `provider.local.baseUrl`. The video branch also uses 5; whichever merges second
+    renumbers.
 - v3.4 video copy, migration 6 (`SCHEMA_VERSION = 6`):
   - `CREATE TABLE video_copies (id TEXT PRIMARY KEY, source_asset_id TEXT NOT NULL
     REFERENCES assets(id) ON DELETE CASCADE, status TEXT NOT NULL, agent TEXT, shots TEXT
@@ -449,8 +491,8 @@ from a reference, not as an editable timeline.
   - Why a table and not `generations.params`: one copy owns N shot generations. A params
     blob would be duplicated across them, and deleting or reordering shots would mean
     rewriting generation rows.
-- Core types touched: `AssetRecord.nsfw`, `GenerationRecord.nsfw`, `PublicAsset.nsfw`,
-  `GenerationParams.safetyCheckers`, `VideoCopyRecord`, `VideoShotList`.
+- Core types touched: `ProviderId` (`wiro`, `local`), `PROVIDERS`, `ModelBase.nsfwOnly`,
+  `GenerationParams.nsfw`, `VideoCopyRecord`, `VideoShotList`.
 - Version bump (release, no schema): `package.json`, `apps/web/package.json`,
   `apps/cli/package.json`, `packages/core/package.json`, `packages/db/package.json`,
   `packages/providers/package.json`, `packages/ui/package.json`,
@@ -471,13 +513,16 @@ from a reference, not as an editable timeline.
   Python.
 - **Canvas colours come from props, not CSS.** React Flow needs resolved values, so the
   hook must re-run on theme change or edges keep the old accent.
-- **Provider checkers.** Turning checkers on in safe mode can start rejecting generations
-  that used to pass. That is the intended behaviour, but it will look like a regression to
-  the owner if the failure copy does not say "the provider's safety checker rejected this,
-  turn on NSFW mode if you meant it".
-- **NSFW leaks.** Every read path must pass `includeNsfw`, and the media route is the only
-  place that streams bytes. One forgotten caller means a hidden asset in the Assets grid.
-  A test must assert safe mode returns zero NSFW rows from each loader.
+- **Safe mode drift.** The mode must never change a safe-mode request body. A provider test
+  asserts the exact body for both modes on every touched flow, so an accidental
+  "always off" cannot land.
+- **NSFW model reaches a safe-mode submit.** A stale picker or a hand-written request could
+  name a Wiro or local model with the cookie off. `submitGeneration` refuses it before a
+  provider is resolved, and that refusal is the only gate that matters.
+- **A provider adds or renames a safety field.** The schema-driven walk only sees what the
+  request schema documents, so a new field is picked up automatically only when its name
+  matches the safety pattern. Anything outside the pattern is a deliberate miss, not a
+  silent one.
 - **ffmpeg absent.** Dev machines may have it, the Docker image does not, and CI will not
   run it. Every entry point checks availability and names the fix.
 - **Agent CLI absent in prod Docker.** Expected. The panel shows "not installed" and the
@@ -489,40 +534,38 @@ from a reference, not as an editable timeline.
 - **Concat failure.** Mixed codec, size, or fps breaks `-c copy`. Fall back to a re-encode
   and say which path ran.
 - **Migration mistakes.** Two migrations land in one release; `migrations.test.ts` must
-  build a v4 database, apply 5 and 6, and assert old rows survive with `nsfw = 0`.
+  build a v4 database, apply 5 and 6, and assert old rows survive with `nsfw = 0` on both
+  tables.
 
 ## Open questions
 
-1. [NSFW] PIN or lock on entering NSFW mode (a 4-digit code stored hashed), or no lock at
-   all?
-2. [NSFW] Mode state per device (localStorage) or global to the install (settings table)?
-   The design above picks global because the filtering is server-side; per-device would
-   need a device token on every request.
-3. [NSFW] Does the Assistant chat get a mode? Options: no change, a separate NSFW system
-   prompt, or a warning banner only.
-4. [NSFW] Demo build (`pnpm dev:demo`): should NSFW mode exist there, be hidden, or be
-   forced off so a shared demo cannot be put into adult mode?
-5. [NSFW] Do NSFW generations need a separate folder for cleanup, or stay mixed in the
-   wall?
-6. [theme] Per-device or synced theme choice (same trade-off as question 2, lower stakes).
-7. [theme] Is `site/` in scope for the dark palette, or left light as marketing?
-8. [copy] Which agent CLI is the default when more than one is installed?
-9. [copy] Frame count default and cap: 12 is a good default, 24 the ceiling, per the risk
+1. [NSFW] Does the Assistant chat get a mode? Options: no change, a separate NSFW system
+   prompt, or a warning banner only. Today: no change.
+2. [NSFW] Should the demo build (`pnpm dev:demo`) offer the switch, or force it off so a
+   shared demo cannot be put into adult mode? Today: the switch is present, because the
+   demo has its own data directory and safe mode is unchanged.
+3. [NSFW] Which side of the edit model needs verifying with a real key: the multipart
+   field id Wiro expects for Qwen Image Edit Uncensored's 1–3 inputs is documented per
+   file type but not per model, so the first real run should confirm `inputImage`.
+4. [theme] Per-device or synced theme choice (same trade-off as question 2, lower stakes).
+5. [theme] Is `site/` in scope for the dark palette, or left light as marketing?
+6. [copy] Which agent CLI is the default when more than one is installed?
+7. [copy] Frame count default and cap: 12 is a good default, 24 the ceiling, per the risk
    above.
-10. [copy] Should shot generations be retried automatically when one shot fails, or leave
-    the batch paused for a manual retry?
-11. [copy] Manual fallback: paste a shot list JSON when no agent CLI exists. Ship it in
-    v3 or defer?
-
+8. [copy] Should shot generations be retried automatically when one shot fails, or leave
+   the batch paused for a manual retry?
+9. [copy] Manual fallback: paste a shot list JSON when no agent CLI exists. Ship it in
+   v3 or defer?
 ## Release order
 
 1. **v3.1 dark theme.** Tokens, boot script, settings control, hardcoded colour and
    shadow cleanup. Lands first because the audit must see both themes.
 2. **v3.2 full antislop audit.** Report against light and dark, then the approved fixes.
    Waits for v3.1.
-3. **v3.3 NSFW mode.** Schema migration 5, server filtering, provider checker switch,
-   theme variant, 😈 transition, manual tags.
-4. **v3.4 video copy pipeline.** ffmpeg, agent CLIs, shot list schema, `video_copies`
+3. **v3.3 NSFW mode.** Cookie mode, schema-driven provider safety fields, Wiro and local
+   sd-server providers, token block, 😈 transition, picker and submit gates. No schema
+   change, so it does not depend on the dark-theme block: the NSFW palette defines every
+   token it needs.4. **v3.4 video copy pipeline.** ffmpeg, agent CLIs, shot list schema, `video_copies`
    table (migration 6), copy panel, concat.
 5. **3.0.0 release.** Version bump in the eight files listed above, update note, changelog
    row. Nothing else may land in this step.

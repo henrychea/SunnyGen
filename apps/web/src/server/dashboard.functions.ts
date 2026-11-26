@@ -12,6 +12,7 @@ import {
   updateGeneration,
 } from '@sunnygen/db'
 import { ensurePoller } from './generation-poller.server'
+import { readNsfwMode } from './nsfw.server'
 import { assetUrl, toInputAssets } from './media.server'
 import { generationMediaKind } from '~/lib/media-kind'
 import { loadGenerationWall, type GalleryItem, type GenerationWallItem } from './library.functions'
@@ -31,14 +32,18 @@ export interface DashboardData {
 
 export const loadDashboard = createServerFn({ method: 'GET' }).handler((): DashboardData => {
   ensurePoller()
-  const recentGenerations = listGenerations({ status: 'succeeded', limit: 6 }).filter(
+  const includeNsfw = readNsfwMode()
+  const recentGenerations = listGenerations({ status: 'succeeded', limit: 6, includeNsfw }).filter(
     (generation) => generation.kind !== 'lora',
   )
   const outputAssets = new Map(
-    getAssetsByIds([
-      ...recentGenerations.flatMap((generation) => generation.outputAssetIds),
-      ...recentGenerations.flatMap((generation) => generation.inputAssetIds),
-    ]).map((asset) => [asset.id, asset]),
+    getAssetsByIds(
+      [
+        ...recentGenerations.flatMap((generation) => generation.outputAssetIds),
+        ...recentGenerations.flatMap((generation) => generation.inputAssetIds),
+      ],
+      { includeNsfw },
+    ).map((asset) => [asset.id, asset]),
   )
 
   const recent = recentGenerations.flatMap((generation): GalleryItem[] => {
@@ -69,10 +74,10 @@ export const loadDashboard = createServerFn({ method: 'GET' }).handler((): Dashb
   })
 
   return {
-    renders: countGenerations({ status: 'succeeded' }),
-    images: countGenerations({ status: 'succeeded', kind: 'image' }),
-    videos: countGenerations({ status: 'succeeded', kind: 'video' }),
-    assets: countAssets({ excludeStudioAssets: true }),
+    renders: countGenerations({ status: 'succeeded', includeNsfw }),
+    images: countGenerations({ status: 'succeeded', kind: 'image', includeNsfw }),
+    videos: countGenerations({ status: 'succeeded', kind: 'video', includeNsfw }),
+    assets: countAssets({ excludeStudioAssets: true, includeNsfw }),
     avatars: countStudioItems('avatar'),
     garments: countStudioItems('garment'),
     poses: countStudioItems('pose'),
@@ -112,7 +117,11 @@ export const loadToday = createServerFn({ method: 'GET', strict: false }).handle
     const wall = await loadGenerationWall()
     const weekStart = startOfWeek(Date.now())
     const usage = new Map<string, TodayWeekUsage>()
-    for (const generation of listGenerations({ status: 'succeeded', limit: 1000 })) {
+    for (const generation of listGenerations({
+      status: 'succeeded',
+      limit: 1000,
+      includeNsfw: readNsfwMode(),
+    })) {
       if (generation.kind === 'lora' || generation.createdAt < weekStart) continue
       const key = `${generation.provider}|${generation.model}`
       const entry = usage.get(key) ?? { provider: generation.provider, model: generation.model, runs: 0 }
@@ -138,7 +147,7 @@ export const setGenerationReview = createServerFn({ method: 'POST', strict: fals
     }),
   )
   .handler(({ data }) => {
-    const generation = getGeneration(data.id)
+    const generation = getGeneration(data.id, { includeNsfw: readNsfwMode() })
     if (!generation) throw new Error('Generation not found')
     const params: Record<string, unknown> = { ...generation.params }
     if (data.reviewed === true) params.reviewedAt = Date.now()

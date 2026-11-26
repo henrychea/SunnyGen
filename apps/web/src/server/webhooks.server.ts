@@ -59,7 +59,7 @@ export async function handleProviderWebhook(
 
 async function finalizeFromWebhook(generationId: string): Promise<void> {
   try {
-    const generation = getGeneration(generationId)
+    const generation = getGeneration(generationId, { includeNsfw: true })
     if (!generation || !generation.providerJobId || TERMINAL[generation.status]) return
     const adapter = adapterFor(generation.provider)
     if (!adapter.poll) return
@@ -70,11 +70,13 @@ async function finalizeFromWebhook(generationId: string): Promise<void> {
       kind: generation.kind,
     })
 
-    const current = getGeneration(generationId)
+    const current = getGeneration(generationId, { includeNsfw: true })
     if (!current || TERMINAL[current.status]) return
 
     if (result.status === 'succeeded') {
-      const outputIds = await storeProviderOutputs(result.outputs ?? [], current.folderId)
+      const outputIds = await storeProviderOutputs(result.outputs ?? [], current.folderId, undefined, {
+        nsfw: current.nsfw,
+      })
       updateGeneration(generationId, { status: 'succeeded', outputAssetIds: outputIds, error: null })
       deleteJob(generationId)
     } else if (result.status === 'failed') {

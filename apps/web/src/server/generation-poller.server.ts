@@ -84,7 +84,7 @@ async function recoverFailedJobs(): Promise<void> {
   state.recovering = true
   try {
     const cutoff = Date.now() - 24 * 60 * 60 * 1000
-    const failed = listGenerations({ status: 'failed', limit: 25 }).filter(
+    const failed = listGenerations({ status: 'failed', limit: 25, includeNsfw: true }).filter(
       (generation) => generation.providerJobId && generation.createdAt >= cutoff,
     )
     for (const generation of failed) {
@@ -101,6 +101,7 @@ async function recoverFailedJobs(): Promise<void> {
             result.outputs ?? [],
             generation.folderId,
             generation.kind === 'lora' ? 'lora' : undefined,
+            { nsfw: generation.nsfw },
           )
           updateGeneration(generation.id, {
             status: 'succeeded',
@@ -151,7 +152,7 @@ export async function processGenerationJobs(): Promise<void> {
   try {
     const jobs = listDueJobs(Date.now(), 10)
     for (const job of jobs) {
-      const generation = getGeneration(job.generationId)
+      const generation = getGeneration(job.generationId, { includeNsfw: true })
       if (
         !generation ||
         generation.status === 'succeeded' ||
@@ -195,6 +196,7 @@ export async function processGenerationJobs(): Promise<void> {
             result.outputs ?? [],
             generation.folderId,
             generation.kind === 'lora' ? 'lora' : undefined,
+            { nsfw: generation.nsfw },
           )
           updateGeneration(generation.id, {
             status: 'succeeded',

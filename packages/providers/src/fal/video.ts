@@ -14,6 +14,7 @@ import {
   type RequestSchema,
 } from '../schema'
 import { ProviderError, type ProviderFlow, type ProviderRequest } from '../types'
+import { applySafetyFields, nsfwMode } from '../safety'
 import { fetchFalSchema } from './image'
 import { submitFalQueue, uploadFalAsset } from './client'
 
@@ -122,6 +123,7 @@ export const falVideoFlow: ProviderFlow = {
     }
 
     applyRequiredDefaults(body, schema, schema.components)
+    applySafetyFields(body, schema.properties, schema.components, nsfwMode(request))
     const conformed = conformBody(body, schema, schema.components)
     const missing = missingRequired(conformed, schema)
     if (missing.length > 0) {

@@ -27,6 +27,8 @@ export interface ModelBase {
   schemaUrl?: string
   dynamic?: boolean
   supportsLora?: boolean
+  /** Only offered while NSFW mode is on; refused server-side in safe mode. */
+  nsfwOnly?: boolean
 }
 
 export interface ImageModelDefinition extends ModelBase {
@@ -58,6 +60,21 @@ const GEMINI_RATIOS = ['21:9', '16:9', '3:2', '4:3', '5:4', '1:1', '4:5', '3:4',
 const SEEDREAM_RATIOS = ['1:1', '4:3', '3:4', '16:9', '9:16', '3:2', '2:3', '21:9']
 const GPT_IMAGE_RATIOS = ['auto', '1:1', '3:2', '2:3', '4:3', '3:4', '16:9', '9:16', '21:9']
 const GROK_RATIOS = ['1:1', '2:1', '16:9', '4:3', '3:2', '2:3', '3:4', '9:16', '1:2']
+const WIRO_Z_RATIOS = [
+  '1:1',
+  '16:9',
+  '9:16',
+  '4:3',
+  '3:4',
+  '3:2',
+  '2:3',
+  '5:4',
+  '4:5',
+  '2:1',
+  '1:2',
+  '21:9',
+  '9:21',
+]
 const KLING_DURATIONS = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
 const GROK_DURATIONS = [1, 2, 3, 4, 5, 6, 8, 10, 12, 15]
 const GROK_VIDEO_RATIOS = ['16:9', '4:3', '3:2', '1:1', '2:3', '3:4', '9:16']
@@ -177,6 +194,67 @@ export const IMAGE_MODELS: ImageModelDefinition[] = [
     supportsLora: true,
     price: '$0.035 per megapixel',
     sourceId: 'fal-ai/flux-lora',
+  },
+  {
+    id: 'z-image-uncensored',
+    label: 'Z Image Uncensored',
+    providerLabel: 'Wiro',
+    kind: 'image',
+    providers: ['wiro'],
+    ratios: WIRO_Z_RATIOS,
+    supportsImages: false,
+    maxImages: 0,
+    supportsQuality: false,
+    qualityOptions: [],
+    defaultQuality: '',
+    price: '$0.013 per image',
+    nsfwOnly: true,
+  },
+  {
+    id: 'z-image-pro-uncensored',
+    label: 'Z Image Pro Uncensored',
+    providerLabel: 'Wiro',
+    kind: 'image',
+    providers: ['wiro'],
+    ratios: WIRO_Z_RATIOS,
+    supportsImages: false,
+    maxImages: 0,
+    supportsQuality: true,
+    qualityOptions: ['1k', '2k'],
+    defaultQuality: '2k',
+    price: '$0.02 per image',
+    nsfwOnly: true,
+  },
+  {
+    id: 'qwen-image-edit-uncensored',
+    label: 'Qwen Image Edit Uncensored',
+    providerLabel: 'Wiro',
+    kind: 'image',
+    providers: ['wiro'],
+    ratios: ['1:1', '4:3', '3:4', '16:9', '9:16'],
+    supportsImages: true,
+    supportsText: false,
+    maxImages: 3,
+    supportsQuality: false,
+    qualityOptions: [],
+    defaultQuality: '',
+    price: '$0.046 per image',
+    nsfwOnly: true,
+  },
+  {
+    id: 'local-sd-server',
+    label: 'Local sd-server',
+    providerLabel: 'Local',
+    kind: 'image',
+    providers: ['local'],
+    ratios: ['1:1', '4:3', '3:4', '16:9', '9:16', '3:2', '2:3', '21:9'],
+    supportsImages: false,
+    maxImages: 0,
+    supportsQuality: true,
+    qualityOptions: ['1k', '2k'],
+    defaultQuality: '1k',
+    price: 'Local GPU',
+    nsfwOnly: true,
   },
 ]
 
@@ -483,6 +561,11 @@ export const ALL_MODELS: ModelDefinition[] = [...IMAGE_MODELS, ...VIDEO_MODELS]
 export function getModel(id: string): ModelDefinition | undefined {
   if (id === LORA_TRAINER_MODEL.id) return LORA_TRAINER_MODEL
   return ALL_MODELS.find((model) => model.id === id)
+}
+
+/** Uncensored models stay out of every picker until NSFW mode is on. */
+export function modelVisible(model: ModelDefinition, nsfw: boolean): boolean {
+  return nsfw || model.nsfwOnly !== true
 }
 
 export function modelsFor(provider: ProviderId, kind?: 'image' | 'video'): ModelDefinition[] {

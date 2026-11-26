@@ -58,6 +58,8 @@ export function startThemeSync(): () => void {
   if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return () => {}
   const query = window.matchMedia(DARK_QUERY)
   const sync = () => {
+    // NSFW mode owns the palette while it is on, so a system appearance change must not replace it.
+    if (document.documentElement.dataset.theme === 'nsfw') return
     applyTheme(readStoredTheme(window.localStorage), undefined, query.matches)
   }
   sync()

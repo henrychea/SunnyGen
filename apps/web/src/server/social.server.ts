@@ -2,6 +2,7 @@ import { z } from 'zod'
 import type { AssetKind } from '@sunnygen/core'
 import { createFolder } from '@sunnygen/db'
 import { storeRemoteAsset, toPublicAsset, type PublicAsset } from './media.server'
+import { readNsfwMode } from './nsfw.server'
 
 const pickerSchema = z.object({
   status: z.literal('picker'),
@@ -119,6 +120,7 @@ export async function importSocialPost(url: string): Promise<PublicAsset[]> {
       source: 'social',
       folderId,
       allowHosts: [cobaltHost],
+      nsfw: readNsfwMode(),
     })
     assets.push(toPublicAsset(asset))
   }

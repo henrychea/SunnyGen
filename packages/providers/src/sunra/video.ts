@@ -14,6 +14,7 @@ import {
   type RequestSchema,
 } from '../schema'
 import { ProviderError, type AdapterContext, type ProviderFlow, type ProviderRequest } from '../types'
+import { applySafetyFields } from '../safety'
 import { SUNRA_BASE, cleanSunraPrompt, submitSunraQueue, uploadSunraAsset } from './client'
 import { fetchSunraSchema, type SunraModelSchema } from './schema'
 
@@ -81,6 +82,7 @@ interface VideoInputs {
   endFrame?: string
   references: string[]
   sourceVideo?: string
+  nsfw: boolean
 }
 
 function modeInputs(
@@ -160,6 +162,7 @@ function capabilityBody(
     if (value !== undefined) body.resolution = value
   }
 
+  applySafetyFields(body, properties, components, inputs.nsfw)
   return conformBody(body, operation, components)
 }
 
@@ -222,15 +225,11 @@ function schemaBody(
     if (value !== undefined) body.resolution = value
   }
 
+  applySafetyFields(body, properties, components, inputs.nsfw)
   return conformBody(body, operation.schema, components)
 }
 
-function fallbackBody(
-  model: VideoModelDefinition,
-  spec: SunraVideoSpec,
-  inputs: VideoInputs,
-  operation: string,
-): Record<string, unknown> {
+function fallbackBody(spec: SunraVideoSpec, inputs: VideoInputs, operation: string): Record<string, unknown> {
   const prompt = cleanSunraPrompt(inputs.prompt, spec.promptMaxLength)
   const duration = inputs.duration
 
@@ -310,6 +309,7 @@ async function buildVideoRequest(
       aspectRatio: String(request.params.aspectRatio ?? model.defaultRatio),
       resolution: String(request.params.resolution ?? model.defaultResolution),
       sound: Boolean(request.params.sound ?? capability.audio),
+      nsfw: request.params.nsfw === true,
     })
     return {
       endpoint: `${SUNRA_BASE}/queue/${path}`,
@@ -342,6 +342,7 @@ async function buildVideoRequest(
     aspectRatio: String(request.params.aspectRatio ?? model.defaultRatio),
     resolution: String(request.params.resolution ?? model.defaultResolution),
     sound: Boolean(request.params.sound ?? true),
+    nsfw: request.params.nsfw === true,
     ...(startFrame ? { startFrame } : {}),
     ...(endFrame ? { endFrame } : {}),
     references,
@@ -381,7 +382,7 @@ async function buildVideoRequest(
     : (spec.operations.find((name) => name === 'text-to-video') ?? requested)
   return {
     endpoint: `${SUNRA_BASE}/queue/${alias}/${operation}`,
-    body: fallbackBody(model, spec, inputs, operation),
+    body: fallbackBody(spec, inputs, operation),
   }
 }
 
