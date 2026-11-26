@@ -121,3 +121,19 @@
     animation: none !important;
   }
 }
+
+/*
+ * NSFW mode is its own palette: warm near-black with a devil red accent.
+ * It replaces every token so it never depends on another theme block.
+ * Specificity (0,1,1) beats the emitted `:root` (0,1,0) without !important.
+ */
+html[data-theme='nsfw'] {
+  --color-canvas: #1a0f0d;
+  --color-surface: #241513;
+  --color-ink: #f6e9e4;
+  --color-line: #4a2c28;
+  --color-accent: #ff6b5e;
+  --color-success: #5fbf84;
+  --color-warning: #e0a64a;
+  --color-error: #f0786c;
+}

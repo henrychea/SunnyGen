@@ -33,6 +33,7 @@ import {
   listStudioItems,
   readSetting,
   saveStudioItem,
+  studioItemAssetIds,
   type StudioItemRecord,
 } from '@sunnygen/db'
 import sharp from 'sharp'
@@ -42,6 +43,7 @@ import { assetUrl, readAssetBuffer, storeBuffer } from './media.server'
 import { assertSheetSize, dataForPanelChange, deleteDerivedAssets } from './avatar-derived.server'
 import { extractAvatarFromPrompt } from './avatar-profile.server'
 import { deleteStudioItemWithAssets } from './studio-assets.server'
+import { readNsfwMode } from './nsfw.server'
 
 export interface StudioItemDto {
   id: string
@@ -91,10 +93,26 @@ function ensureWhiteStudio(): void {
   })
 }
 
+/**
+ * Studio rows carry no NSFW flag of their own: an item is hidden in safe mode when any file it
+ * owns was stored in NSFW mode, which is the same rule the media route applies to those files.
+ */
+function visibleStudioItems(items: StudioItemRecord[], includeNsfw: boolean): StudioItemRecord[] {
+  if (includeNsfw) return items
+  const owned = items.flatMap((item) => studioItemAssetIds(item))
+  if (owned.length === 0) return items
+  const hidden = new Set(
+    getAssetsByIds(owned, { includeNsfw: true })
+      .filter((asset) => asset.nsfw)
+      .map((asset) => asset.id),
+  )
+  return items.filter((item) => !studioItemAssetIds(item).some((id) => hidden.has(id)))
+}
+
 export const loadStudioLibrary = createServerFn({ method: 'GET', strict: false }).handler(
   (): StudioLibrary => {
     ensureWhiteStudio()
-    const items = listStudioItems()
+    const items = visibleStudioItems(listStudioItems(), readNsfwMode())
     return {
       avatars: items.filter((item) => item.kind === 'avatar').map(toDto),
       garments: items.filter((item) => item.kind === 'garment').map(toDto),
@@ -133,7 +151,7 @@ export const saveStudioItemFn = createServerFn({ method: 'POST', strict: false }
       previousItem = previous
       const panelChanged = !previous || previous.assetId !== data.assetId
       if (panelChanged) {
-        const panel = getAsset(data.assetId)
+        const panel = getAsset(data.assetId, { includeNsfw: true })
         const panelError = panelSizeError(panel?.width ?? null, panel?.height ?? null)
         if (panelError) throw new Error(panelError)
       }
@@ -144,7 +162,7 @@ export const saveStudioItemFn = createServerFn({ method: 'POST', strict: false }
       // from the old images.
       const faceChanged = !previous || (facePanelId ?? null) !== (previousFace ?? null)
       if (facePanelId && facePanelId !== previousFace) {
-        const facePanel = getAsset(facePanelId)
+        const facePanel = getAsset(facePanelId, { includeNsfw: true })
         if (panelSizeError(facePanel?.width ?? null, facePanel?.height ?? null)) {
           throw new Error(
             `The face panel must be at least 4096 x 4096 px (this one is ${facePanel?.width ?? '?'} x ${facePanel?.height ?? '?'}).`,
@@ -158,7 +176,7 @@ export const saveStudioItemFn = createServerFn({ method: 'POST', strict: false }
           ? previous.data.characterSheetAssetId
           : null
       if (sheetId && sheetId !== previousSheet) {
-        const sheet = getAsset(sheetId)
+        const sheet = getAsset(sheetId, { includeNsfw: true })
         assertSheetSize(sheet?.width ?? null, sheet?.height ?? null)
       }
       derivedDropped = Boolean(previous) && (panelChanged || faceChanged)
@@ -406,7 +424,13 @@ async function panelCells(
         .extract({ left: column * cellWidth, top: row * cellHeight, width: cellWidth, height: cellHeight })
         .jpeg({ quality: 92, mozjpeg: true })
         .toBuffer()
-      const asset = await storeBuffer({ buffer: cell, mime: 'image/jpeg', kind: 'image', source: 'training' })
+      const asset = await storeBuffer({
+        buffer: cell,
+        mime: 'image/jpeg',
+        kind: 'image',
+        source: 'training',
+        nsfw: panel.asset.nsfw,
+      })
       images.push({ id: asset.id, url: assetUrl(asset.id), label: `${label} ${row + 1}.${column + 1}` })
     }
   }
@@ -422,6 +446,10 @@ export const prepareAvatarTrainingSet = createServerFn({ method: 'POST', strict:
     const facePanelId = typeof avatar.data.facePanelAssetId === 'string' ? avatar.data.facePanelAssetId : null
     const panels = avatarTrainingPanels({ bodyPanelAssetId: avatar.assetId, facePanelAssetId: facePanelId })
     if (panels.length === 0) throw new Error('This avatar has no panel image to train on.')
+    // The item itself has no flag, so a hidden panel is what marks the whole set NSFW-only.
+    if ([avatar.assetId, facePanelId, sheetId].some((id) => id !== null && getAsset(id) === null)) {
+      throw new Error('Avatar not found')
+    }
 
     const images: TrainingImage[] = []
     if (sheetId) images.push({ id: sheetId, url: assetUrl(sheetId), label: 'Character sheet' })
@@ -450,7 +478,7 @@ export const trainAvatarLora = createServerFn({ method: 'POST', strict: false })
     const avatar = getStudioItem(data.avatarId)
     if (!avatar || avatar.kind !== 'avatar') throw new Error('Avatar not found')
 
-    const assets = getAssetsByIds(data.assetIds)
+    const assets = getAssetsByIds(data.assetIds, { includeNsfw: readNsfwMode() })
     if (assets.length !== data.assetIds.length) throw new Error('Some training images are missing.')
     if (assets.some((asset) => asset.kind !== 'image')) throw new Error('Training images must be stills.')
 
@@ -505,25 +533,27 @@ const RUN_STATUS: Record<string, LoraRunDto['status']> = {
 
 export const loadLoraRuns = createServerFn({ method: 'GET', strict: false }).handler((): LoraRunDto[] => {
   const avatars = new Map(listStudioItems('avatar').map((item) => [item.id, item]))
-  return listGenerations({ kind: 'lora', limit: 100 }).flatMap((generation): LoraRunDto[] => {
-    const avatarId = typeof generation.params.avatarId === 'string' ? generation.params.avatarId : null
-    const avatar = avatarId ? avatars.get(avatarId) : undefined
-    const steps = Number(generation.params.steps) || 0
-    return [
-      {
-        id: generation.id,
-        avatarId,
-        avatarName: avatar?.name ?? 'Deleted avatar',
-        avatarUrl: avatar?.assetId ? assetUrl(avatar.assetId) : null,
-        version: Number(generation.params.version) || 1,
-        status: RUN_STATUS[generation.status] ?? 'failed',
-        steps,
-        cost: loraTrainingCost(steps),
-        triggerWord: String(generation.params.triggerWord ?? generation.prompt ?? ''),
-        assetIds: generation.inputAssetIds,
-        error: generation.error,
-        createdAt: generation.createdAt,
-      },
-    ]
-  })
+  return listGenerations({ kind: 'lora', limit: 100, includeNsfw: readNsfwMode() }).flatMap(
+    (generation): LoraRunDto[] => {
+      const avatarId = typeof generation.params.avatarId === 'string' ? generation.params.avatarId : null
+      const avatar = avatarId ? avatars.get(avatarId) : undefined
+      const steps = Number(generation.params.steps) || 0
+      return [
+        {
+          id: generation.id,
+          avatarId,
+          avatarName: avatar?.name ?? 'Deleted avatar',
+          avatarUrl: avatar?.assetId ? assetUrl(avatar.assetId) : null,
+          version: Number(generation.params.version) || 1,
+          status: RUN_STATUS[generation.status] ?? 'failed',
+          steps,
+          cost: loraTrainingCost(steps),
+          triggerWord: String(generation.params.triggerWord ?? generation.prompt ?? ''),
+          assetIds: generation.inputAssetIds,
+          error: generation.error,
+          createdAt: generation.createdAt,
+        },
+      ]
+    },
+  )
 })

@@ -2,7 +2,9 @@ import type { ModelDefinition, ProviderId } from '@sunnygen/core'
 import { azureModule } from './azure'
 import { codexModule } from './codex'
 import { falModule } from './fal'
+import { localModule } from './local'
 import { sunraModule } from './sunra'
+import { wiroModule } from './wiro'
 import type { ProviderAdapter, ProviderModule, ProviderWebhook } from './types'
 
 export const PROVIDER_MODULES: Record<ProviderId, ProviderModule> = {
@@ -10,6 +12,8 @@ export const PROVIDER_MODULES: Record<ProviderId, ProviderModule> = {
   fal: falModule,
   azure: azureModule,
   codex: codexModule,
+  wiro: wiroModule,
+  local: localModule,
 }
 
 export function getProviderModule(provider: ProviderId): ProviderModule {

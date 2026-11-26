@@ -179,3 +179,35 @@ export const FAL_IMAGE_SPECS: Record<string, FalImageSpec> = {
     sizeNameKey: 'image_size',
   },
 }
+
+export interface WiroImageSpec {
+  /** `{owner}/{slug}` on Wiro, appended to `/v1/Run/`. */
+  endpoint: string
+  ratioKey?: string
+  resolutionKey?: string
+  qualityMap?: Record<string, string>
+  /** Set on models that take reference images; uploaded as multipart `{field}`. */
+  imageField?: string
+  maxImages?: number
+  /** Fixed extras Wiro documents per model (for example `promptExtend`). */
+  extra?: Record<string, string>
+}
+
+export const WIRO_IMAGE_SPECS: Record<string, WiroImageSpec> = {
+  'z-image-uncensored': {
+    endpoint: 'wiro-partners/z-image-uncensored',
+    ratioKey: 'ratio',
+  },
+  'z-image-pro-uncensored': {
+    endpoint: 'wiro-partners/z-image-pro-uncensored',
+    ratioKey: 'ratio',
+    resolutionKey: 'resolution',
+    qualityMap: { '1k': '1k', '2k': '2k' },
+    extra: { promptExtend: 'false' },
+  },
+  'qwen-image-edit-uncensored': {
+    endpoint: 'wiro-partners/qwen-image-edit-uncensored',
+    imageField: 'inputImage',
+    maxImages: 3,
+  },
+}

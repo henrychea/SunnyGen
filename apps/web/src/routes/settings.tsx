@@ -21,6 +21,7 @@ import {
 import { ExternalLink, RefreshCw, Search } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { PageBody, PageHeader, PageScroll } from '~/components/app-shell'
+import { NsfwToggle } from '~/components/nsfw-toggle'
 import { ModelCombobox } from '~/components/model-combobox'
 import type { CatalogProvider, ModelCatalogView } from '~/server/model-catalog.functions'
 import { loadModelCatalog, rebuildModelCatalog } from '~/server/model-catalog.functions'
@@ -28,8 +29,10 @@ import {
   clearOpenRouterKey,
   clearProviderKey,
   loadCodexStatus,
+  loadLocalStatus,
   loadSettings,
   saveAzureConfig,
+  saveLocalConfig,
   saveOpenRouterKey,
   savePrepModel,
   saveProviderKey,
@@ -70,16 +73,17 @@ function SettingsPage() {
               </p>
             </CardHeader>
             <CardContent className="flex flex-col gap-5">
-              {settings.providers.map((provider) => (
-                <ProviderKeyCard
-                  key={provider.id}
-                  providerId={provider.id}
-                  label={provider.label}
-                  configured={provider.configured}
-                  hasKeySetting={provider.keySetting !== null}
-                  onSaved={() => router.invalidate()}
-                />
-              ))}
+              {settings.providers
+                .filter((provider) => provider.keySetting !== null)
+                .map((provider) => (
+                  <ProviderKeyCard
+                    key={provider.id}
+                    providerId={provider.id}
+                    label={provider.label}
+                    configured={provider.configured}
+                    onSaved={() => router.invalidate()}
+                  />
+                ))}
               <Separator />
               <AzureCard
                 configured={settings.providers.some(
@@ -90,11 +94,26 @@ function SettingsPage() {
                 onSaved={() => router.invalidate()}
               />
               <Separator />
+              <LocalServerCard baseUrl={settings.localBaseUrl} onSaved={() => router.invalidate()} />
+              <Separator />
               <CodexCard />
             </CardContent>
           </Card>
 
           <div className="flex min-w-0 flex-col gap-5">
+            <Card animateIn>
+              <CardHeader>
+                <CardTitle>Adult content</CardTitle>
+                <p className="text-ink/50 text-[12px]">
+                  Per device. NSFW mode turns off every provider safety filter and unlocks the uncensored
+                  models; safe mode sends exactly what SunnyGen has always sent.
+                </p>
+              </CardHeader>
+              <CardContent>
+                <NsfwToggle />
+              </CardContent>
+            </Card>
+
             <Card animateIn>
               <CardHeader>
                 <CardTitle>Assistant</CardTitle>
@@ -216,13 +235,11 @@ function ProviderKeyCard({
   providerId,
   label,
   configured,
-  hasKeySetting,
   onSaved,
 }: {
   providerId: string
   label: string
   configured: boolean
-  hasKeySetting: boolean
   onSaved: () => void
 }) {
   const [value, setValue] = useState('')
@@ -235,7 +252,7 @@ function ProviderKeyCard({
     setMessage(null)
     try {
       await saveProviderKey({
-        data: { provider: providerId as 'sunra' | 'fal' | 'azure', key: value.trim() },
+        data: { provider: providerId as 'sunra' | 'fal' | 'azure' | 'wiro', key: value.trim() },
       })
       setValue('')
       setMessage('Saved')
@@ -253,7 +270,7 @@ function ProviderKeyCard({
   const clear = async () => {
     setBusy(true)
     try {
-      await clearProviderKey({ data: { provider: providerId as 'sunra' | 'fal' | 'azure' } })
+      await clearProviderKey({ data: { provider: providerId as 'sunra' | 'fal' | 'azure' | 'wiro' } })
       setMessage('Removed')
       toast(`${label} key removed`, { tone: 'info' })
       onSaved()
@@ -273,41 +290,35 @@ function ProviderKeyCard({
           value={configured ? 'Configured' : 'Missing'}
         />
       </div>
-      {hasKeySetting ? (
-        <div className="flex min-w-0 gap-2">
-          <Input
-            className="min-w-0"
-            type="password"
-            value={value}
-            onChange={(event) => setValue(event.target.value)}
-            placeholder={configured ? 'Replace API key' : 'Paste API key'}
-            autoComplete="off"
-            spellCheck={false}
-          />
-          <Button className="shrink-0" onClick={save} loading={busy} disabled={!value.trim()}>
-            Save
-          </Button>
-          <AnimatePresence initial={false}>
-            {configured ? (
-              <motion.div
-                key="provider-clear"
-                variants={motionPop}
-                initial="hidden"
-                animate="visible"
-                exit="hidden"
-              >
-                <Button className="shrink-0" variant="ghost" onClick={clear} disabled={busy}>
-                  Clear
-                </Button>
-              </motion.div>
-            ) : null}
-          </AnimatePresence>
-        </div>
-      ) : (
-        <p className="border-line bg-canvas/60 text-ink/50 rounded-xl border px-3 py-2 text-[11.5px]">
-          Codex uses your local CLI login instead of an API key.
-        </p>
-      )}
+      <div className="flex min-w-0 gap-2">
+        <Input
+          className="min-w-0"
+          type="password"
+          value={value}
+          onChange={(event) => setValue(event.target.value)}
+          placeholder={configured ? 'Replace API key' : 'Paste API key'}
+          autoComplete="off"
+          spellCheck={false}
+        />
+        <Button className="shrink-0" onClick={save} loading={busy} disabled={!value.trim()}>
+          Save
+        </Button>
+        <AnimatePresence initial={false}>
+          {configured ? (
+            <motion.div
+              key="provider-clear"
+              variants={motionPop}
+              initial="hidden"
+              animate="visible"
+              exit="hidden"
+            >
+              <Button className="shrink-0" variant="ghost" onClick={clear} disabled={busy}>
+                Clear
+              </Button>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
+      </div>
       <AnimatePresence initial={false}>
         {message ? (
           <motion.p
@@ -390,6 +401,78 @@ function AzureCard({
           {message ? (
             <motion.span
               key="azure-message"
+              variants={motionFade}
+              initial="hidden"
+              animate="visible"
+              exit="hidden"
+              className="text-ink/45 text-[11px]"
+            >
+              {message}
+            </motion.span>
+          ) : null}
+        </AnimatePresence>
+      </div>
+    </div>
+  )
+}
+
+function LocalServerCard({ baseUrl, onSaved }: { baseUrl: string; onSaved: () => void }) {
+  const [url, setUrl] = useState(baseUrl)
+  const [busy, setBusy] = useState(false)
+  const [message, setMessage] = useState<string | null>(null)
+  const status = useQuery({
+    queryKey: ['local-status'],
+    queryFn: () => loadLocalStatus(),
+    refetchInterval: 15_000,
+  })
+  const reachable = status.data?.reachable ?? false
+  const loaded = status.data?.modelLoaded ?? false
+
+  const save = async () => {
+    setBusy(true)
+    setMessage(null)
+    try {
+      await saveLocalConfig({ data: { baseUrl: url.trim() } })
+      setMessage('Saved')
+      toast('sd-server URL saved', { tone: 'info' })
+      onSaved()
+    } catch (error) {
+      const text = error instanceof Error ? error.message : 'Could not save the sd-server URL'
+      setMessage(text)
+      toast(text, { tone: 'error' })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-2.5">
+      <div className="flex items-center justify-between">
+        <Label>Local sd-server</Label>
+        <StatusBadge
+          tone={reachable && loaded ? 'success' : reachable ? 'warning' : 'neutral'}
+          value={reachable ? (loaded ? 'Ready' : 'No model loaded') : 'Not running'}
+        />
+      </div>
+      <Input
+        value={url}
+        onChange={(event) => setUrl(event.target.value)}
+        placeholder="http://127.0.0.1:1234"
+        autoComplete="off"
+        spellCheck={false}
+      />
+      <p className="border-line bg-canvas/60 text-ink/50 rounded-xl border px-3 py-2 text-[11.5px] leading-relaxed">
+        SunnyGen only talks to an sd-server that is already running; it never installs one. Start it with{' '}
+        <code className="font-mono">stable-diffusion.cpp</code> and the MOSS-Image files, then retry.
+      </p>
+      <div className="flex items-center gap-2">
+        <Button variant="outline" onClick={save} loading={busy}>
+          Save URL
+        </Button>
+        <AnimatePresence initial={false} mode="wait">
+          {message ? (
+            <motion.span
+              key="local-message"
               variants={motionFade}
               initial="hidden"
               animate="visible"

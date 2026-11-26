@@ -139,6 +139,7 @@ export interface StoreBufferInput {
   // User uploads always become a new row and a new file, even for identical bytes.
   unique?: boolean
   name?: string
+  nsfw?: boolean
 }
 
 export async function storeBuffer(input: StoreBufferInput): Promise<AssetRecord> {
@@ -150,7 +151,9 @@ export async function storeBuffer(input: StoreBufferInput): Promise<AssetRecord>
 
   const sha256 = createHash('sha256').update(input.buffer).digest('hex')
   if (!input.unique) {
-    const existing = findAssetBySha256(sha256)
+    // Dedupe only against a row of the same visibility class: matching bytes must never hand an
+    // NSFW-mode write a safe-mode row, or the other way round.
+    const existing = findAssetBySha256(sha256, input.nsfw === true)
     if (existing) return existing
   }
 
@@ -176,6 +179,7 @@ export async function storeBuffer(input: StoreBufferInput): Promise<AssetRecord>
     folderId: input.folderId ?? null,
     name: input.name ?? null,
     unique: input.unique === true,
+    nsfw: input.nsfw === true,
   })
 }
 
@@ -199,6 +203,21 @@ async function readCapped(response: Response, maxBytes: number): Promise<Buffer>
   return Buffer.concat(chunks)
 }
 
+/**
+ * Returns the URL only when it is http(s) and either public or explicitly allowlisted; throws
+ * otherwise. The returned value is the proof the sink expects, so a download below can never be
+ * handed an unvalidated address.
+ */
+function allowlistedUrl(target: URL, allowed: ReadonlySet<string>): URL {
+  if (target.protocol !== 'http:' && target.protocol !== 'https:') {
+    throw new Error('Remote URL must use http or https')
+  }
+  if (isPrivateHostname(target.hostname) && !allowed.has(target.hostname.toLowerCase())) {
+    throw new Error('Remote host is not allowed')
+  }
+  return target
+}
+
 export async function storeRemoteAsset(
   url: string,
   options: {
@@ -206,6 +225,7 @@ export async function storeRemoteAsset(
     source?: AssetSource
     folderId?: string | null
     allowHosts?: string[]
+    nsfw?: boolean
   },
 ): Promise<AssetRecord> {
   let target: URL
@@ -214,20 +234,13 @@ export async function storeRemoteAsset(
   } catch {
     throw new Error('Remote URL is not valid')
   }
-  if (target.protocol !== 'http:' && target.protocol !== 'https:') {
-    throw new Error('Remote URL must use http or https')
-  }
   const allowed = new Set((options.allowHosts ?? []).map((host) => host.toLowerCase()))
-  if (isPrivateHostname(target.hostname) && !allowed.has(target.hostname.toLowerCase())) {
-    throw new Error('Remote host is not allowed')
-  }
+  const allowedUrl = allowlistedUrl(target, allowed)
 
-  const response = await fetch(target, { redirect: 'follow', signal: AbortSignal.timeout(60_000) })
+  const response = await fetch(allowedUrl, { redirect: 'follow', signal: AbortSignal.timeout(60_000) })
   if (!response.ok) throw new Error(`Download failed: ${response.status}`)
-  const finalHost = new URL(response.url).hostname.toLowerCase()
-  if (isPrivateHostname(finalHost) && !allowed.has(finalHost)) {
-    throw new Error('Remote host is not allowed')
-  }
+  // A redirect can land on a private host, so the landed URL is checked before any bytes are read.
+  allowlistedUrl(new URL(response.url), allowed)
   const buffer = await readCapped(response, MAX_REMOTE_BYTES)
   const mime = (response.headers.get('content-type') ?? '').split(';')[0]?.trim()
   return storeBuffer({
@@ -236,6 +249,7 @@ export async function storeRemoteAsset(
     kind: options.kind,
     source: options.source ?? 'generated',
     folderId: options.folderId,
+    nsfw: options.nsfw === true,
   })
 }
 
@@ -254,11 +268,16 @@ export interface AssetFile {
   mime: string
 }
 
+export interface ReadFileOptions {
+  includeNsfw?: boolean
+}
+
 export async function openAssetFile(
   assetId: string,
   range?: { start: number; end?: number },
+  options: ReadFileOptions = {},
 ): Promise<AssetFile | null> {
-  const asset = getAsset(assetId)
+  const asset = getAsset(assetId, { includeNsfw: options.includeNsfw === true })
   if (!asset) return null
   const path = safeAssetPath(asset.path)
   const info = await stat(path)
@@ -307,8 +326,12 @@ async function buildAssetThumb(asset: AssetRecord, width: ThumbWidth): Promise<A
   return { path, totalBytes: info.size }
 }
 
-export async function openAssetThumbFile(assetId: string, width: ThumbWidth): Promise<AssetFile | null> {
-  const asset = getAsset(assetId)
+export async function openAssetThumbFile(
+  assetId: string,
+  width: ThumbWidth,
+  options: ReadFileOptions = {},
+): Promise<AssetFile | null> {
+  const asset = getAsset(assetId, { includeNsfw: options.includeNsfw === true })
   if (!asset) return null
   if (kindForMime(asset.mime) !== 'image') return null
 
@@ -336,14 +359,14 @@ export async function openAssetThumbFile(assetId: string, width: ThumbWidth): Pr
 export async function readAssetBuffer(
   assetId: string,
 ): Promise<{ asset: AssetRecord; buffer: Buffer } | null> {
-  const asset = getAsset(assetId)
+  const asset = getAsset(assetId, { includeNsfw: true })
   if (!asset) return null
   const buffer = await readFile(safeAssetPath(asset.path))
   return { asset, buffer }
 }
 
 export async function removeAssetFile(assetId: string): Promise<void> {
-  const asset = getAsset(assetId)
+  const asset = getAsset(assetId, { includeNsfw: true })
   if (!asset) return
   try {
     await unlink(safeAssetPath(asset.path))

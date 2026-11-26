@@ -11,6 +11,9 @@ interface RouterContext {
   queryClient: QueryClient
 }
 
+/** Runs before first paint so a device that left NSFW mode on never flashes the light palette. */
+const NSFW_BOOTSTRAP = `try{if(document.cookie.split('; ').includes('sunnygen.nsfw=1'))document.documentElement.dataset.theme='nsfw'}catch(e){}`
+
 export const Route = createRootRouteWithContext<RouterContext>()({
   head: () => ({
     meta: [
@@ -45,6 +48,7 @@ function RootComponent() {
     <html lang="en">
       <head>
         <HeadContent />
+        <script>{NSFW_BOOTSTRAP}</script>
       </head>
       <body>
         <PwaRegister />

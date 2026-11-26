@@ -12,6 +12,7 @@ import {
 } from '@sunnygen/core'
 import { listStudioItems, saveStudioItem } from '@sunnygen/db'
 import { storeBuffer } from './media.server'
+import { readNsfwMode } from './nsfw.server'
 
 const MIME_BY_FORMAT: Record<string, string> = {
   jpeg: 'image/jpeg',
@@ -101,6 +102,7 @@ export function unzipPack(bytes: Uint8Array): Array<{ path: string; data: Uint8A
  * `failed` and the rest of the pack still imports.
  */
 export async function importPack(source: PackSource): Promise<PackImportResult> {
+  const nsfw = readNsfwMode()
   const entries = source.zip ? unzipPack(source.zip) : (source.files ?? [])
   const files = new Map(entries.map((entry) => [entry.path.toLowerCase(), entry.data]))
   const paths = entries.map((entry) => entry.path)
@@ -147,7 +149,13 @@ export async function importPack(source: PackSource): Promise<PackImportResult> 
       const buffer = files.get(item.file.toLowerCase())
       if (!buffer) throw new Error('File not found in the pack.')
       const mime = await imageMime(buffer)
-      const asset = await storeBuffer({ buffer: Buffer.from(buffer), mime, kind: 'image', source: 'upload' })
+      const asset = await storeBuffer({
+        buffer: Buffer.from(buffer),
+        mime,
+        kind: 'image',
+        source: 'upload',
+        nsfw,
+      })
 
       let cleanAssetId: string | null = null
       if (item.cleanFile) {
@@ -159,6 +167,7 @@ export async function importPack(source: PackSource): Promise<PackImportResult> 
             mime: await imageMime(clean),
             kind: 'image',
             source: 'upload',
+            nsfw,
           })
         ).id
       }
@@ -174,6 +183,7 @@ export async function importPack(source: PackSource): Promise<PackImportResult> 
             mime: await imageMime(viewBuffer),
             kind: 'image',
             source: 'upload',
+            nsfw,
           })
           let viewCleanId: string | null = null
           if (view.cleanFile) {
@@ -185,6 +195,7 @@ export async function importPack(source: PackSource): Promise<PackImportResult> 
                 mime: await imageMime(viewClean),
                 kind: 'image',
                 source: 'upload',
+                nsfw,
               })
             ).id
           }
@@ -201,6 +212,7 @@ export async function importPack(source: PackSource): Promise<PackImportResult> 
             mime: await imageMime(sheet),
             kind: 'image',
             source: 'upload',
+            nsfw,
           })
         ).id
       }

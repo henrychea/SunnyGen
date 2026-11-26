@@ -10,6 +10,8 @@ export interface GenerationParams {
   sound?: boolean
   seed?: number
   negativePrompt?: string
+  /** Set on submit from the cookie-held NSFW mode; adapters use it for provider safety fields. */
+  nsfw?: boolean
   [key: string]: unknown
 }
 
@@ -40,6 +42,8 @@ export interface GenerationRecord {
   folderId: string | null
   createdAt: number
   updatedAt: number
+  /** Made while NSFW mode was on: hidden from every read path in safe mode. */
+  nsfw: boolean
 }
 
 export interface AssetRecord {
@@ -56,6 +60,8 @@ export interface AssetRecord {
   path: string
   folderId: string | null
   createdAt: number
+  /** Stored while NSFW mode was on: hidden from every read path in safe mode. */
+  nsfw: boolean
 }
 
 export interface ProviderSubmitResult {

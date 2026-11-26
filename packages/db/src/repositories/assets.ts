@@ -18,6 +18,7 @@ interface AssetRow {
   path: string
   folder_id: string | null
   created_at: number
+  nsfw: number | null
 }
 
 function toRecord(row: AssetRow): AssetRecord {
@@ -35,6 +36,7 @@ function toRecord(row: AssetRow): AssetRecord {
     path: row.path,
     folderId: row.folder_id,
     createdAt: row.created_at,
+    nsfw: row.nsfw === 1,
   }
 }
 
@@ -70,11 +72,12 @@ export interface CreateAssetInput {
   source: AssetSource
   path: string
   folderId?: string | null
+  nsfw?: boolean
 }
 
 export function createAsset(input: CreateAssetInput): AssetRecord {
   if (!input.unique) {
-    const existing = findAssetBySha256(input.sha256)
+    const existing = findAssetBySha256(input.sha256, input.nsfw === true)
     if (existing) return existing
   }
 
@@ -84,8 +87,8 @@ export function createAsset(input: CreateAssetInput): AssetRecord {
   getDb()
     .prepare(
       `INSERT INTO assets
-        (id, kind, name, mime, byte_size, width, height, duration, sha256, source, path, folder_id, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        (id, kind, name, mime, byte_size, width, height, duration, sha256, source, path, folder_id, nsfw, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .run(
       id,
@@ -100,30 +103,39 @@ export function createAsset(input: CreateAssetInput): AssetRecord {
       input.source,
       input.path,
       input.folderId ?? null,
+      input.nsfw === true ? 1 : 0,
       Date.now(),
     )
-  return getAsset(id) as AssetRecord
+  return getAsset(id, { includeNsfw: true }) as AssetRecord
 }
 
-export function getAsset(id: string): AssetRecord | null {
-  const row = getDb().prepare('SELECT * FROM assets WHERE id = ?').get(id) as AssetRow | undefined
+export interface ReadAssetOptions {
+  includeNsfw?: boolean
+}
+
+export function getAsset(id: string, options: ReadAssetOptions = {}): AssetRecord | null {
+  const row = getDb()
+    .prepare('SELECT * FROM assets WHERE id = ? AND (? = 1 OR nsfw = 0)')
+    .get(id, options.includeNsfw ? 1 : 0) as AssetRow | undefined
   return row ? toRecord(row) : null
 }
 
-export function getAssetsByIds(ids: string[]): AssetRecord[] {
+export function getAssetsByIds(ids: string[], options: ReadAssetOptions = {}): AssetRecord[] {
   if (ids.length === 0) return []
-  const placeholders = ids.map(() => '?').join(', ')
   const rows = asRows<AssetRow>(
     getDb()
-      .prepare(`SELECT * FROM assets WHERE id IN (${placeholders})`)
-      .all(...ids),
+      .prepare('SELECT * FROM assets WHERE (? = 1 OR nsfw = 0) AND id IN (SELECT value FROM json_each(?))')
+      .all(options.includeNsfw ? 1 : 0, JSON.stringify(ids)),
   )
   const byId = new Map(rows.map((row) => [row.id, toRecord(row)]))
   return ids.map((id) => byId.get(id)).filter((asset): asset is AssetRecord => Boolean(asset))
 }
 
-export function findAssetBySha256(sha256: string): AssetRecord | null {
-  const row = getDb().prepare('SELECT * FROM assets WHERE sha256 = ?').get(sha256) as AssetRow | undefined
+/** Write-path dedupe: an upload only reuses a row of its own visibility class. */
+export function findAssetBySha256(sha256: string, nsfw = false): AssetRecord | null {
+  const row = getDb()
+    .prepare('SELECT * FROM assets WHERE sha256 = ? AND nsfw = ?')
+    .get(sha256, nsfw ? 1 : 0) as AssetRow | undefined
   return row ? toRecord(row) : null
 }
 
@@ -135,91 +147,83 @@ export interface ListAssetsFilter {
   excludeKind?: AssetKind
   excludeStudioAssets?: boolean
   folderId?: string | null
+  includeNsfw?: boolean
   limit?: number
   offset?: number
 }
 
 // Hidden studio files are filtered in SQL, so the page size, the offset and the total count
-// describe the same visible list.
-function excludeStudioCondition(values: Array<string | number | null>): string | null {
-  const owned = studioAssetIds()
-  if (owned.length === 0) return null
-  values.push(...owned)
-  return `id NOT IN (${owned.map(() => '?').join(', ')})`
+// describe the same visible list. The ids travel as one JSON parameter, never as SQL text.
+function studioExclusion(excludeStudioAssets: boolean | undefined): string {
+  return JSON.stringify(excludeStudioAssets ? studioAssetIds() : [])
 }
 
 export function countAssets(
-  filter: { kind?: AssetKind; source?: AssetSource; excludeStudioAssets?: boolean } = {},
+  filter: {
+    kind?: AssetKind
+    source?: AssetSource
+    excludeStudioAssets?: boolean
+    includeNsfw?: boolean
+  } = {},
 ): number {
-  const conditions: string[] = []
-  const values: Array<string | number | null> = []
-  if (filter.kind) {
-    conditions.push('kind = ?')
-    values.push(filter.kind)
-  }
-  if (filter.source) {
-    conditions.push('source = ?')
-    values.push(filter.source)
-  }
-  if (filter.excludeStudioAssets) {
-    const condition = excludeStudioCondition(values)
-    if (condition) conditions.push(condition)
-  }
-  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''
   const row = getDb()
-    .prepare(`SELECT COUNT(*) AS count FROM assets ${where}`)
-    .get(...values) as {
+    .prepare(
+      `SELECT COUNT(*) AS count FROM assets
+       WHERE (? = 1 OR nsfw = 0)
+         AND kind = COALESCE(?, kind)
+         AND source = COALESCE(?, source)
+         AND (? = 0 OR id NOT IN (SELECT value FROM json_each(?)))`,
+    )
+    .get(
+      filter.includeNsfw ? 1 : 0,
+      filter.kind ?? null,
+      filter.source ?? null,
+      filter.excludeStudioAssets ? 1 : 0,
+      studioExclusion(filter.excludeStudioAssets),
+    ) as {
     count: number
   }
   return Number(row.count)
 }
 
 export function listAssets(filter: ListAssetsFilter = {}): AssetRecord[] {
-  const conditions: string[] = []
-  const values: Array<string | number | null> = []
-
-  if (filter.kind) {
-    conditions.push('kind = ?')
-    values.push(filter.kind)
-  }
-  if (filter.source) {
-    conditions.push('source = ?')
-    values.push(filter.source)
-  }
-  if (filter.sources && filter.sources.length > 0) {
-    conditions.push(`source IN (${filter.sources.map(() => '?').join(', ')})`)
-    values.push(...filter.sources)
-  }
-  if (filter.excludeSource) {
-    conditions.push('source != ?')
-    values.push(filter.excludeSource)
-  }
-  if (filter.excludeKind) {
-    conditions.push('kind != ?')
-    values.push(filter.excludeKind)
-  }
-  if (filter.folderId !== undefined) {
-    if (filter.folderId === null) {
-      conditions.push('folder_id IS NULL')
-    } else {
-      conditions.push('folder_id = ?')
-      values.push(filter.folderId)
-    }
-  }
-  if (filter.excludeStudioAssets) {
-    const condition = excludeStudioCondition(values)
-    if (condition) conditions.push(condition)
-  }
-
-  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''
   const limit = Math.min(Math.max(filter.limit ?? 100, 1), 1000)
   const offset = Math.max(filter.offset ?? 0, 0)
-  values.push(limit, offset)
+  const sources = JSON.stringify(filter.sources && filter.sources.length > 0 ? filter.sources : [])
+  const folderScoped = filter.folderId !== undefined
+  const folderValue = folderScoped ? (filter.folderId ?? null) : null
 
   const rows = asRows<AssetRow>(
     getDb()
-      .prepare(`SELECT * FROM assets ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`)
-      .all(...values),
+      .prepare(
+        `SELECT * FROM assets
+         WHERE (? = 1 OR nsfw = 0)
+           AND kind = COALESCE(?, kind)
+           AND source = COALESCE(?, source)
+           AND (? = '[]' OR source IN (SELECT value FROM json_each(?)))
+           AND (? IS NULL OR source != ?)
+           AND (? IS NULL OR kind != ?)
+           AND (? = 0 OR folder_id IS ?)
+           AND (? = 0 OR id NOT IN (SELECT value FROM json_each(?)))
+         ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+      )
+      .all(
+        filter.includeNsfw ? 1 : 0,
+        filter.kind ?? null,
+        filter.source ?? null,
+        sources,
+        sources,
+        filter.excludeSource ?? null,
+        filter.excludeSource ?? null,
+        filter.excludeKind ?? null,
+        filter.excludeKind ?? null,
+        folderScoped ? 1 : 0,
+        folderValue,
+        filter.excludeStudioAssets ? 1 : 0,
+        studioExclusion(filter.excludeStudioAssets),
+        limit,
+        offset,
+      ),
   )
   return rows.map(toRecord)
 }

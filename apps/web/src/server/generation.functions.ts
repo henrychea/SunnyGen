@@ -28,6 +28,7 @@ import { adapterFor, prepareGeneration, providerContext, storeProviderOutputs } 
 import { ensurePoller } from './generation-poller.server'
 import { applyAvatarLora } from './lora.server'
 import { buildModelCatalog } from './model-catalog.server'
+import { readNsfwMode } from './nsfw.server'
 import { catalogModelDefinition } from '~/lib/catalog-model'
 
 const submitSchema = z.object({
@@ -62,6 +63,10 @@ export const submitGeneration = createServerFn({ method: 'POST', strict: false }
   .handler(async ({ data }): Promise<GenerationView> => {
     const model = resolveModel(data.model)
     if (!model) throw new Error(`Unknown model: ${data.model}`)
+    const nsfw = readNsfwMode()
+    if (model.nsfwOnly && !nsfw) {
+      throw new Error(`${model.label} only runs in NSFW mode. Turn it on in Settings.`)
+    }
     const isTraining = data.kind === 'lora'
     if (isTraining) {
       if (model.id !== LORA_TRAINER_MODEL.id) throw new Error(`${model.label} cannot train a LoRA`)
@@ -115,8 +120,8 @@ export const submitGeneration = createServerFn({ method: 'POST', strict: false }
           }
         : {}
     const params: GenerationParams = isTraining
-      ? { ...data.params }
-      : { ...data.params, ...imageParams, ...imageVideoParams }
+      ? { ...data.params, nsfw }
+      : { ...data.params, ...imageParams, ...imageVideoParams, nsfw }
 
     let prompt = data.prompt
     if (!isTraining) prompt = await applyAvatarLora(model, data.assetIds, prompt, params)
@@ -138,19 +143,25 @@ export const submitGeneration = createServerFn({ method: 'POST', strict: false }
       params,
       inputAssetIds: data.assetIds,
       folderId: data.folderId ?? null,
+      nsfw,
     })
 
     const adapter = adapterFor(prepared.provider)
     try {
       const result = await adapter.submit(providerContext(prepared.provider), prepared.request)
       if (result.status === 'succeeded') {
-        const outputIds = await storeProviderOutputs(result.outputs ?? [], data.folderId ?? null)
+        const outputIds = await storeProviderOutputs(result.outputs ?? [], data.folderId ?? null, undefined, {
+          nsfw,
+        })
         const updated = updateGeneration(generation.id, {
           status: 'succeeded',
           outputAssetIds: outputIds,
           providerJobId: result.providerJobId,
         }) as GenerationRecord
-        return { generation: updated, outputs: getAssetsByIds(outputIds).map(toPublicAsset) }
+        return {
+          generation: updated,
+          outputs: getAssetsByIds(outputIds, { includeNsfw: nsfw }).map(toPublicAsset),
+        }
       }
 
       const updated = updateGeneration(generation.id, {
@@ -186,26 +197,28 @@ const getSchema = z.object({ id: z.string().min(1) })
 export const getGenerationView = createServerFn({ method: 'GET', strict: false })
   .validator(getSchema)
   .handler(({ data }): GenerationView | null => {
-    const generation = getGeneration(data.id)
+    const nsfw = readNsfwMode()
+    const generation = getGeneration(data.id, { includeNsfw: nsfw })
     if (!generation) return null
     return {
       generation,
-      outputs: getAssetsByIds(generation.outputAssetIds).map(toPublicAsset),
+      outputs: getAssetsByIds(generation.outputAssetIds, { includeNsfw: nsfw }).map(toPublicAsset),
     }
   })
 
 export const cancelGeneration = createServerFn({ method: 'POST', strict: false })
   .validator(getSchema)
   .handler(({ data }): GenerationView | null => {
-    const generation = getGeneration(data.id)
+    const nsfw = readNsfwMode()
+    const generation = getGeneration(data.id, { includeNsfw: nsfw })
     if (!generation) return null
     const status: GenerationStatus =
       generation.status === 'succeeded' || generation.status === 'failed' ? generation.status : 'cancelled'
     updateGeneration(data.id, { status })
     deleteJob(data.id)
     return {
-      generation: getGeneration(data.id) as GenerationRecord,
-      outputs: getAssetsByIds(generation.outputAssetIds).map(toPublicAsset),
+      generation: getGeneration(data.id, { includeNsfw: nsfw }) as GenerationRecord,
+      outputs: getAssetsByIds(generation.outputAssetIds, { includeNsfw: nsfw }).map(toPublicAsset),
     }
   })
 

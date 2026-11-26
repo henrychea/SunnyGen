@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { STUDIO_KINDS } from '@sunnygen/core'
 import { MAX_UPLOAD_BYTES, kindForMime, storeBuffer, toPublicAsset } from '~/server/media.server'
 import { payloadTooLarge } from '~/server/guards.server'
+import { readNsfwMode } from '~/server/nsfw.server'
 
 export const Route = createFileRoute('/api/studio-upload')({
   server: {
@@ -45,6 +46,7 @@ export const Route = createFileRoute('/api/studio-upload')({
             source: 'upload',
             unique: true,
             name: file.name,
+            nsfw: readNsfwMode(),
           })
           return Response.json(toPublicAsset(asset))
         } catch (error) {

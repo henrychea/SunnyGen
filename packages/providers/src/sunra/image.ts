@@ -11,6 +11,7 @@ import {
   schemaValue,
 } from '../schema'
 import { boundedImageSize } from '../sizes'
+import { applySafetyFields, nsfwMode } from '../safety'
 import { ProviderError, type ProviderFlow, type ProviderRequest } from '../types'
 import { SUNRA_BASE, cleanSunraPrompt, submitSunraQueue, uploadSunraAsset } from './client'
 import {
@@ -102,6 +103,7 @@ function schemaBody(
   }
   if ('n' in properties) body.n = 1
   if ('enable_safety_checker' in properties) body.enable_safety_checker = false
+  applySafetyFields(body, properties, components, nsfwMode(request))
 
   return conformBody(body, operation.schema, components)
 }
