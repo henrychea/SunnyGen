@@ -137,7 +137,7 @@ export function withEdgeStyle(edge: CanvasEdge): CanvasEdge {
   return {
     ...edge,
     type: edge.type ?? 'smoothstep',
-    style: edge.style ?? { stroke: '#A31621', strokeWidth: 1.4 },
+    style: edge.style ?? { strokeWidth: 1.4 },
     interactionWidth: 18,
   }
 }

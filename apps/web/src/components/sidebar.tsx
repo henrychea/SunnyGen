@@ -8,12 +8,12 @@ import {
   FolderOpen,
   Image as ImageIcon,
   Images,
+  Inbox,
   LayoutGrid,
   Menu,
   MessageSquare,
   Settings,
   Shirt,
-  Sparkles,
   X,
 } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
@@ -28,7 +28,7 @@ interface NavItem {
 }
 
 const NAV: NavItem[] = [
-  { to: '/', label: 'Today', icon: Sparkles, exact: true },
+  { to: '/', label: 'Today', icon: Inbox, exact: true },
   { to: '/images', label: 'Images', icon: ImageIcon },
   { to: '/video', label: 'Video', icon: Clapperboard },
   { to: '/canvas', label: 'Canvas', icon: LayoutGrid },
@@ -74,16 +74,15 @@ function SidebarBody({
             type="button"
             onClick={onClose}
             aria-label="Close menu"
-            className="text-ink/45 hover:bg-ink/5 hover:text-ink grid size-8 shrink-0 place-items-center rounded-lg transition-[color,background-color,transform] duration-150 ease-out active:scale-[0.92]"
+            title="Close menu"
+            className="text-ink/65 hover:bg-ink/5 hover:text-ink grid size-8 shrink-0 place-items-center rounded-lg transition-[color,background-color,transform] duration-150 ease-out active:scale-[0.92]"
           >
             <X size={17} />
           </button>
         ) : null}
       </div>
 
-      <p className="text-ink/35 mt-6 px-2.5 text-[9.5px] font-semibold tracking-[0.14em] uppercase">
-        Workspace
-      </p>
+      <p className="text-ink/65 mt-6 px-2.5 text-[11px] font-semibold">Workspace</p>
       <nav className="mt-2 flex flex-col gap-0.5" aria-label="Primary">
         {NAV.map((item) => {
           const active = isActive(pathname, item)
@@ -97,7 +96,7 @@ function SidebarBody({
               className={cn(
                 'relative flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-[12.5px] font-medium',
                 'transition-[color,background-color,transform] duration-150 ease-out active:scale-[0.985]',
-                active ? 'text-ink' : 'text-ink/55 hover:bg-ink/[0.04] hover:text-ink/85',
+                active ? 'text-ink' : 'text-ink/65 hover:bg-ink/[0.04] hover:text-ink/85',
               )}
             >
               {active ? (
@@ -113,7 +112,7 @@ function SidebarBody({
                   strokeWidth={1.9}
                   className={cn(
                     'transition-colors duration-150 ease-out',
-                    active ? 'text-accent' : 'text-ink/40',
+                    active ? 'text-accent' : 'text-ink/65',
                   )}
                 />
                 {item.label}
@@ -124,8 +123,8 @@ function SidebarBody({
       </nav>
 
       <div className="mt-auto flex flex-col gap-3">
-        <div className="border-line/80 bg-canvas/60 rounded-xl border px-3 py-2.5">
-          <div className="text-ink/40 flex items-center gap-2 text-[10.5px] font-semibold tracking-[0.09em] uppercase">
+        <div className="border-line-strong bg-canvas/60 rounded-xl border px-3 py-2.5">
+          <div className="text-ink/65 flex items-center gap-2 text-[11px] font-semibold">
             <AnimatePresence initial={false} mode="wait">
               <motion.span
                 key={`providers-${configured}`}
@@ -142,7 +141,7 @@ function SidebarBody({
               </motion.span>
             </AnimatePresence>
           </div>
-          <p className="text-ink/45 mt-1 text-[11px] leading-snug">Local data. Bring your own keys.</p>
+          <p className="text-ink/65 mt-1 text-[11px] leading-snug">Local data. Bring your own keys.</p>
         </div>
 
         <Link
@@ -153,7 +152,7 @@ function SidebarBody({
             'transition-[color,background-color,transform] duration-150 ease-out active:scale-[0.985]',
             pathname.startsWith('/settings')
               ? 'text-ink'
-              : 'text-ink/55 hover:bg-ink/[0.04] hover:text-ink/85',
+              : 'text-ink/65 hover:bg-ink/[0.04] hover:text-ink/85',
           )}
         >
           {pathname.startsWith('/settings') ? (
@@ -164,11 +163,11 @@ function SidebarBody({
             />
           ) : null}
           <span className="relative flex items-center gap-2.5">
-            <Settings size={15} strokeWidth={1.9} className="text-ink/40" />
+            <Settings size={15} strokeWidth={1.9} className="text-ink/65" />
             Settings
           </span>
         </Link>
-        <p className="text-ink/30 px-2.5 text-[10px]">v{APP_VERSION}</p>
+        <p className="text-ink/65 px-2.5 text-[11px]">v{APP_VERSION}</p>
       </div>
     </div>
   )
@@ -196,14 +195,14 @@ export function MobileNav() {
 
   return (
     <>
-      <header className="pwa-safe-top border-line bg-surface/70 flex items-center justify-between px-4 pb-2.5 md:hidden">
+      <header className="pwa-safe-top bg-surface/70 flex items-center justify-between px-4 pb-2.5 md:hidden">
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => setOpen(true)}
             aria-label="Open menu"
             aria-expanded={open}
-            className="text-ink/55 hover:bg-ink/5 hover:text-ink grid size-9 place-items-center rounded-lg transition-[color,background-color,transform] duration-150 ease-out active:scale-[0.92]"
+            className="text-ink/65 hover:bg-ink/5 hover:text-ink grid size-9 place-items-center rounded-lg transition-[color,background-color,transform] duration-150 ease-out active:scale-[0.92]"
           >
             <Menu size={18} />
           </button>
@@ -218,7 +217,7 @@ export function MobileNav() {
         <Link
           to="/settings"
           aria-label="Settings"
-          className="text-ink/50 hover:text-ink rounded-lg p-1.5 transition-[color,transform] duration-150 ease-out active:scale-[0.92]"
+          className="text-ink/65 hover:text-ink rounded-lg p-1.5 transition-[color,transform] duration-150 ease-out active:scale-[0.92]"
         >
           <Settings size={17} />
         </Link>
@@ -233,7 +232,7 @@ export function MobileNav() {
             initial="hidden"
             animate="visible"
             exit="hidden"
-            className="bg-ink/35 fixed inset-0 z-[60] backdrop-blur-[1px] md:hidden"
+            className="bg-ink/35 fixed inset-0 z-[60] md:hidden"
           />
         ) : null}
         {open ? (
@@ -244,7 +243,7 @@ export function MobileNav() {
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}
             transition={motionTransition}
-            className="pwa-safe-top pwa-safe-bottom border-line bg-surface fixed inset-y-0 left-0 z-[65] flex w-[82vw] max-w-[290px] flex-col border-r shadow-2xl md:hidden"
+            className="pwa-safe-top pwa-safe-bottom border-line-strong bg-surface shadow-dialog fixed inset-y-0 left-0 z-[65] flex w-[82vw] max-w-[290px] flex-col border-r md:hidden"
           >
             <SidebarBody scope="mobile" onNavigate={() => setOpen(false)} onClose={() => setOpen(false)} />
           </motion.aside>

@@ -12,15 +12,7 @@ import { Popover } from '@base-ui/react/popover'
 import { AnimatePresence, motion } from 'motion/react'
 import { cn } from './cn'
 import { LAYER } from './layers'
-import {
-  motionFade,
-  motionFast,
-  motionList,
-  motionListItem,
-  motionPress,
-  motionSpring,
-  motionSwap,
-} from './motion'
+import { motionFade, motionFast, motionPress, motionSpring, motionSwap } from './motion'
 
 export type SelectorSize = 'sm' | 'md'
 
@@ -196,7 +188,7 @@ export function Selector({
             }
           }}
           className={cn(
-            'border-line bg-surface text-ink hover:border-ink/25 focus-visible:border-accent/40 relative flex w-full items-center gap-2 border text-left transition-[color,border-color,transform] disabled:cursor-not-allowed disabled:opacity-50',
+            'border-line-strong bg-surface text-ink hover:border-ink/60 focus-visible:border-accent/70 relative flex w-full items-center gap-2 border text-left transition-[color,border-color,transform] disabled:cursor-not-allowed disabled:opacity-50',
             motionPress,
             size === 'sm' ? 'h-9 rounded-lg px-3' : 'h-11 rounded-xl px-3.5',
           )}
@@ -227,7 +219,7 @@ export function Selector({
                   <span
                     className={cn(
                       'text-ink/65 block truncate',
-                      size === 'sm' ? 'text-[10.5px]' : 'text-[11px]',
+                      size === 'sm' ? 'text-[11px]' : 'text-[11px]',
                     )}
                   >
                     {selected.triggerDescription ?? selected.description}
@@ -262,7 +254,7 @@ export function Selector({
                 maxHeight: 'var(--available-height)',
               }}
               className={cn(
-                'border-line bg-surface flex origin-(--transform-origin) flex-col overflow-hidden rounded-xl border shadow-[0_20px_50px_-20px_rgba(42,30,23,0.45)] outline-none',
+                'border-line-strong bg-surface flex origin-(--transform-origin) flex-col overflow-hidden rounded-xl border shadow-menu outline-none',
                 'transition-[opacity,scale] duration-150 ease-out motion-reduce:transition-none',
                 'data-[starting-style]:scale-[0.97] data-[starting-style]:opacity-0',
                 'data-[ending-style]:scale-[0.97] data-[ending-style]:opacity-0',
@@ -271,7 +263,7 @@ export function Selector({
             >
               {searchable && searchOpen ? (
                 <div className="border-line flex items-center gap-2 border-b px-3 py-2.5">
-                  <span className="text-ink/60">
+                  <span className="text-ink/65">
                     <SearchIcon />
                   </span>
                   <input
@@ -301,7 +293,7 @@ export function Selector({
                       type="button"
                       onClick={() => setSearchOpen(true)}
                       className={cn(
-                        'text-ink/70 hover:text-ink border-line flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[10.5px] font-medium transition-colors',
+                        'text-ink/70 hover:text-ink border-line-strong flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[11px] font-medium transition-colors',
                         motionPress,
                       )}
                     >
@@ -318,7 +310,7 @@ export function Selector({
                           setActiveIndex(0)
                         }}
                         className={cn(
-                          'relative rounded-full px-3 py-1.5 text-[10.5px] font-medium transition-colors',
+                          'relative rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors',
                           motionPress,
                           filter === 'all' ? 'text-canvas' : 'text-ink/70 hover:text-ink',
                         )}
@@ -341,7 +333,7 @@ export function Selector({
                             setActiveIndex(0)
                           }}
                           className={cn(
-                            'relative rounded-full px-3 py-1.5 text-[10.5px] font-medium transition-colors',
+                            'relative rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors',
                             motionPress,
                             filter === entry.id ? 'text-canvas' : 'text-ink/70 hover:text-ink',
                           )}
@@ -361,14 +353,7 @@ export function Selector({
                 </div>
               ) : null}
 
-              <motion.div
-                id={listboxId}
-                role="listbox"
-                variants={motionList}
-                initial="hidden"
-                animate="visible"
-                className="max-h-80 min-h-0 flex-1 overflow-y-auto p-1.5"
-              >
+              <div id={listboxId} role="listbox" className="max-h-80 min-h-0 flex-1 overflow-y-auto p-1.5">
                 {visible.length === 0 ? (
                   <motion.p
                     variants={motionFade}
@@ -384,13 +369,12 @@ export function Selector({
                     return (
                       <Fragment key={option.key}>
                         {option.group && (!previous || previous.group !== option.group) ? (
-                          <p className="text-ink/65 bg-surface/95 sticky top-0 z-10 px-2.5 pt-2 pb-1 text-[9.5px] font-semibold tracking-[0.1em] uppercase backdrop-blur">
+                          <p className="text-ink/65 bg-surface sticky top-0 z-10 px-2.5 pt-2 pb-1 text-[11px] font-semibold">
                             {option.group}
                           </p>
                         ) : null}
-                        <motion.button
+                        <button
                           id={`${listboxId}-${index}`}
-                          variants={motionListItem}
                           type="button"
                           role="option"
                           aria-selected={selected?.key === option.key}
@@ -410,13 +394,13 @@ export function Selector({
                               {option.label}
                             </span>
                             {option.description ? (
-                              <span className="text-ink/65 block truncate text-[10.5px]">
+                              <span className="text-ink/65 block truncate text-[11px]">
                                 {option.description}
                               </span>
                             ) : null}
                           </span>
                           {option.meta ? (
-                            <span className="text-ink/65 max-w-[42%] shrink-0 truncate text-[10.5px] tabular-nums">
+                            <span className="text-ink/65 max-w-[42%] shrink-0 truncate text-[11px] tabular-nums">
                               {option.meta}
                             </span>
                           ) : null}
@@ -431,14 +415,14 @@ export function Selector({
                               <CheckIcon />
                             </motion.span>
                           </span>
-                        </motion.button>
+                        </button>
                       </Fragment>
                     )
                   })
                 )}
-              </motion.div>
+              </div>
               {footer ? (
-                <div className="border-line/60 text-ink/65 border-t px-3 py-2 text-[9.5px] leading-snug">
+                <div className="border-line/60 text-ink/65 border-t px-3 py-2 text-[11px] leading-snug">
                   {footer}
                 </div>
               ) : null}

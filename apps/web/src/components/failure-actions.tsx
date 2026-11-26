@@ -40,7 +40,7 @@ export function FailureActions({
     <div className={className}>
       <div className="flex flex-wrap items-center gap-1.5">
         {generation.errorCode || generation.errorReason ? (
-          <span className="bg-error/10 text-error/75 max-w-full truncate rounded px-1.5 py-0.5 text-[9px] font-semibold">
+          <span className="bg-error/10 text-error max-w-full truncate rounded px-1.5 py-0.5 text-[11px] font-semibold">
             {[generation.errorCode, generation.errorReason].filter(Boolean).join(' · ')}
           </span>
         ) : null}
@@ -49,7 +49,7 @@ export function FailureActions({
             type="button"
             onClick={() => retry.mutate(generation, { onSuccess: () => onRetried?.() })}
             disabled={retry.isPending}
-            className="border-line text-ink/60 hover:border-ink/25 hover:text-ink inline-flex h-7 items-center gap-1 rounded-md border px-2 text-[10px] font-medium transition-[color,border-color,transform] active:scale-[0.97] disabled:opacity-50 motion-reduce:active:scale-100"
+            className="border-line-strong text-ink/65 hover:border-ink/60 hover:text-ink inline-flex h-7 items-center gap-1 rounded-md border px-2 text-[11px] font-medium transition-[color,border-color,transform] active:scale-[0.97] disabled:opacity-50 motion-reduce:active:scale-100"
           >
             <RotateCw size={11} className={retry.isPending ? 'animate-spin' : undefined} />
             <span key={retry.isPending ? 'busy' : 'idle'} className={motionMountFade}>
@@ -60,7 +60,7 @@ export function FailureActions({
           <button
             type="button"
             onClick={copyPrompt}
-            className="border-line text-ink/60 hover:border-ink/25 hover:text-ink inline-flex h-7 items-center gap-1 rounded-md border px-2 text-[10px] font-medium transition-[color,border-color,transform] active:scale-[0.97] motion-reduce:active:scale-100"
+            className="border-line-strong text-ink/65 hover:border-ink/60 hover:text-ink inline-flex h-7 items-center gap-1 rounded-md border px-2 text-[11px] font-medium transition-[color,border-color,transform] active:scale-[0.97] motion-reduce:active:scale-100"
           >
             <Copy size={11} />
             <span key={copied ? 'copied' : 'idle'} className={motionMountFade}>
@@ -78,7 +78,7 @@ export function FailureActions({
             animate="visible"
             exit="hidden"
             transition={motionFast}
-            className="text-error/60 mt-1 text-[9.5px] leading-snug"
+            className="text-error mt-1 text-[11px] leading-snug"
           >
             Not retryable. Revise the prompt or references first.
           </motion.p>
@@ -91,7 +91,7 @@ export function FailureActions({
             animate="visible"
             exit="hidden"
             transition={motionFast}
-            className="text-error/70 mt-1 line-clamp-2 text-[9.5px] leading-snug"
+            className="text-error mt-1 line-clamp-2 text-[11px] leading-snug"
           >
             {retry.error instanceof Error ? retry.error.message : 'Retry failed'}
           </motion.p>

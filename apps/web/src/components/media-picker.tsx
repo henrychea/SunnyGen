@@ -8,8 +8,6 @@ import {
   FadeImage,
   motionFade,
   motionFast,
-  motionList,
-  motionListItem,
   Skeleton,
 } from '@sunnygen/ui'
 import { Check, X } from 'lucide-react'
@@ -59,7 +57,7 @@ export function MediaPicker({
         <div className="border-line flex items-center justify-between border-b px-5 py-3.5">
           <div>
             <Dialog.Title className="font-display text-[15px] font-semibold">Choose media</Dialog.Title>
-            <p className="text-ink/40 mt-0.5 text-[11px]">
+            <p className="text-ink/65 mt-0.5 text-[11px]">
               <AnimatePresence mode="popLayout" initial={false}>
                 <motion.span
                   key={assets.isPending ? 'loading' : `count-${assets.data?.length ?? 0}`}
@@ -77,7 +75,7 @@ export function MediaPicker({
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="text-ink/40 hover:bg-ink/5 hover:text-ink grid size-8 place-items-center rounded-lg transition-[color,background-color,scale] duration-150 ease-out active:scale-[0.94] motion-reduce:active:scale-100"
+            className="text-ink/65 hover:bg-ink/5 hover:text-ink grid size-8 place-items-center rounded-lg transition-[color,background-color,scale] duration-150 ease-out active:scale-[0.94] motion-reduce:active:scale-100"
             aria-label="Close"
           >
             <X size={15} />
@@ -101,28 +99,23 @@ export function MediaPicker({
                   ))}
                 </div>
               ) : (assets.data ?? []).length === 0 ? (
-                <p className="text-ink/45 py-16 text-center text-[12.5px]">
+                <p className="text-ink/65 py-16 text-center text-[12.5px]">
                   Nothing in the library yet. Upload files in Assets first.
                 </p>
               ) : (
-                <motion.div
-                  variants={motionList}
-                  initial="hidden"
-                  animate="visible"
-                  className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5"
-                >
+                <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
                   {(assets.data ?? []).map((asset) => {
                     const active = selected.includes(asset.id)
                     return (
-                      <motion.button
+                      <button
                         key={asset.id}
-                        variants={motionListItem}
                         type="button"
                         onClick={() => toggle(asset.id)}
-                        whileTap={{ scale: 0.97 }}
                         className={cn(
                           'bg-ink/[0.04] group relative aspect-square overflow-hidden rounded-lg border transition-[border-color,box-shadow] duration-150 ease-out',
-                          active ? 'border-accent ring-accent/25 ring-2' : 'border-line hover:border-ink/25',
+                          active
+                            ? 'border-accent ring-accent/25 ring-2'
+                            : 'border-line-strong hover:border-ink/60',
                         )}
                       >
                         {asset.kind === 'video' ? (
@@ -133,6 +126,8 @@ export function MediaPicker({
                             src={thumbUrl(asset.url, 320)}
                             srcSet={thumbSrcSet(asset.url, [320, 640])}
                             sizes="(min-width: 768px) 180px, 33vw"
+                            width={asset.width ?? undefined}
+                            height={asset.height ?? undefined}
                             alt=""
                             loading="lazy"
                             decoding="async"
@@ -152,23 +147,23 @@ export function MediaPicker({
                               animate={{ opacity: 1, scale: 1 }}
                               exit={{ opacity: 0, scale: 0.6 }}
                               transition={motionFast}
-                              className="bg-accent absolute top-1 right-1 grid size-5 place-items-center rounded-full text-white"
+                              className="bg-accent text-accent-ink absolute top-1 right-1 grid size-5 place-items-center rounded-full"
                             >
                               <Check size={11} />
                             </motion.span>
                           ) : null}
                         </AnimatePresence>
-                      </motion.button>
+                      </button>
                     )
                   })}
-                </motion.div>
+                </div>
               )}
             </motion.div>
           </AnimatePresence>
         </div>
 
         <div className="border-line flex items-center justify-between border-t px-5 py-3">
-          <p className="text-ink/40 text-[11px]">
+          <p className="text-ink/65 text-[11px]">
             <AnimatePresence mode="popLayout" initial={false}>
               <motion.span
                 key={selected.length}

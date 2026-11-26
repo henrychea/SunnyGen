@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { STUDIO_ANGLE_LABELS, parseGarmentViews, type GarmentView } from '@sunnygen/core'
 import { Button, Dialog, DialogSurface, cn } from '@sunnygen/ui'
-import { Sparkles, X } from 'lucide-react'
+import { Paintbrush, X } from 'lucide-react'
 import { MediaCard, MediaThumbStrip } from '~/components/media-preview'
 import type { StudioItemDto } from '~/server/studio.functions'
 
@@ -68,7 +68,7 @@ export function StudioPreviewDialog({
             <Dialog.Title className="font-display text-ink truncate text-[15px] font-semibold">
               {item.name}
             </Dialog.Title>
-            <p className="text-ink/45 mt-0.5 text-[10.5px]">
+            <p className="text-ink/65 mt-0.5 text-[11px]">
               {angleLabel}
               {views.length > 1 ? ` · ${safeIndex + 1} / ${views.length}` : ''}
               {preparedAny ? '' : ' · not prepared yet'}
@@ -79,18 +79,18 @@ export function StudioPreviewDialog({
               <Button
                 size="sm"
                 variant="outline"
-                className="h-7 text-[10.5px]"
+                className="h-7 text-[11px]"
                 loading={preparing}
                 onClick={onPrepare}
               >
-                <Sparkles size={10} />
+                <Paintbrush size={10} />
                 {preparedAny ? 'Re-prep' : 'Prepare'}
               </Button>
             ) : null}
             <button
               type="button"
               onClick={() => onOpenChange(false)}
-              className="text-ink/40 hover:bg-ink/5 hover:text-ink grid size-8 place-items-center rounded-lg transition-[color,background-color,scale] duration-150 ease-out active:scale-[0.94] motion-reduce:active:scale-100"
+              className="text-ink/65 hover:bg-ink/5 hover:text-ink grid size-8 place-items-center rounded-lg transition-[color,background-color,scale] duration-150 ease-out active:scale-[0.94] motion-reduce:active:scale-100"
               aria-label="Close preview"
             >
               <X size={15} />
@@ -98,7 +98,7 @@ export function StudioPreviewDialog({
           </div>
         </div>
 
-        <div className="border-line bg-surface/80 mt-3 mb-2 inline-flex rounded-lg border p-0.5">
+        <div className="border-line-strong bg-surface/80 mt-3 mb-2 inline-flex rounded-lg border p-0.5">
           {(['original', 'prepared'] as const).map((mode) => {
             const active = mode === 'prepared' ? showingPrepared : !showingPrepared
             const disabled = mode === 'prepared' && !preparedAny
@@ -110,8 +110,8 @@ export function StudioPreviewDialog({
                 disabled={disabled}
                 aria-pressed={active}
                 className={cn(
-                  'rounded-[7px] px-2.5 py-1 text-[10.5px] font-medium transition-colors duration-150 ease-out',
-                  active ? 'bg-ink text-canvas' : 'text-ink/50 hover:text-ink',
+                  'rounded-[7px] px-2.5 py-1 text-[11px] font-medium transition-colors duration-150 ease-out',
+                  active ? 'bg-ink text-canvas' : 'text-ink/65 hover:text-ink',
                   disabled ? 'cursor-not-allowed opacity-40' : '',
                 )}
               >
@@ -131,7 +131,7 @@ export function StudioPreviewDialog({
               mediaClassName="max-h-[calc(92dvh-16rem)]"
             />
           ) : (
-            <p className="text-ink/40 py-16 text-center text-[11.5px]">This item has no image yet.</p>
+            <p className="text-ink/65 py-16 text-center text-[11.5px]">This item has no image yet.</p>
           )}
         </div>
 
@@ -146,7 +146,7 @@ export function StudioPreviewDialog({
           label="Choose a view"
         />
         {views.length > 1 ? (
-          <p className="text-ink/35 text-[10px]">Arrow keys switch views. Esc closes.</p>
+          <p className="text-ink/65 text-[11px]">Arrow keys switch views. Esc closes.</p>
         ) : null}
       </DialogSurface>
     </Dialog.Root>

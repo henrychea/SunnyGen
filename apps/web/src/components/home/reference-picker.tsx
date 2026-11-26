@@ -16,6 +16,7 @@ import {
 import { Check, ImageIcon, Loader2, Upload, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { trapTab } from '~/lib/focus-trap'
 import { thumbSrcSet, thumbUrl } from '~/lib/media-thumbs'
 import { appendReferences, referenceImageCount, type ReferenceItem } from '~/lib/reference-images'
 import { loadReferenceLibrary } from '~/server/library.functions'
@@ -64,7 +65,7 @@ function PickerSkeleton() {
       className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5"
     >
       {SKELETON_TILES.map((tile) => (
-        <div key={tile} className="border-line bg-canvas/40 overflow-hidden rounded-xl border">
+        <div key={tile} className="border-line-strong bg-canvas/40 overflow-hidden rounded-xl border">
           <Skeleton className="aspect-square rounded-none" />
           <div className="px-2 py-1.5">
             <Skeleton className="h-2.5 w-2/3 rounded-full" />
@@ -93,8 +94,8 @@ const PickerTile = memo(function PickerTile({
       disabled={disabled}
       aria-pressed={selected}
       className={cn(
-        'group border-line bg-canvas/40 relative overflow-hidden rounded-xl border text-left transition-[border-color,box-shadow,transform] [contain-intrinsic-size:auto_160px] [content-visibility:auto] active:scale-[0.98] disabled:opacity-40 motion-reduce:active:scale-100',
-        selected ? 'border-accent ring-accent/20 ring-2' : 'hover:border-ink/25',
+        'group border-line-strong bg-canvas/40 relative overflow-hidden rounded-xl border text-left transition-[border-color,box-shadow,transform] [contain-intrinsic-size:auto_160px] [content-visibility:auto] active:scale-[0.98] disabled:opacity-40 motion-reduce:active:scale-100',
+        selected ? 'border-accent ring-accent/20 ring-2' : 'hover:border-ink/60',
       )}
     >
       <div className="bg-ink/[0.06] relative aspect-square overflow-hidden">
@@ -111,6 +112,8 @@ const PickerTile = memo(function PickerTile({
             src={thumbUrl(item.url, 320)}
             srcSet={thumbSrcSet(item.url, [320, 640])}
             sizes="(min-width: 768px) 180px, 33vw"
+            width={item.width ?? undefined}
+            height={item.height ?? undefined}
             alt=""
             loading="lazy"
             decoding="async"
@@ -119,15 +122,15 @@ const PickerTile = memo(function PickerTile({
         )}
       </div>
       {item.lora ? (
-        <span className="bg-accent text-canvas absolute top-1.5 left-1.5 rounded px-1 py-0.5 text-[8px] font-semibold tracking-[0.04em] uppercase">
+        <span className="bg-accent text-canvas absolute top-1.5 left-1.5 rounded px-1 py-0.5 text-[11px] font-semibold">
           LoRA
         </span>
       ) : null}
-      <span className="text-ink/55 block truncate px-2 py-1.5 text-[10px]">{item.name}</span>
+      <span className="text-ink/65 block truncate px-2 py-1.5 text-[11px]">{item.name}</span>
       <span
         aria-hidden="true"
         className={cn(
-          'border-accent bg-accent absolute top-1.5 right-1.5 grid size-5 place-items-center rounded-full border text-white transition-[opacity,scale] duration-150 ease-out motion-reduce:transition-none',
+          'border-accent bg-accent text-accent-ink absolute top-1.5 right-1.5 grid size-5 place-items-center rounded-full border transition-[opacity,scale] duration-150 ease-out motion-reduce:transition-none',
           selected ? 'scale-100 opacity-100' : 'scale-90 opacity-0',
         )}
       >
@@ -164,6 +167,7 @@ export function ReferencePicker({
   const [page, setPage] = useState<{ tab: PickerTab; count: number } | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const loadMoreRef = useRef<HTMLDivElement>(null)
+  const dialogRef = useRef<HTMLDivElement>(null)
   const queryClient = useQueryClient()
   const library = useQuery({
     queryKey: ['reference-library', kind],
@@ -174,6 +178,7 @@ export function ReferencePicker({
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose()
+      else trapTab(event, dialogRef.current)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -368,24 +373,22 @@ export function ReferencePicker({
       initial="hidden"
       animate="visible"
       exit="hidden"
-      className={cn(
-        'bg-ink/35 fixed inset-0 flex items-center justify-center p-3 md:p-8 md:backdrop-blur-sm',
-        LAYER.picker,
-      )}
+      className={cn('bg-ink/35 fixed inset-0 flex items-center justify-center p-3 md:p-8', LAYER.picker)}
       onClick={onClose}
     >
       <motion.div
+        ref={dialogRef}
         variants={motionPop}
         role="dialog"
         aria-modal="true"
         aria-label={title}
         onClick={(event) => event.stopPropagation()}
-        className="border-line bg-surface flex h-[min(82vh,620px)] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border shadow-2xl"
+        className="border-line-strong bg-surface shadow-dialog flex h-[min(82vh,620px)] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border"
       >
         <div className="border-line flex items-center gap-3 border-b px-4 py-3">
           <div>
             <h2 className="font-display text-ink text-[15px] font-semibold">{title}</h2>
-            <p className="text-ink/40 mt-0.5 text-[10.5px]">
+            <p className="text-ink/65 mt-0.5 text-[11px]">
               {allowAvatars
                 ? 'Studio avatars, uploads, renders, and cobalt imports.'
                 : 'Uploads, renders, and cobalt imports.'}
@@ -395,7 +398,8 @@ export function ReferencePicker({
             type="button"
             onClick={onClose}
             aria-label="Close picker"
-            className="text-ink/40 hover:bg-ink/5 hover:text-ink ml-auto grid size-8 place-items-center rounded-lg transition-[color,background-color,transform] active:scale-90"
+            title="Close picker"
+            className="text-ink/65 hover:bg-ink/5 hover:text-ink ml-auto grid size-8 place-items-center rounded-lg transition-[color,background-color,transform] active:scale-90"
           >
             <X size={15} />
           </button>
@@ -410,7 +414,7 @@ export function ReferencePicker({
               className={cn(
                 'relative shrink-0 rounded-lg px-2.5 py-1.5 text-[11.5px] font-medium transition-[color,background-color,transform]',
                 motionPress,
-                tab === entry ? 'text-canvas' : 'text-ink/50 hover:text-ink',
+                tab === entry ? 'text-canvas' : 'text-ink/65 hover:text-ink',
               )}
             >
               {tab === entry ? (
@@ -423,8 +427,8 @@ export function ReferencePicker({
               <span className="relative">{TAB_LABELS[entry]}</span>
               <span
                 className={cn(
-                  'relative ml-1.5 text-[9.5px]',
-                  tab === entry ? 'text-canvas/55' : 'text-ink/30',
+                  'relative ml-1.5 text-[11px]',
+                  tab === entry ? 'text-canvas/60' : 'text-ink/65',
                 )}
               >
                 {groups[entry].length}
@@ -445,7 +449,7 @@ export function ReferencePicker({
                 rows={2}
                 placeholder="Paste Cobalt links, one per line"
                 aria-label="Cobalt links"
-                className="border-line bg-canvas/50 text-ink placeholder:text-ink/30 focus-visible:border-accent/40 min-h-9 flex-1 resize-none rounded-xl border px-2.5 py-1.5 text-[11px] leading-relaxed outline-none"
+                className="border-line-strong bg-canvas/50 text-ink placeholder:text-ink/65 focus-visible:border-accent/70 min-h-9 flex-1 resize-none rounded-xl border px-2.5 py-1.5 text-[11px] leading-relaxed outline-none"
               />
               <button
                 type="button"
@@ -479,7 +483,7 @@ export function ReferencePicker({
                 animate="visible"
                 exit="hidden"
                 transition={motionFast}
-                className={cn('mt-1 text-[10px]', importError ? 'text-error' : 'text-ink/30')}
+                className={cn('mt-1 text-[11px]', importError ? 'text-error' : 'text-ink/65')}
               >
                 {importError ?? 'Cobalt downloads the post into assets. Multi-image posts become a folder.'}
               </motion.p>
@@ -498,7 +502,7 @@ export function ReferencePicker({
               {library.isPending ? (
                 <PickerSkeleton />
               ) : visible.length === 0 ? (
-                <div className="text-ink/35 grid h-full place-items-center text-center">
+                <div className="text-ink/65 grid h-full place-items-center text-center">
                   <div>
                     <ImageIcon size={22} className="mx-auto" />
                     <p className="mt-2 text-[12px]">
@@ -537,7 +541,7 @@ export function ReferencePicker({
               type="button"
               onClick={() => fileRef.current?.click()}
               disabled={uploading || pickedCount >= max}
-              className="border-line bg-canvas/50 text-ink/60 hover:text-ink inline-flex h-9 items-center gap-1.5 rounded-xl border px-3 text-[12px] font-medium transition-[color,border-color,transform] active:scale-[0.97] disabled:opacity-40 motion-reduce:active:scale-100"
+              className="border-line-strong bg-canvas/50 text-ink/65 hover:text-ink inline-flex h-9 items-center gap-1.5 rounded-xl border px-3 text-[12px] font-medium transition-[color,border-color,transform] active:scale-[0.97] disabled:opacity-40 motion-reduce:active:scale-100"
             >
               <motion.span
                 key={uploading ? 'busy' : 'idle'}
@@ -558,7 +562,7 @@ export function ReferencePicker({
               className="hidden"
               onChange={(event) => void uploadFiles(event.target.files)}
             />
-            <p className="text-ink/40 text-[10.5px]">
+            <p className="text-ink/65 text-[11px]">
               {Number.isFinite(max)
                 ? `${picked.length} selected · ${pickedCount} of ${max} ${kind} slot${max === 1 ? '' : 's'} used`
                 : `${picked.length} selected`}
@@ -567,7 +571,7 @@ export function ReferencePicker({
               <button
                 type="button"
                 onClick={onClose}
-                className="border-line bg-surface text-ink/60 hover:text-ink h-9 rounded-xl border px-3 text-[12px] font-medium transition-[color,border-color,transform] active:scale-[0.97] motion-reduce:active:scale-100"
+                className="border-line-strong bg-surface text-ink/65 hover:text-ink h-9 rounded-xl border px-3 text-[12px] font-medium transition-[color,border-color,transform] active:scale-[0.97] motion-reduce:active:scale-100"
               >
                 Cancel
               </button>
@@ -578,7 +582,7 @@ export function ReferencePicker({
                   onClose()
                 }}
                 disabled={picked.length === 0}
-                className="bg-accent hover:bg-accent/90 h-9 rounded-xl px-3.5 text-[12px] font-medium text-white transition-[background-color,transform] active:scale-[0.97] disabled:pointer-events-none disabled:opacity-35 motion-reduce:active:scale-100"
+                className="bg-accent hover:bg-accent/90 text-accent-ink h-9 rounded-xl px-3.5 text-[12px] font-medium transition-[background-color,transform] active:scale-[0.97] disabled:pointer-events-none disabled:opacity-35 motion-reduce:active:scale-100"
               >
                 Add {picked.length > 0 ? picked.length : ''}
               </button>
@@ -593,7 +597,7 @@ export function ReferencePicker({
                 animate="visible"
                 exit="hidden"
                 transition={motionFast}
-                className="text-error text-[10.5px]"
+                className="text-error text-[11px]"
               >
                 {uploadError}
               </motion.p>

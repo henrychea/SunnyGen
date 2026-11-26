@@ -1,6 +1,5 @@
 import type { ComponentProps } from 'react'
 import { cn } from './cn'
-import { motionMountFade } from './motion'
 
 const TONES = {
   neutral: 'bg-ink/6 text-ink/65',
@@ -18,8 +17,7 @@ export function Badge({ className, tone = 'neutral', ...props }: BadgeProps) {
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10.5px] font-semibold uppercase tracking-[0.06em] transition-colors',
-        motionMountFade,
+        'inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-semibold transition-colors',
         TONES[tone],
         className,
       )}

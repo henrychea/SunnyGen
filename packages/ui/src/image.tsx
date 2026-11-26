@@ -15,6 +15,8 @@ export function FadeImage({
   onLoadedChange,
   shimmer,
   shimmerClassName = 'inset-0',
+  width,
+  height,
   ...props
 }: FadeImageProps) {
   const [loadedSrc, setLoadedSrc] = useState<string | null>(null)
@@ -43,6 +45,8 @@ export function FadeImage({
       ) : null}
       <img
         {...props}
+        width={width}
+        height={height}
         src={src}
         ref={(node) => {
           if (node?.complete) markLoaded()

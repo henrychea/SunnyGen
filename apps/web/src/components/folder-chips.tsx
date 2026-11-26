@@ -45,9 +45,9 @@ export function FolderChips({
           onClick={() => onSelect(item.id)}
           title={item.label}
           className={cn(
-            'relative rounded-lg px-2 py-1.5 text-[10.5px] font-medium transition-colors duration-150 ease-out active:scale-[0.96] sm:px-2.5 sm:text-[11px] motion-reduce:active:scale-100',
+            'relative rounded-lg px-2 py-1.5 text-[11px] font-medium transition-colors duration-150 ease-out active:scale-[0.96] sm:px-2.5 sm:text-[11px] motion-reduce:active:scale-100',
             chipSizing(index, activeId === item.id),
-            activeId === item.id ? 'text-canvas' : 'bg-surface text-ink/50 hover:text-ink',
+            activeId === item.id ? 'text-canvas' : 'bg-surface text-ink/65 hover:text-ink',
           )}
         >
           {activeId === item.id ? (
@@ -62,7 +62,7 @@ export function FolderChips({
       ))}
       {overflow.length > 0 ? (
         <DropdownMenu.Root>
-          <DropdownMenu.Trigger className="bg-surface text-ink/50 hover:text-ink relative shrink-0 rounded-lg px-2 py-1.5 text-[10.5px] font-medium transition-colors duration-150 ease-out outline-none active:scale-[0.96] motion-reduce:active:scale-100 sm:px-2.5 sm:text-[11px]">
+          <DropdownMenu.Trigger className="bg-surface text-ink/65 hover:text-ink relative shrink-0 rounded-lg px-2 py-1.5 text-[11px] font-medium transition-colors duration-150 ease-out outline-none active:scale-[0.96] motion-reduce:active:scale-100 sm:px-2.5 sm:text-[11px]">
             <span className="block truncate">More ({overflow.length})</span>
           </DropdownMenu.Trigger>
           <DropdownMenuContent align="start" className="max-h-72 overflow-y-auto">

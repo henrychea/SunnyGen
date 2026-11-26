@@ -1,22 +1,8 @@
 import type { ComponentProps } from 'react'
 import { cn } from './cn'
-import { motionMountRise } from './motion'
 
-export function Card({
-  className,
-  animateIn = false,
-  ...props
-}: ComponentProps<'div'> & { animateIn?: boolean }) {
-  return (
-    <div
-      className={cn(
-        'border-line bg-surface rounded-2xl border shadow-[0_1px_0_rgba(255,255,255,0.7)_inset,0_18px_40px_-30px_rgba(42,30,23,0.28)]',
-        animateIn && motionMountRise,
-        className,
-      )}
-      {...props}
-    />
-  )
+export function Card({ className, ...props }: ComponentProps<'div'>) {
+  return <div className={cn('border-line-strong bg-surface rounded-2xl border', className)} {...props} />
 }
 
 export function CardHeader({ className, ...props }: ComponentProps<'div'>) {
@@ -28,7 +14,7 @@ export function CardTitle({ className, ...props }: ComponentProps<'h2'>) {
 }
 
 export function CardDescription({ className, ...props }: ComponentProps<'p'>) {
-  return <p className={cn('text-ink/55 text-[12.5px] leading-relaxed', className)} {...props} />
+  return <p className={cn('text-ink/65 text-[12.5px] leading-relaxed', className)} {...props} />
 }
 
 export function CardContent({ className, ...props }: ComponentProps<'div'>) {

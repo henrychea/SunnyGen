@@ -228,15 +228,19 @@ export function AvatarWizard({
               <button
                 type="button"
                 onClick={() => onOpenChange(false)}
-                className="text-ink/60 hover:bg-ink/5 grid size-11 shrink-0 place-items-center rounded-lg transition-[color,background-color,scale] duration-150 ease-out active:scale-[0.94] motion-reduce:active:scale-100 sm:size-8"
+                className="text-ink/65 hover:bg-ink/5 grid size-11 shrink-0 place-items-center rounded-lg transition-[color,background-color,scale] duration-150 ease-out active:scale-[0.94] motion-reduce:active:scale-100 sm:size-8"
                 aria-label="Close"
               >
                 <X size={15} aria-hidden="true" />
               </button>
             </div>
 
-            <div className="border-line -mx-1 mt-3 overflow-x-auto pb-1">
-              <div className="inline-flex rounded-xl border p-0.5" role="tablist" aria-label="Avatar steps">
+            <div className="-mx-1 mt-3 overflow-x-auto pb-1">
+              <div
+                className="border-line-strong inline-flex rounded-xl border p-0.5"
+                role="tablist"
+                aria-label="Avatar steps"
+              >
                 {STEPS.map((entry) => (
                   <button
                     key={entry.id}
@@ -246,7 +250,7 @@ export function AvatarWizard({
                     onClick={() => setStep(entry.id)}
                     disabled={busy !== null}
                     className={cn(
-                      'relative min-h-11 shrink-0 rounded-[10px] px-2.5 py-1.5 text-[11px] font-medium transition-colors duration-150 ease-out focus-visible:ring-accent/50 focus-visible:ring-2 focus-visible:outline-none disabled:opacity-50 sm:min-h-0 sm:px-2.5 sm:text-[11px]',
+                      'relative min-h-11 shrink-0 rounded-[10px] px-2.5 py-1.5 text-[11px] font-medium transition-colors duration-150 ease-out focus-visible:ring-accent/70 focus-visible:ring-2 focus-visible:outline-none disabled:opacity-50 sm:min-h-0 sm:px-2.5 sm:text-[11px]',
                       step === entry.id ? 'text-canvas' : 'text-ink/75 hover:text-ink',
                     )}
                   >
@@ -294,7 +298,7 @@ export function AvatarWizard({
                         selected={profile.source.usePortrait ? ['portrait'] : []}
                         onToggle={() => patch('source', { usePortrait: !profile.source.usePortrait })}
                       />
-                      <p className="text-ink/65 text-[10.5px]">
+                      <p className="text-ink/65 text-[11px]">
                         {profile.source.usePortrait
                           ? 'The likeness rule goes into the sheet prompt. Attach your portrait in your image AI when you run that prompt.'
                           : 'Without the portrait the likeness rule stays out of the sheet prompt and the fields below carry the look.'}
@@ -312,11 +316,11 @@ export function AvatarWizard({
                           }
                           className="accent-accent h-2 w-full"
                         />
-                        <span className="text-ink/65 text-[10.5px]">
+                        <span className="text-ink/65 text-[11px]">
                           The percentage is written into the likeness rule.
                         </span>
                       </label>
-                      <p className="text-ink/65 text-[10.5px]">
+                      <p className="text-ink/65 text-[11px]">
                         Chip lists are written into the likeness rule as traits to keep or change.
                       </p>
                       <div className="grid gap-3 sm:grid-cols-2">
@@ -357,13 +361,13 @@ export function AvatarWizard({
                         <Button
                           variant="outline"
                           size="sm"
-                          className="min-h-11 self-start text-[11px] sm:h-7 sm:min-h-0 sm:text-[10.5px]"
+                          className="min-h-11 self-start text-[11px] sm:h-7 sm:min-h-0 sm:text-[11px]"
                           onClick={() => setPasteOpen(true)}
                           disabled={busy !== null}
                         >
                           <ClipboardPaste size={12} aria-hidden="true" /> Paste prompt
                         </Button>
-                        <p className="text-ink/65 text-[10.5px]">
+                        <p className="text-ink/65 text-[11px]">
                           Paste the image prompt to fill the fields it states. Anything it does not state is
                           listed as missing so you can fill it in.
                         </p>
@@ -373,7 +377,7 @@ export function AvatarWizard({
 
                   {step === 2 ? (
                     <div className="flex flex-col gap-3">
-                      <p className="text-ink/65 text-[10.5px]">
+                      <p className="text-ink/65 text-[11px]">
                         These fields become the Character Features line in the sheet prompt.
                       </p>
                       <div className="grid gap-3 sm:grid-cols-2">
@@ -498,7 +502,7 @@ export function AvatarWizard({
 
                   {step === 3 ? (
                     <div className="flex flex-col gap-3">
-                      <p className="text-ink/65 text-[10.5px]">
+                      <p className="text-ink/65 text-[11px]">
                         Hair and body fields join the same Character Features line.
                       </p>
                       <div className="grid gap-3 sm:grid-cols-2">
@@ -550,7 +554,7 @@ export function AvatarWizard({
 
                   {step === 4 ? (
                     <div className="flex flex-col gap-4">
-                      <p className="text-ink/65 text-[10.5px]">
+                      <p className="text-ink/65 text-[11px]">
                         Outfit becomes Basic Attire. Flags list in Overall Style, bans list as do-not lines.
                       </p>
                       <div className="grid gap-3 sm:grid-cols-2">
@@ -592,7 +596,7 @@ export function AvatarWizard({
 
                   {step === 5 ? (
                     <div className="flex flex-col gap-4">
-                      <p className="text-ink/65 text-[10.5px]">
+                      <p className="text-ink/65 text-[11px]">
                         Background, ratio and resolution are written into the layout and closing lines.
                       </p>
                       <div className="grid gap-3 sm:grid-cols-3">
@@ -619,7 +623,7 @@ export function AvatarWizard({
                       </div>
                       <div className="flex flex-col gap-2">
                         <Label>Sheet sections</Label>
-                        <p className="text-ink/65 text-[10.5px]">
+                        <p className="text-ink/65 text-[11px]">
                           Every enabled section becomes one numbered line in the sheet prompt.
                         </p>
                         <div className="grid gap-1.5 sm:grid-cols-2">
@@ -639,16 +643,16 @@ export function AvatarWizard({
                                   })
                                 }
                                 className={cn(
-                                  'border-line flex min-h-11 items-start gap-2 rounded-xl border px-2.5 py-2 text-left transition-[border-color,background-color] duration-150 ease-out focus-visible:ring-accent/50 focus-visible:ring-2 focus-visible:outline-none sm:min-h-0',
+                                  'border-line-strong flex min-h-11 items-start gap-2 rounded-xl border px-2.5 py-2 text-left transition-[border-color,background-color] duration-150 ease-out focus-visible:ring-accent/70 focus-visible:ring-2 focus-visible:outline-none sm:min-h-0',
                                   enabled
                                     ? 'border-accent/40 bg-accent/[0.04]'
-                                    : 'bg-canvas/30 hover:border-ink/25',
+                                    : 'bg-canvas/30 hover:border-ink/60',
                                 )}
                               >
                                 <span
                                   className={cn(
                                     'mt-0.5 grid size-4 shrink-0 place-items-center rounded border',
-                                    enabled ? 'border-accent bg-accent text-canvas' : 'border-line',
+                                    enabled ? 'border-accent bg-accent text-canvas' : 'border-line-strong',
                                   )}
                                 >
                                   {enabled ? <Check size={10} aria-hidden="true" /> : null}
@@ -658,7 +662,7 @@ export function AvatarWizard({
                                     {section.label}
                                   </span>
                                   {section.items.length > 0 ? (
-                                    <span className="text-ink/65 block text-[10px] leading-snug">
+                                    <span className="text-ink/65 block text-[11px] leading-snug">
                                       {section.items.join(' · ')}
                                     </span>
                                   ) : null}
@@ -694,9 +698,9 @@ export function AvatarWizard({
                           onToggle={() => patch('sheet', { borders: !profile.sheet.borders })}
                         />
                       </div>
-                      <div className="border-line rounded-xl border p-3">
+                      <div className="border-line-strong rounded-xl border p-3">
                         <p className="text-ink/75 text-[11px] font-medium">Body and face panels</p>
-                        <p className="text-ink/65 mt-1 text-[10.5px]">
+                        <p className="text-ink/65 mt-1 text-[11px]">
                           Two fixed 2 by 2 panels: the body panel carries the four body angles, the face panel
                           the faces and the hands. Each view gets a 2048 px cell.
                         </p>
@@ -723,7 +727,7 @@ export function AvatarWizard({
                                 : patch('panel', { borders: !profile.panel.borders })
                             }
                           />
-                          <span className="text-ink/65 text-[10.5px]">Background: white</span>
+                          <span className="text-ink/65 text-[11px]">Background: white</span>
                         </div>
                       </div>
                     </div>
@@ -731,7 +735,7 @@ export function AvatarWizard({
 
                   {step === 6 ? (
                     <div className="flex flex-col gap-4">
-                      <p className="text-ink/65 text-[10.5px]">
+                      <p className="text-ink/65 text-[11px]">
                         Copy each prompt into your image AI, then upload the three images here. The prompts
                         are saved with the profile.
                       </p>
@@ -941,10 +945,10 @@ function ChipGroup<T extends string>({
               aria-pressed={active}
               onClick={() => onToggle(option.key)}
               className={cn(
-                'inline-flex min-h-11 items-center gap-1 rounded-full border px-3 py-1 text-[11px] transition-[border-color,background-color,color] duration-150 ease-out focus-visible:ring-accent/50 focus-visible:ring-2 focus-visible:outline-none sm:min-h-0 sm:px-2.5 sm:text-[10.5px]',
+                'inline-flex min-h-11 items-center gap-1 rounded-full border px-3 py-1 text-[11px] transition-[border-color,background-color,color] duration-150 ease-out focus-visible:ring-accent/70 focus-visible:ring-2 focus-visible:outline-none sm:min-h-0 sm:px-2.5 sm:text-[11px]',
                 active
                   ? 'border-accent/50 bg-accent/10 text-accent'
-                  : 'border-line text-ink/70 hover:border-ink/25 hover:text-ink',
+                  : 'border-line-strong text-ink/70 hover:border-ink/60 hover:text-ink',
               )}
             >
               {active ? <Check size={10} aria-hidden="true" /> : null}
@@ -973,11 +977,11 @@ function PromptEditor({
       <div className="flex items-center justify-between gap-2">
         <Label>{label}</Label>
         <span className="flex items-center gap-2">
-          <span className="text-ink/65 text-[10px] tabular-nums">{value.length} chars</span>
+          <span className="text-ink/65 text-[11px] tabular-nums">{value.length} chars</span>
           <button
             type="button"
             onClick={onCopy}
-            className="text-ink/70 hover:bg-ink/5 hover:text-ink focus-visible:ring-accent/50 inline-flex min-h-11 items-center gap-1 rounded-lg px-2 py-1 text-[10.5px] transition-colors focus-visible:ring-2 focus-visible:outline-none sm:min-h-0"
+            className="text-ink/70 hover:bg-ink/5 hover:text-ink focus-visible:ring-accent/70 inline-flex min-h-11 items-center gap-1 rounded-lg px-2 py-1 text-[11px] transition-colors focus-visible:ring-2 focus-visible:outline-none sm:min-h-0"
           >
             <ClipboardCopy size={12} aria-hidden="true" /> Copy
           </button>

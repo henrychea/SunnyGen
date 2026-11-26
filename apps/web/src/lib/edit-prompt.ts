@@ -397,7 +397,7 @@ function referencesLine(facts: PanelFacts, tier: PanelTier): string {
 
 const ONE_PHOTO = 'Output one single photo, not a collage or a panel grid.'
 
-// --- one template per family: same facts, different vendor-recommended shape ------------------
+// One template per family: same facts, different vendor-recommended shape.
 
 /** Google: detailed, positive framing, integration spelled out. See docs/edit-prompts.md. */
 function googleTemplate(facts: PanelFacts, tier: PanelTier): string {

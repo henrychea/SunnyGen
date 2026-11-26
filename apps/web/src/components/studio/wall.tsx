@@ -26,8 +26,8 @@ export function StudioWall({
   return (
     <section aria-label="Studio wall" className="mb-5">
       <div className="mb-2 flex items-center gap-2">
-        <h2 className="text-ink/45 text-[11px] font-semibold tracking-[0.08em] uppercase">Studio wall</h2>
-        <span className="text-ink/35 text-[10.5px] tabular-nums">
+        <h2 className="text-ink/65 text-[11px] font-semibold">Studio wall</h2>
+        <span className="text-ink/65 text-[11px] tabular-nums">
           {generations.length} {generations.length === 1 ? 'render' : 'renders'}
           {active > 0 ? ` · ${active} active` : ''}
           {failed > 0 ? ` · ${failed} failed` : ''}
@@ -35,7 +35,7 @@ export function StudioWall({
       </div>
 
       {entries.length === 0 ? (
-        <p className="border-line bg-surface/40 text-ink/40 rounded-xl border border-dashed px-3 py-4 text-[11px]">
+        <p className="border-line-strong bg-surface/40 text-ink/65 rounded-xl border border-dashed px-3 py-4 text-[11px]">
           Angles, garment prep, scene prep, and avatar sheets land here as they render.
         </p>
       ) : (

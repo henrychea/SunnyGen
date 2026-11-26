@@ -29,7 +29,7 @@ import {
   motionPop,
   toast,
 } from '@sunnygen/ui'
-import { ImagePlus, Loader2, Sparkles, X } from 'lucide-react'
+import { GraduationCap, ImagePlus, Loader2, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useRef, useState } from 'react'
 import type { StudioItemDto } from '~/server/studio.functions'
@@ -177,7 +177,7 @@ export function StudioItemDialog({
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="text-ink/40 hover:bg-ink/5 grid size-8 place-items-center rounded-lg transition-[color,background-color,scale] duration-150 ease-out active:scale-[0.94] motion-reduce:active:scale-100"
+            className="text-ink/65 hover:bg-ink/5 grid size-8 place-items-center rounded-lg transition-[color,background-color,scale] duration-150 ease-out active:scale-[0.94] motion-reduce:active:scale-100"
             aria-label="Close"
           >
             <X size={15} />
@@ -223,12 +223,12 @@ export function StudioItemDialog({
                 />
               </div>
               {item && onTrain ? (
-                <div className="border-line bg-canvas/40 flex items-center gap-2 rounded-xl border px-3 py-2">
+                <div className="border-line-strong bg-canvas/40 flex items-center gap-2 rounded-xl border px-3 py-2">
                   <div className="min-w-0">
                     <p className="text-ink/65 text-[11px] font-medium">
                       {lora ? `LoRA v${lora.version} trained` : 'No LoRA yet'}
                     </p>
-                    <p className="text-ink/35 truncate text-[10px]">
+                    <p className="text-ink/65 truncate text-[11px]">
                       {lora ? `Trigger: ${lora.triggerWord}` : 'Train on this avatar to reuse the likeness.'}
                     </p>
                   </div>
@@ -236,10 +236,10 @@ export function StudioItemDialog({
                   <Button
                     size="sm"
                     variant="outline"
-                    className="ml-auto h-7 text-[10.5px]"
+                    className="ml-auto h-7 text-[11px]"
                     onClick={() => onTrain(item)}
                   >
-                    <Sparkles size={10} /> {lora ? 'Retrain' : 'Train model'}
+                    <GraduationCap size={10} /> {lora ? 'Retrain' : 'Train model'}
                   </Button>
                 </div>
               ) : null}
@@ -313,7 +313,7 @@ export function StudioItemDialog({
                 <Badge tone="success">
                   {preppedViews} view{preppedViews === 1 ? '' : 's'} prepped
                 </Badge>
-                <span className="text-ink/35 text-[10px]">Prep from the Wardrobe tab to fill the rest.</span>
+                <span className="text-ink/65 text-[11px]">Prep from the Wardrobe tab to fill the rest.</span>
               </div>
             ) : null
           ) : (
@@ -329,7 +329,7 @@ export function StudioItemDialog({
                 >
                   <div className="flex items-center gap-2">
                     <Badge tone="success">Clean reference ready</Badge>
-                    <span className="border-line relative size-10 overflow-hidden rounded-md border">
+                    <span className="border-line-strong relative size-10 overflow-hidden rounded-md border">
                       <FadeImage shimmer src={item.cleanAssetUrl} alt="" className="size-full object-cover" />
                     </span>
                   </div>
@@ -395,7 +395,7 @@ function ViewGrid({
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between">
         <Label>Views</Label>
-        <span className="text-ink/35 text-[10px] tabular-nums">
+        <span className="text-ink/65 text-[11px] tabular-nums">
           {count}/{STUDIO_ANGLES.length}
         </span>
       </div>
@@ -411,7 +411,7 @@ function ViewGrid({
                 onClick={() => onPick(angle)}
                 aria-label={`${image ? 'Replace' : 'Add'} ${anglePhrase(angle)} view`}
                 className={cn(
-                  'border-line bg-canvas/50 text-ink/35 relative grid h-20 place-items-center overflow-hidden rounded-lg border border-dashed',
+                  'border-line-strong bg-canvas/50 text-ink/65 relative grid h-20 place-items-center overflow-hidden rounded-lg border border-dashed',
                   'transition-[color,border-color,background-color,scale] duration-200 ease-out hover:border-accent/40 hover:bg-surface hover:text-accent',
                   'active:scale-[0.98] motion-reduce:active:scale-100',
                 )}
@@ -445,17 +445,17 @@ function ViewGrid({
                   type="button"
                   onClick={() => onClear(angle)}
                   aria-label={`Remove ${anglePhrase(angle)} view`}
-                  className="border-line bg-surface/95 text-ink/40 hover:text-error absolute top-1 right-1 grid size-5 place-items-center rounded-full border transition-colors duration-150 ease-out"
+                  className="border-line-strong bg-surface/95 text-ink/65 hover:text-error absolute top-1 right-1 grid size-6 place-items-center rounded-full border transition-colors duration-150 ease-out"
                 >
                   <X size={10} />
                 </button>
               ) : null}
-              <span className="text-ink/45 text-center text-[9.5px]">{label}</span>
+              <span className="text-ink/65 text-center text-[11px]">{label}</span>
             </div>
           )
         })}
       </div>
-      <p className="text-ink/35 text-[10px] leading-snug">
+      <p className="text-ink/65 text-[11px] leading-snug">
         Add the angles you have. A shoot uses the closest one for each shot angle.
       </p>
     </div>
@@ -470,7 +470,7 @@ function UploadBox({ label, hint, assetId, busy, onPick }: UploadSlot & { busy: 
         type="button"
         onClick={onPick}
         className={cn(
-          'border-line bg-canvas/50 text-ink/35 relative grid h-28 place-items-center overflow-hidden rounded-xl border border-dashed',
+          'border-line-strong bg-canvas/50 text-ink/65 relative grid h-28 place-items-center overflow-hidden rounded-xl border border-dashed',
           'transition-[color,border-color,background-color,scale] duration-200 ease-out hover:border-accent/40 hover:bg-surface hover:text-accent',
           'active:scale-[0.99] motion-reduce:active:scale-100',
         )}
@@ -489,7 +489,7 @@ function UploadBox({ label, hint, assetId, busy, onPick }: UploadSlot & { busy: 
             ) : assetId ? (
               <FadeImage shimmer src={`/api/media/${assetId}`} alt="" className="size-full object-contain" />
             ) : (
-              <span className="flex flex-col items-center gap-1 text-[10.5px]">
+              <span className="flex flex-col items-center gap-1 text-[11px]">
                 <ImagePlus size={16} />
                 {hint}
               </span>

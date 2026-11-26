@@ -15,7 +15,7 @@ import {
   motionSpring,
   toast,
 } from '@sunnygen/ui'
-import { FolderOpen, ImagePlus, Loader2, Sparkles, X } from 'lucide-react'
+import { FolderOpen, ImagePlus, Loader2, Play, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useRef, useState } from 'react'
 import { MediaPicker } from './media-picker'
@@ -261,15 +261,16 @@ export function GenerateDialog({
               <Dialog.Title className="font-display text-[16px] font-semibold tracking-tight">
                 New render
               </Dialog.Title>
-              <p className="text-ink/40 mt-0.5 text-[11px]">
+              <p className="text-ink/65 mt-0.5 text-[11px]">
                 One prompt, one generation, straight into the gallery.
               </p>
             </div>
             <button
               type="button"
               onClick={closeDialog}
-              className="text-ink/40 hover:bg-ink/5 hover:text-ink grid size-8 place-items-center rounded-lg transition-[color,background-color,scale] duration-150 ease-out active:scale-[0.94] motion-reduce:active:scale-100"
+              className="text-ink/65 hover:bg-ink/5 hover:text-ink grid size-8 place-items-center rounded-lg transition-[color,background-color,scale] duration-150 ease-out active:scale-[0.94] motion-reduce:active:scale-100"
               aria-label="Close"
+              title="Close"
             >
               <X size={15} />
             </button>
@@ -277,7 +278,7 @@ export function GenerateDialog({
 
           <div className="grid gap-4 p-5">
             <div className="flex items-center gap-2">
-              <div className="border-line bg-canvas inline-flex rounded-xl border p-0.5">
+              <div className="border-line-strong bg-canvas inline-flex rounded-xl border p-0.5">
                 {(['image', 'video'] as const).map((option) => (
                   <button
                     key={option}
@@ -286,7 +287,7 @@ export function GenerateDialog({
                     onClick={() => changeKind(option)}
                     className={cn(
                       'relative rounded-[10px] px-3 py-1.5 text-[11.5px] font-medium capitalize transition-colors duration-150 ease-out active:scale-[0.96] disabled:opacity-60 motion-reduce:active:scale-100',
-                      kind === option ? 'text-canvas' : 'text-ink/50 hover:text-ink',
+                      kind === option ? 'text-canvas' : 'text-ink/65 hover:text-ink',
                     )}
                   >
                     {kind === option ? (
@@ -480,13 +481,13 @@ export function GenerateDialog({
             </div>
 
             {model?.kind === 'video' && model.sound ? (
-              <label className="text-ink/55 flex items-center gap-2 text-[11.5px]">
+              <label className="text-ink/65 flex items-center gap-2 text-[11.5px]">
                 <input
                   type="checkbox"
                   checked={sound}
                   disabled={busy}
                   onChange={(event) => setSound(event.target.checked)}
-                  className="accent-[#A31621]"
+                  className="accent-accent"
                 />
                 Generate audio
               </label>
@@ -496,7 +497,7 @@ export function GenerateDialog({
               <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                   <Label>References</Label>
-                  <span className="text-ink/35 text-[10px]">
+                  <span className="text-ink/65 text-[11px]">
                     <AnimatePresence mode="popLayout" initial={false}>
                       <motion.span
                         key={`${assetIds.length}/${model.maxImages}`}
@@ -521,7 +522,7 @@ export function GenerateDialog({
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.92 }}
                         transition={motionFast}
-                        className="border-line group relative overflow-hidden rounded-lg border"
+                        className="border-line-strong group relative overflow-hidden rounded-lg border"
                       >
                         <FadeImage
                           shimmer
@@ -535,7 +536,7 @@ export function GenerateDialog({
                         <button
                           type="button"
                           onClick={() => setAssetIds((current) => current.filter((id) => id !== assetId))}
-                          className="bg-ink/70 text-canvas absolute top-0.5 right-0.5 grid size-4 place-items-center rounded opacity-0 transition-[opacity,scale] duration-150 ease-out group-hover:opacity-100 focus-visible:opacity-100 active:scale-[0.9]"
+                          className="bg-ink/70 text-canvas absolute top-0.5 right-0.5 grid size-6 place-items-center rounded opacity-0 transition-[opacity,scale] duration-150 ease-out group-hover:opacity-100 focus-visible:opacity-100 active:scale-[0.9]"
                           aria-label="Remove reference"
                         >
                           <X size={9} />
@@ -557,7 +558,7 @@ export function GenerateDialog({
                           type="button"
                           onClick={() => fileRef.current?.click()}
                           disabled={busy || uploading}
-                          className="border-line text-ink/35 hover:border-accent/40 hover:text-accent grid size-14 place-items-center rounded-lg border border-dashed transition-[color,border-color,scale] duration-150 ease-out active:scale-[0.94] motion-reduce:active:scale-100"
+                          className="border-line-strong text-ink/65 hover:border-accent/40 hover:text-accent grid size-14 place-items-center rounded-lg border border-dashed transition-[color,border-color,scale] duration-150 ease-out active:scale-[0.94] motion-reduce:active:scale-100"
                           aria-label="Upload reference"
                         >
                           <AnimatePresence mode="wait" initial={false}>
@@ -581,7 +582,7 @@ export function GenerateDialog({
                           type="button"
                           onClick={() => setPickerOpen(true)}
                           disabled={busy}
-                          className="border-line text-ink/35 hover:border-accent/40 hover:text-accent grid size-14 place-items-center rounded-lg border border-dashed transition-[color,border-color,scale] duration-150 ease-out active:scale-[0.94] motion-reduce:active:scale-100"
+                          className="border-line-strong text-ink/65 hover:border-accent/40 hover:text-accent grid size-14 place-items-center rounded-lg border border-dashed transition-[color,border-color,scale] duration-150 ease-out active:scale-[0.94] motion-reduce:active:scale-100"
                           aria-label="Choose from library"
                         >
                           <FolderOpen size={16} />
@@ -662,7 +663,7 @@ export function GenerateDialog({
             </AnimatePresence>
 
             <div className="flex items-center justify-between gap-3">
-              <p className="text-ink/35 text-[10.5px]">
+              <p className="text-ink/65 text-[11px]">
                 <AnimatePresence mode="popLayout" initial={false}>
                   <motion.span
                     key={busy ? 'busy' : 'idle'}
@@ -703,7 +704,7 @@ export function GenerateDialog({
                   ) : null}
                 </AnimatePresence>
                 <Button onClick={() => void generate()} loading={busy} disabled={!prompt.trim()}>
-                  <Sparkles size={13} /> {busy ? 'Generating…' : 'Generate'}
+                  <Play size={13} /> {busy ? 'Generating…' : 'Generate'}
                 </Button>
               </div>
             </div>

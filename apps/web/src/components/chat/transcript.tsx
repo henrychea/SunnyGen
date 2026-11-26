@@ -30,7 +30,7 @@ function StreamingLabel({ empty }: { empty: boolean }) {
     <span
       role="status"
       aria-label={empty ? 'Waiting for the assistant' : 'Assistant is replying'}
-      className="text-ink/40 mt-1 inline-flex items-center gap-1.5 text-[11px]"
+      className="text-ink/65 mt-1 inline-flex items-center gap-1.5 text-[11px]"
     >
       {empty ? null : 'Replying'}
       <span className="inline-flex items-center gap-1" aria-hidden="true">
@@ -63,9 +63,9 @@ function MessageAction({
       onClick={onClick}
       aria-label={label}
       className={cn(
-        'inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[10.5px]',
+        'inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[11px]',
         'transition-[color,background-color,transform] duration-150 ease-out active:scale-[0.94]',
-        active ? 'text-accent' : 'text-ink/30 hover:bg-ink/[0.05] hover:text-ink/60',
+        active ? 'text-accent' : 'text-ink/65 hover:bg-ink/[0.05] hover:text-ink/65',
       )}
     >
       {children}
@@ -141,14 +141,14 @@ export function Transcript({
                 exit="hidden"
                 className={cn('group flex min-w-0 flex-col', assistant ? 'items-start' : 'items-end')}
               >
-                <p className="text-ink/30 mb-1 px-1 text-[9.5px] font-semibold tracking-[0.12em] uppercase">
+                <p className="text-ink/65 mb-1 px-1 text-[11px] font-semibold">
                   {assistant ? 'SunnyGen' : 'You'}
                 </p>
                 <div
                   className={cn(
                     'min-w-0 max-w-[94%] rounded-2xl border px-3.5 py-2.5 text-[13.5px] leading-relaxed sm:max-w-[88%]',
                     assistant
-                      ? 'border-line bg-surface text-ink/85 rounded-tl-sm shadow-[0_8px_24px_-22px_rgba(42,30,23,0.4)]'
+                      ? 'border-line-strong bg-surface text-ink/85 rounded-tl-sm'
                       : 'border-accent/15 bg-accent/[0.07] text-ink rounded-tr-sm',
                   )}
                 >
