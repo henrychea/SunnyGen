@@ -6,7 +6,7 @@ limits. These are working notes, not marketing copy.
 
 | File                                                                                                         | Date       | Covers                                                                             |
 | ------------------------------------------------------------------------------------------------------------ | ---------- | ---------------------------------------------------------------------------------- |
-| [2026-11-26-v3.0.0.md](2026-11-26-v3.0.0.md)                                                                 | 2026-11-26 | v3.0.0 release: dark theme, antislop audit, NSFW mode, video copy, upgrade notes |
+| [2026-11-26-v3.0.0.md](2026-11-26-v3.0.0.md)                                                                 | 2026-11-26 | v3.0.0 release: dark theme, antislop audit, NSFW mode, video copy, upgrade notes   |
 | [2026-11-25-video-copy.md](2026-11-25-video-copy.md)                                                         | 2026-11-25 | v3.4: frame extraction, agent shot list, per shot recreate, joined clip            |
 | [2026-11-25-v2.1.0.md](2026-11-25-v2.1.0.md)                                                                 | 2026-11-25 | v2.1.0 release: PRs #18 to #25, one section per area, and the upgrade notes        |
 | [2026-11-25-avatar-panels.md](2026-11-25-avatar-panels.md)                                                   | 2026-11-25 | PR #25: three whole avatar images, no crops or boards, Sunra cache fix, LoRA split |

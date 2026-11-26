@@ -1,116 +1,376 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AI Avatar and Lookbook Studio, Self-Hosted | SunnyGen</title>
-<meta name="description" content="Dress an AI avatar in up to six garments, set a pose and scene, and render a 1–4 angle lookbook. Garment prep and pack import. Free and open source.">
-<link rel="canonical" href="https://henrychea.github.io/SunnyGen/ai-avatar-studio/">
-<meta name="theme-color" content="#FAF6EF">
-<meta name="color-scheme" content="light">
-<meta name="author" content="Henry Chea">
-<link rel="icon" href="../favicon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png">
-<link rel="manifest" href="../site.webmanifest">
-<link rel="preload" href="../assets/fonts/space-grotesk.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" as="image" type="image/avif" href="../assets/img/studio-1024.avif" imagesrcset="../assets/img/studio-480.avif 480w, ../assets/img/studio-768.avif 768w, ../assets/img/studio-1024.avif 1024w" imagesizes="(min-width: 72rem) 69rem, (min-width: 40rem) calc(100vw - 3rem), calc(100vw - 2rem)" fetchpriority="high">
-<link rel="stylesheet" href="../assets/site.css">
-<meta property="og:type" content="website">
-<meta property="og:site_name" content="SunnyGen">
-<meta property="og:locale" content="en_US">
-<meta property="og:title" content="AI Avatar and Lookbook Studio, Self-Hosted | SunnyGen">
-<meta property="og:description" content="Dress an AI avatar in up to six garments, set a pose and scene, and render a 1–4 angle lookbook. Garment prep and pack import. Free and open source.">
-<meta property="og:url" content="https://henrychea.github.io/SunnyGen/ai-avatar-studio/">
-<meta property="og:image" content="https://henrychea.github.io/SunnyGen/assets/og/ai-avatar-studio.png">
-<meta property="og:image:type" content="image/png">
-<meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="SunnyGen, a self-hosted AI image and video studio">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="AI Avatar and Lookbook Studio, Self-Hosted | SunnyGen">
-<meta name="twitter:description" content="Dress an AI avatar in up to six garments, set a pose and scene, and render a 1–4 angle lookbook. Garment prep and pack import. Free and open source.">
-<meta name="twitter:image" content="https://henrychea.github.io/SunnyGen/assets/og/ai-avatar-studio.png">
-<meta name="twitter:image:alt" content="SunnyGen, a self-hosted AI image and video studio">
-<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Person","@id":"https://henrychea.github.io/SunnyGen/#author","name":"Henry Chea","url":"https://github.com/henrychea"},{"@type":["SoftwareApplication","SoftwareSourceCode"],"@id":"https://henrychea.github.io/SunnyGen/#software","name":"SunnyGen","description":"Free, open-source, self-hosted AI image and video generation studio with a node-based canvas, an avatar and lookbook Studio, and FLUX LoRA training. Bring your own API keys.","url":"https://henrychea.github.io/SunnyGen/","applicationCategory":"MultimediaApplication","applicationSubCategory":"AI image and video generation","operatingSystem":"macOS, Linux, Docker","softwareVersion":"3.0.0","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"license":"https://opensource.org/licenses/MIT","codeRepository":"https://github.com/henrychea/SunnyGen","programmingLanguage":"TypeScript","runtimePlatform":"Node.js 22.20+","author":{"@id":"https://henrychea.github.io/SunnyGen/#author"},"image":"https://henrychea.github.io/SunnyGen/assets/og/home.png","screenshot":[{"@type":"ImageObject","url":"https://henrychea.github.io/SunnyGen/assets/img/studio-1024.webp","width":1024,"height":853},{"@type":"ImageObject","url":"https://henrychea.github.io/SunnyGen/assets/img/canvas-1024.webp","width":1024,"height":711},{"@type":"ImageObject","url":"https://henrychea.github.io/SunnyGen/assets/img/gallery-1024.webp","width":1024,"height":853},{"@type":"ImageObject","url":"https://henrychea.github.io/SunnyGen/assets/img/studio-models-1600.webp","width":1600,"height":900}],"featureList":["Node-based infinite canvas for reusable image and video pipelines","Studio for avatars, wardrobe, poses, scenes, and 1-4 angle lookbooks","FLUX LoRA training on your own avatars through fal.ai","Bring-your-own API keys for Sunra.ai, fal.ai, Azure AI Foundry, Codex CLI, and OpenRouter","Local SQLite database and media on disk, no account, no telemetry","Encrypted API key storage","Installable PWA on desktop and mobile","Docker image"]},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://henrychea.github.io/SunnyGen/"},{"@type":"ListItem","position":2,"name":"AI avatar studio","item":"https://henrychea.github.io/SunnyGen/ai-avatar-studio/"}]},{"@type":"WebPage","@id":"https://henrychea.github.io/SunnyGen/ai-avatar-studio/#webpage","url":"https://henrychea.github.io/SunnyGen/ai-avatar-studio/","name":"AI Avatar and Lookbook Studio, Self-Hosted | SunnyGen","description":"Dress an AI avatar in up to six garments, set a pose and scene, and render a 1–4 angle lookbook. Garment prep and pack import. Free and open source.","isPartOf":{"@id":"https://henrychea.github.io/SunnyGen/#website"},"about":{"@id":"https://henrychea.github.io/SunnyGen/#software"},"inLanguage":"en"}]}</script>
-</head>
-<body>
-<a class="skip" href="#main">Skip to content</a>
-<header class="site-header">
-<div class="wrap">
-<a class="brand" href="../"><svg viewBox="0 0 64 64" aria-hidden="true" focusable="false"><rect width="64" height="64" rx="16" fill="#A31621"/><circle cx="32" cy="32" r="9" fill="#FAF6EF"/><g stroke="#FAF6EF" stroke-width="3.5" stroke-linecap="round"><path d="M32 12v7M32 45v7M12 32h7M45 32h7M18.3 18.3l5 5M40.7 40.7l5 5M45.7 18.3l-5 5M23.3 40.7l-5 5"/></g></svg>SunnyGen</a>
-<nav class="nav" aria-label="Main"><ul><li><a href="../ai-avatar-studio/" aria-current="page">Studio</a></li><li><a href="../node-canvas/">Canvas</a></li><li><a href="../lora-training/">LoRA training</a></li><li><a href="../self-hosted-ai-image-generator/">Self-hosting</a></li><li><a href="../install/">Quick start</a></li><li><a href="../releases/">Releases</a></li><li><a href="../faq/">FAQ</a></li><li><a href="https://github.com/henrychea/SunnyGen">GitHub</a></li></ul></nav>
-</div>
-</header>
-<nav class="crumbs wrap" aria-label="Breadcrumb"><ol><li><a href="../">Home</a></li><li><span aria-current="page">AI avatar studio</span></li></ol></nav>
-<main id="main">
-<section class="page-hero wrap" aria-labelledby="title">
-<span class="eyebrow">Studio</span>
-<h1 id="title">An AI avatar studio for outfits, poses, and multi-angle lookbooks</h1>
-<p class="lead">Studio is the main workspace in SunnyGen. Pick a saved avatar, stack garments in slot order, choose a pose and scene, and render one to four camera angles over the same reference list.</p>
-<div class="cta"><a class="btn btn-primary" href="../install/">Quick start</a><a class="btn btn-secondary" href="https://github.com/henrychea/SunnyGen"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 0a8 8 0 0 0-2.53 15.59c.4.07.55-.17.55-.38v-1.34c-2.23.48-2.7-1.07-2.7-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.06-.49.06-.49.8.06 1.23.83 1.23.83.72 1.22 1.87.87 2.33.66.07-.52.28-.87.5-1.07-1.78-.2-3.65-.89-3.65-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.28.82 2.15 0 3.07-1.87 3.75-3.66 3.95.29.25.54.73.54 1.48v2.2c0 .21.15.46.55.38A8 8 0 0 0 8 0Z"/></svg>View on GitHub</a></div>
-<figure class="shot"><picture><source type="image/avif" srcset="../assets/img/studio-480.avif 480w, ../assets/img/studio-768.avif 768w, ../assets/img/studio-1024.avif 1024w" sizes="(min-width: 72rem) 69rem, (min-width: 40rem) calc(100vw - 3rem), calc(100vw - 2rem)"><source type="image/webp" srcset="../assets/img/studio-480.webp 480w, ../assets/img/studio-768.webp 768w, ../assets/img/studio-1024.webp 1024w" sizes="(min-width: 72rem) 69rem, (min-width: 40rem) calc(100vw - 3rem), calc(100vw - 2rem)"><img src="../assets/img/studio-1024.webp" srcset="../assets/img/studio-480.webp 480w, ../assets/img/studio-768.webp 768w, ../assets/img/studio-1024.webp 1024w" sizes="(min-width: 72rem) 69rem, (min-width: 40rem) calc(100vw - 3rem), calc(100vw - 2rem)" width="1024" height="853" alt="SunnyGen Studio outfit builder: one avatar, five wardrobe pieces in garment slots, pose and scene pickers, and Front, Three-quarter, Side, and Back angle controls" fetchpriority="high" decoding="async"></picture><figcaption>One avatar, five garments, two angles selected. Demo content.</figcaption></figure>
-</section>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI Avatar and Lookbook Studio, Self-Hosted | SunnyGen</title>
+    <meta
+      name="description"
+      content="Dress an AI avatar in up to six garments, set a pose and scene, and render a 1–4 angle lookbook. Garment prep and pack import. Free and open source."
+    />
+    <link rel="canonical" href="https://henrychea.github.io/SunnyGen/ai-avatar-studio/" />
+    <meta name="theme-color" content="#FAF6EF" />
+    <meta name="color-scheme" content="light" />
+    <meta name="author" content="Henry Chea" />
+    <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png" />
+    <link rel="manifest" href="../site.webmanifest" />
+    <link rel="preload" href="../assets/fonts/space-grotesk.woff2" as="font" type="font/woff2" crossorigin />
+    <link
+      rel="preload"
+      as="image"
+      type="image/avif"
+      href="../assets/img/studio-1024.avif"
+      imagesrcset="../assets/img/studio-480.avif 480w, ../assets/img/studio-768.avif 768w, ../assets/img/studio-1024.avif 1024w"
+      imagesizes="(min-width: 72rem) 69rem, (min-width: 40rem) calc(100vw - 3rem), calc(100vw - 2rem)"
+      fetchpriority="high"
+    />
+    <link rel="stylesheet" href="../assets/site.css" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="SunnyGen" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:title" content="AI Avatar and Lookbook Studio, Self-Hosted | SunnyGen" />
+    <meta
+      property="og:description"
+      content="Dress an AI avatar in up to six garments, set a pose and scene, and render a 1–4 angle lookbook. Garment prep and pack import. Free and open source."
+    />
+    <meta property="og:url" content="https://henrychea.github.io/SunnyGen/ai-avatar-studio/" />
+    <meta property="og:image" content="https://henrychea.github.io/SunnyGen/assets/og/ai-avatar-studio.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="SunnyGen, a self-hosted AI image and video studio" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="AI Avatar and Lookbook Studio, Self-Hosted | SunnyGen" />
+    <meta
+      name="twitter:description"
+      content="Dress an AI avatar in up to six garments, set a pose and scene, and render a 1–4 angle lookbook. Garment prep and pack import. Free and open source."
+    />
+    <meta
+      name="twitter:image"
+      content="https://henrychea.github.io/SunnyGen/assets/og/ai-avatar-studio.png"
+    />
+    <meta name="twitter:image:alt" content="SunnyGen, a self-hosted AI image and video studio" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Person",
+            "@id": "https://henrychea.github.io/SunnyGen/#author",
+            "name": "Henry Chea",
+            "url": "https://github.com/henrychea"
+          },
+          {
+            "@type": ["SoftwareApplication", "SoftwareSourceCode"],
+            "@id": "https://henrychea.github.io/SunnyGen/#software",
+            "name": "SunnyGen",
+            "description": "Free, open-source, self-hosted AI image and video generation studio with a node-based canvas, an avatar and lookbook Studio, and FLUX LoRA training. Bring your own API keys.",
+            "url": "https://henrychea.github.io/SunnyGen/",
+            "applicationCategory": "MultimediaApplication",
+            "applicationSubCategory": "AI image and video generation",
+            "operatingSystem": "macOS, Linux, Docker",
+            "softwareVersion": "3.0.0",
+            "isAccessibleForFree": true,
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+            "license": "https://opensource.org/licenses/MIT",
+            "codeRepository": "https://github.com/henrychea/SunnyGen",
+            "programmingLanguage": "TypeScript",
+            "runtimePlatform": "Node.js 22.20+",
+            "author": { "@id": "https://henrychea.github.io/SunnyGen/#author" },
+            "image": "https://henrychea.github.io/SunnyGen/assets/og/home.png",
+            "screenshot": [
+              {
+                "@type": "ImageObject",
+                "url": "https://henrychea.github.io/SunnyGen/assets/img/studio-1024.webp",
+                "width": 1024,
+                "height": 853
+              },
+              {
+                "@type": "ImageObject",
+                "url": "https://henrychea.github.io/SunnyGen/assets/img/canvas-1024.webp",
+                "width": 1024,
+                "height": 711
+              },
+              {
+                "@type": "ImageObject",
+                "url": "https://henrychea.github.io/SunnyGen/assets/img/gallery-1024.webp",
+                "width": 1024,
+                "height": 853
+              },
+              {
+                "@type": "ImageObject",
+                "url": "https://henrychea.github.io/SunnyGen/assets/img/studio-models-1600.webp",
+                "width": 1600,
+                "height": 900
+              }
+            ],
+            "featureList": [
+              "Node-based infinite canvas for reusable image and video pipelines",
+              "Studio for avatars, wardrobe, poses, scenes, and 1-4 angle lookbooks",
+              "FLUX LoRA training on your own avatars through fal.ai",
+              "Bring-your-own API keys for Sunra.ai, fal.ai, Azure AI Foundry, Codex CLI, and OpenRouter",
+              "Local SQLite database and media on disk, no account, no telemetry",
+              "Encrypted API key storage",
+              "Installable PWA on desktop and mobile",
+              "Docker image"
+            ]
+          },
+          {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://henrychea.github.io/SunnyGen/"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "AI avatar studio",
+                "item": "https://henrychea.github.io/SunnyGen/ai-avatar-studio/"
+              }
+            ]
+          },
+          {
+            "@type": "WebPage",
+            "@id": "https://henrychea.github.io/SunnyGen/ai-avatar-studio/#webpage",
+            "url": "https://henrychea.github.io/SunnyGen/ai-avatar-studio/",
+            "name": "AI Avatar and Lookbook Studio, Self-Hosted | SunnyGen",
+            "description": "Dress an AI avatar in up to six garments, set a pose and scene, and render a 1–4 angle lookbook. Garment prep and pack import. Free and open source.",
+            "isPartOf": { "@id": "https://henrychea.github.io/SunnyGen/#website" },
+            "about": { "@id": "https://henrychea.github.io/SunnyGen/#software" },
+            "inLanguage": "en"
+          }
+        ]
+      }
+    </script>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <header class="site-header">
+      <div class="wrap">
+        <a class="brand" href="../"
+          ><svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+            <rect width="64" height="64" rx="16" fill="#A31621" />
+            <circle cx="32" cy="32" r="9" fill="#FAF6EF" />
+            <g stroke="#FAF6EF" stroke-width="3.5" stroke-linecap="round">
+              <path
+                d="M32 12v7M32 45v7M12 32h7M45 32h7M18.3 18.3l5 5M40.7 40.7l5 5M45.7 18.3l-5 5M23.3 40.7l-5 5"
+              />
+            </g></svg
+          >SunnyGen</a
+        >
+        <nav class="nav" aria-label="Main">
+          <ul>
+            <li><a href="../ai-avatar-studio/" aria-current="page">Studio</a></li>
+            <li><a href="../node-canvas/">Canvas</a></li>
+            <li><a href="../lora-training/">LoRA training</a></li>
+            <li><a href="../self-hosted-ai-image-generator/">Self-hosting</a></li>
+            <li><a href="../install/">Quick start</a></li>
+            <li><a href="../releases/">Releases</a></li>
+            <li><a href="../faq/">FAQ</a></li>
+            <li><a href="https://github.com/henrychea/SunnyGen">GitHub</a></li>
+          </ul>
+        </nav>
+      </div>
+    </header>
+    <nav class="crumbs wrap" aria-label="Breadcrumb">
+      <ol>
+        <li><a href="../">Home</a></li>
+        <li><span aria-current="page">AI avatar studio</span></li>
+      </ol>
+    </nav>
+    <main id="main">
+      <section class="page-hero wrap" aria-labelledby="title">
+        <span class="eyebrow">Studio</span>
+        <h1 id="title">An AI avatar studio for outfits, poses, and multi-angle lookbooks</h1>
+        <p class="lead">
+          Studio is the main workspace in SunnyGen. Pick a saved avatar, stack garments in slot order, choose
+          a pose and scene, and render one to four camera angles over the same reference list.
+        </p>
+        <div class="cta">
+          <a class="btn btn-primary" href="../install/">Quick start</a
+          ><a class="btn btn-secondary" href="https://github.com/henrychea/SunnyGen"
+            ><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+              <path
+                d="M8 0a8 8 0 0 0-2.53 15.59c.4.07.55-.17.55-.38v-1.34c-2.23.48-2.7-1.07-2.7-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.06-.49.06-.49.8.06 1.23.83 1.23.83.72 1.22 1.87.87 2.33.66.07-.52.28-.87.5-1.07-1.78-.2-3.65-.89-3.65-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.28.82 2.15 0 3.07-1.87 3.75-3.66 3.95.29.25.54.73.54 1.48v2.2c0 .21.15.46.55.38A8 8 0 0 0 8 0Z"
+              /></svg
+            >View on GitHub</a
+          >
+        </div>
+        <figure class="shot">
+          <picture
+            ><source
+              type="image/avif"
+              srcset="
+                ../assets/img/studio-480.avif   480w,
+                ../assets/img/studio-768.avif   768w,
+                ../assets/img/studio-1024.avif 1024w
+              "
+              sizes="(min-width: 72rem) 69rem, (min-width: 40rem) calc(100vw - 3rem), calc(100vw - 2rem)" />
+            <source
+              type="image/webp"
+              srcset="
+                ../assets/img/studio-480.webp   480w,
+                ../assets/img/studio-768.webp   768w,
+                ../assets/img/studio-1024.webp 1024w
+              "
+              sizes="(min-width: 72rem) 69rem, (min-width: 40rem) calc(100vw - 3rem), calc(100vw - 2rem)" />
+            <img
+              src="../assets/img/studio-1024.webp"
+              srcset="
+                ../assets/img/studio-480.webp   480w,
+                ../assets/img/studio-768.webp   768w,
+                ../assets/img/studio-1024.webp 1024w
+              "
+              sizes="(min-width: 72rem) 69rem, (min-width: 40rem) calc(100vw - 3rem), calc(100vw - 2rem)"
+              width="1024"
+              height="853"
+              alt="SunnyGen Studio outfit builder: one avatar, five wardrobe pieces in garment slots, pose and scene pickers, and Front, Three-quarter, Side, and Back angle controls"
+              fetchpriority="high"
+              decoding="async"
+          /></picture>
+          <figcaption>One avatar, five garments, two angles selected. Demo content.</figcaption>
+        </figure>
+      </section>
 
-<section class="section" aria-labelledby="flow">
-<div class="wrap prose">
-<h2 id="flow">From avatar to lookbook</h2>
-<ol class="steps">
-<li><strong>Avatar.</strong> Save a character with its character sheet, so every render starts from the same likeness.</li>
-<li><strong>Wardrobe.</strong> Add up to six garments in slot order: top, bottom, dress, outerwear, shoes, bag, or accessory.</li>
-<li><strong>Pose and scene.</strong> Pick saved pose and scene references, or leave either open.</li>
-<li><strong>Angles.</strong> Choose Front, Three-quarter, Side, or Back. SunnyGen renders one generation per angle, all over the same references.</li>
-</ol>
-</div>
-</section>
+      <section class="section" aria-labelledby="flow">
+        <div class="wrap prose">
+          <h2 id="flow">From avatar to lookbook</h2>
+          <ol class="steps">
+            <li>
+              <strong>Avatar.</strong> Save a character with its character sheet, so every render starts from
+              the same likeness.
+            </li>
+            <li>
+              <strong>Wardrobe.</strong> Add up to six garments in slot order: top, bottom, dress, outerwear,
+              shoes, bag, or accessory.
+            </li>
+            <li>
+              <strong>Pose and scene.</strong> Pick saved pose and scene references, or leave either open.
+            </li>
+            <li>
+              <strong>Angles.</strong> Choose Front, Three-quarter, Side, or Back. SunnyGen renders one
+              generation per angle, all over the same references.
+            </li>
+          </ol>
+        </div>
+      </section>
 
-<section class="section" aria-labelledby="wardrobe">
-<div class="wrap row">
-<div>
-<h2 id="wardrobe">A wardrobe library with garment prep</h2>
-<p>Each piece stores its slot, source type, notes, and a prepared clean reference. Source types are flat-lay, on-model, and supplier photos; on-model and supplier shots can be prepped into clean product references inside the app.</p>
-</div>
-<figure class="shot"><picture><source type="image/avif" srcset="../assets/img/studio-wardrobe-480.avif 480w, ../assets/img/studio-wardrobe-768.avif 768w, ../assets/img/studio-wardrobe-1024.avif 1024w" sizes="(min-width: 72rem) 39rem, (min-width: 60rem) 56vw, (min-width: 40rem) calc(100vw - 3rem), calc(100vw - 2rem)"><source type="image/webp" srcset="../assets/img/studio-wardrobe-480.webp 480w, ../assets/img/studio-wardrobe-768.webp 768w, ../assets/img/studio-wardrobe-1024.webp 1024w" sizes="(min-width: 72rem) 39rem, (min-width: 60rem) 56vw, (min-width: 40rem) calc(100vw - 3rem), calc(100vw - 2rem)"><img src="../assets/img/studio-wardrobe-1024.webp" srcset="../assets/img/studio-wardrobe-480.webp 480w, ../assets/img/studio-wardrobe-768.webp 768w, ../assets/img/studio-wardrobe-1024.webp 1024w" sizes="(min-width: 72rem) 39rem, (min-width: 60rem) 56vw, (min-width: 40rem) calc(100vw - 3rem), calc(100vw - 2rem)" width="1024" height="711" alt="SunnyGen wardrobe library with garment slots, source types, and prep actions" loading="lazy" decoding="async"></picture></figure>
-</div>
-</section>
+      <section class="section" aria-labelledby="wardrobe">
+        <div class="wrap row">
+          <div>
+            <h2 id="wardrobe">A wardrobe library with garment prep</h2>
+            <p>
+              Each piece stores its slot, source type, notes, and a prepared clean reference. Source types are
+              flat-lay, on-model, and supplier photos; on-model and supplier shots can be prepped into clean
+              product references inside the app.
+            </p>
+          </div>
+          <figure class="shot">
+            <picture
+              ><source
+                type="image/avif"
+                srcset="
+                  ../assets/img/studio-wardrobe-480.avif   480w,
+                  ../assets/img/studio-wardrobe-768.avif   768w,
+                  ../assets/img/studio-wardrobe-1024.avif 1024w
+                "
+                sizes="(min-width: 72rem) 39rem, (min-width: 60rem) 56vw, (min-width: 40rem) calc(100vw - 3rem), calc(100vw - 2rem)" />
+              <source
+                type="image/webp"
+                srcset="
+                  ../assets/img/studio-wardrobe-480.webp   480w,
+                  ../assets/img/studio-wardrobe-768.webp   768w,
+                  ../assets/img/studio-wardrobe-1024.webp 1024w
+                "
+                sizes="(min-width: 72rem) 39rem, (min-width: 60rem) 56vw, (min-width: 40rem) calc(100vw - 3rem), calc(100vw - 2rem)" />
+              <img
+                src="../assets/img/studio-wardrobe-1024.webp"
+                srcset="
+                  ../assets/img/studio-wardrobe-480.webp   480w,
+                  ../assets/img/studio-wardrobe-768.webp   768w,
+                  ../assets/img/studio-wardrobe-1024.webp 1024w
+                "
+                sizes="(min-width: 72rem) 39rem, (min-width: 60rem) 56vw, (min-width: 40rem) calc(100vw - 3rem), calc(100vw - 2rem)"
+                width="1024"
+                height="711"
+                alt="SunnyGen wardrobe library with garment slots, source types, and prep actions"
+                loading="lazy"
+                decoding="async"
+            /></picture>
+          </figure>
+        </div>
+      </section>
 
-<section class="section" aria-labelledby="packs">
-<div class="wrap prose">
-<h2 id="packs">Move libraries between machines with packs</h2>
-<p>Poses, wardrobe, scenes, and avatars import as packs: a <code>.zip</code> or a folder of images with an optional <code>sunnygen-pack.json</code> mapping.</p>
-<ul>
-<li>Images only: PNG, JPG, WebP, AVIF, and GIF.</li>
-<li>Up to 250 MB and 500 items per pack.</li>
-<li>Duplicate names are skipped, not overwritten, and one bad file never cancels the rest.</li>
-</ul>
-<h2>Keep a face consistent with LoRA</h2>
-<p>Any Studio avatar can become a FLUX LoRA, so the same likeness carries into every later render. <a href="../lora-training/">See how LoRA training works</a>.</p>
-<p><a href="../node-canvas/">Build the same look as a reusable canvas pipeline</a></p>
-</div>
-</section>
-</main>
-<footer class="site-footer">
-<div class="wrap">
-<div class="cols">
-<div>
-<a class="brand" href="../"><svg viewBox="0 0 64 64" aria-hidden="true" focusable="false"><rect width="64" height="64" rx="16" fill="#A31621"/><circle cx="32" cy="32" r="9" fill="#FAF6EF"/><g stroke="#FAF6EF" stroke-width="3.5" stroke-linecap="round"><path d="M32 12v7M32 45v7M12 32h7M45 32h7M18.3 18.3l5 5M40.7 40.7l5 5M45.7 18.3l-5 5M23.3 40.7l-5 5"/></g></svg>SunnyGen</a>
-<p>A free, MIT-licensed, self-hosted studio for AI image and video generation. Your models. Your machine. Your library.</p>
-</div>
-<nav aria-label="Features"><h2>Features</h2><ul>
-<li><a href="../ai-avatar-studio/">AI avatar studio</a></li>
-<li><a href="../node-canvas/">Node canvas</a></li>
-<li><a href="../lora-training/">FLUX LoRA training</a></li>
-<li><a href="../self-hosted-ai-image-generator/">Self-hosted generator</a></li>
-</ul></nav>
-<nav aria-label="Project"><h2>Project</h2><ul>
-<li><a href="../install/">Quick start</a></li>
-<li><a href="../releases/">Releases</a></li>
-<li><a href="../faq/">FAQ</a></li>
-<li><a href="https://github.com/henrychea/SunnyGen">Source on GitHub</a></li>
-<li><a href="https://github.com/henrychea/SunnyGen/blob/main/LICENSE">MIT license</a></li>
-</ul></nav>
-</div>
-<p class="fine">Built by <a href="https://github.com/henrychea">Henry Chea</a> with TanStack Start, React, and TypeScript. Screenshots show demo content.</p>
-</div>
-</footer>
-</body>
+      <section class="section" aria-labelledby="packs">
+        <div class="wrap prose">
+          <h2 id="packs">Move libraries between machines with packs</h2>
+          <p>
+            Poses, wardrobe, scenes, and avatars import as packs: a <code>.zip</code> or a folder of images
+            with an optional <code>sunnygen-pack.json</code> mapping.
+          </p>
+          <ul>
+            <li>Images only: PNG, JPG, WebP, AVIF, and GIF.</li>
+            <li>Up to 250 MB and 500 items per pack.</li>
+            <li>Duplicate names are skipped, not overwritten, and one bad file never cancels the rest.</li>
+          </ul>
+          <h2>Keep a face consistent with LoRA</h2>
+          <p>
+            Any Studio avatar can become a FLUX LoRA, so the same likeness carries into every later render.
+            <a href="../lora-training/">See how LoRA training works</a>.
+          </p>
+          <p><a href="../node-canvas/">Build the same look as a reusable canvas pipeline</a></p>
+        </div>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div class="wrap">
+        <div class="cols">
+          <div>
+            <a class="brand" href="../"
+              ><svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+                <rect width="64" height="64" rx="16" fill="#A31621" />
+                <circle cx="32" cy="32" r="9" fill="#FAF6EF" />
+                <g stroke="#FAF6EF" stroke-width="3.5" stroke-linecap="round">
+                  <path
+                    d="M32 12v7M32 45v7M12 32h7M45 32h7M18.3 18.3l5 5M40.7 40.7l5 5M45.7 18.3l-5 5M23.3 40.7l-5 5"
+                  />
+                </g></svg
+              >SunnyGen</a
+            >
+            <p>
+              A free, MIT-licensed, self-hosted studio for AI image and video generation. Your models. Your
+              machine. Your library.
+            </p>
+          </div>
+          <nav aria-label="Features">
+            <h2>Features</h2>
+            <ul>
+              <li><a href="../ai-avatar-studio/">AI avatar studio</a></li>
+              <li><a href="../node-canvas/">Node canvas</a></li>
+              <li><a href="../lora-training/">FLUX LoRA training</a></li>
+              <li><a href="../self-hosted-ai-image-generator/">Self-hosted generator</a></li>
+            </ul>
+          </nav>
+          <nav aria-label="Project">
+            <h2>Project</h2>
+            <ul>
+              <li><a href="../install/">Quick start</a></li>
+              <li><a href="../releases/">Releases</a></li>
+              <li><a href="../faq/">FAQ</a></li>
+              <li><a href="https://github.com/henrychea/SunnyGen">Source on GitHub</a></li>
+              <li><a href="https://github.com/henrychea/SunnyGen/blob/main/LICENSE">MIT license</a></li>
+            </ul>
+          </nav>
+        </div>
+        <p class="fine">
+          Built by <a href="https://github.com/henrychea">Henry Chea</a> with TanStack Start, React, and
+          TypeScript. Screenshots show demo content.
+        </p>
+      </div>
+    </footer>
+  </body>
 </html>
