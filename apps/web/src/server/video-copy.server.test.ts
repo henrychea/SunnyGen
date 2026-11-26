@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { MAX_COPY_SHOTS } from '@sunnygen/core'
-import { parseShowinfoTimes, shotPromptTemplate } from './video-copy.server'
+import { inheritVisibility, parseShowinfoTimes, shotPromptTemplate } from './video-copy.server'
 
 test('the agent prompt names the duration, the frames, and the JSON shape', () => {
   const prompt = shotPromptTemplate({
@@ -21,6 +21,13 @@ test('the agent prompt names the duration, the frames, and the JSON shape', () =
   }
   assert.ok(prompt.includes(`1 to ${MAX_COPY_SHOTS} shots`))
   assert.match(prompt, /2000 characters/)
+})
+
+// Extraction and joining both store through this, so one test covers the rule that a copy's own
+// media never outlives its source's visibility class.
+test('frames and joined clips take their source visibility', () => {
+  assert.deepEqual(inheritVisibility({ nsfw: true }), { nsfw: true })
+  assert.deepEqual(inheritVisibility({ nsfw: false }), { nsfw: false })
 })
 
 test('showinfo timestamps come out in order', () => {

@@ -32,7 +32,7 @@ function shot(start: number, end: number): VideoCopyShot {
   }
 }
 
-function sourceAsset() {
+function sourceAsset(nsfw = false) {
   return createAsset({
     kind: 'video',
     mime: 'video/mp4',
@@ -41,6 +41,7 @@ function sourceAsset() {
     sha256: `sha-${Math.random()}`,
     source: 'upload',
     path: '2026/11/source.mp4',
+    nsfw,
   })
 }
 
@@ -82,4 +83,19 @@ test('a copy stores its shots in order and moves its timestamp on every write', 
   assert.equal(deleteVideoCopy(created.id), true)
   assert.equal(getVideoCopy(created.id), null)
   assert.equal(deleteVideoCopy(created.id), false)
+})
+
+// Safe mode must not see a copy of an NSFW source, and the write path must still read the row it
+// just created, which is why createVideoCopy returns its copy with includeNsfw.
+test('a copy inherits its source visibility', () => {
+  const hidden = createVideoCopy({ sourceAssetId: sourceAsset(true).id })
+  assert.equal(hidden.status, 'extracted')
+  assert.equal(getVideoCopy(hidden.id), null)
+  assert.equal(getVideoCopy(hidden.id, { includeNsfw: true })?.id, hidden.id)
+  assert.ok(!listVideoCopies(50).some((copy) => copy.id === hidden.id))
+  assert.ok(listVideoCopies(50, { includeNsfw: true }).some((copy) => copy.id === hidden.id))
+
+  const visible = createVideoCopy({ sourceAssetId: sourceAsset().id })
+  assert.equal(getVideoCopy(visible.id)?.id, visible.id)
+  assert.ok(listVideoCopies(50).some((copy) => copy.id === visible.id))
 })

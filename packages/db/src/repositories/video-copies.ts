@@ -71,7 +71,7 @@ export function createVideoCopy(input: CreateVideoCopyInput): VideoCopyRecord {
       timestamp,
       timestamp,
     )
-  return getVideoCopy(id) as VideoCopyRecord
+  return getVideoCopy(id, { includeNsfw: true }) as VideoCopyRecord
 }
 
 export interface UpdateVideoCopyPatch {
@@ -85,7 +85,7 @@ export interface UpdateVideoCopyPatch {
 }
 
 export function updateVideoCopy(id: string, patch: UpdateVideoCopyPatch): VideoCopyRecord | null {
-  const current = getVideoCopy(id)
+  const current = getVideoCopy(id, { includeNsfw: true })
   if (!current) return null
   const defined = Object.fromEntries(
     Object.entries(patch).filter(([, value]) => value !== undefined),
@@ -110,19 +110,35 @@ export function updateVideoCopy(id: string, patch: UpdateVideoCopyPatch): VideoC
       Date.now(),
       id,
     )
-  return getVideoCopy(id)
+  return getVideoCopy(id, { includeNsfw: true })
 }
 
-export function getVideoCopy(id: string): VideoCopyRecord | null {
-  const row = getDb().prepare('SELECT * FROM video_copies WHERE id = ?').get(id) as VideoCopyRow | undefined
+export interface ReadVideoCopyOptions {
+  includeNsfw?: boolean
+}
+
+/** A copy is as visible as the video it came from, so the flag is read from the source row. */
+export function getVideoCopy(id: string, options: ReadVideoCopyOptions = {}): VideoCopyRecord | null {
+  const row = getDb()
+    .prepare(
+      `SELECT video_copies.* FROM video_copies
+       JOIN assets ON assets.id = video_copies.source_asset_id
+       WHERE video_copies.id = ? AND (? = 1 OR assets.nsfw = 0)`,
+    )
+    .get(id, options.includeNsfw ? 1 : 0) as VideoCopyRow | undefined
   return row ? toRecord(row) : null
 }
 
-export function listVideoCopies(limit = 50): VideoCopyRecord[] {
+export function listVideoCopies(limit = 50, options: ReadVideoCopyOptions = {}): VideoCopyRecord[] {
   const rows = asRows<VideoCopyRow>(
     getDb()
-      .prepare('SELECT * FROM video_copies ORDER BY created_at DESC LIMIT ?')
-      .all(Math.min(Math.max(limit, 1), 200)),
+      .prepare(
+        `SELECT video_copies.* FROM video_copies
+         JOIN assets ON assets.id = video_copies.source_asset_id
+         WHERE (? = 1 OR assets.nsfw = 0)
+         ORDER BY video_copies.created_at DESC LIMIT ?`,
+      )
+      .all(options.includeNsfw ? 1 : 0, Math.min(Math.max(limit, 1), 200)),
   )
   return rows.map(toRecord)
 }

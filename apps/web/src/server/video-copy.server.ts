@@ -38,6 +38,7 @@ import {
   type VideoProbe,
 } from '@sunnygen/providers'
 import { MAX_UPLOAD_BYTES, assetUrl, storeBuffer } from './media.server'
+import { readNsfwMode } from './nsfw.server'
 
 export const MAX_SOURCE_SECONDS = 600
 
@@ -49,6 +50,14 @@ const JOIN_FPS_TOLERANCE = 0.5
 
 export function assetPath(asset: AssetRecord): string {
   return join(mediaDir, asset.path)
+}
+
+/**
+ * Every asset the pipeline writes belongs to its source's visibility class, so a copy of an NSFW
+ * clip hides as a whole in safe mode instead of leaving its frames behind.
+ */
+export function inheritVisibility(source: Pick<AssetRecord, 'nsfw'>): { nsfw: boolean } {
+  return { nsfw: source.nsfw }
 }
 
 function frameName(atSeconds: number): string {
@@ -218,6 +227,7 @@ export async function extractFrames(
         source: 'generated',
         folderId: input.folderId ?? null,
         name: frameName(frame.atSeconds),
+        ...inheritVisibility(source),
       })
       frameAssetIds.push(asset.id)
     }
@@ -237,16 +247,19 @@ export async function analyzeCopyShots(input: {
   copyId: string
   agent: AgentId
 }): Promise<{ shots: VideoCopyShot[] } | { error: string }> {
-  const copy = getVideoCopy(input.copyId)
+  const includeNsfw = readNsfwMode()
+  const copy = getVideoCopy(input.copyId, { includeNsfw })
   if (!copy) return { error: 'That copy is not in the library.' }
   if (copy.frameAssetIds.length === 0) return { error: 'Extract frames before running the analysis.' }
 
-  const source = getAsset(copy.sourceAssetId)
+  const source = getAsset(copy.sourceAssetId, { includeNsfw })
   if (!source) return { error: 'The source video was deleted. Start a new copy.' }
   const probe = await probeVideo(assetPath(source))
   if (!probe) return { error: 'ffprobe could not read the source video. Start a new copy.' }
 
-  const assets = new Map(getAssetsByIds(copy.frameAssetIds).map((asset) => [asset.id, asset]))
+  const assets = new Map(
+    getAssetsByIds(copy.frameAssetIds, { includeNsfw }).map((asset) => [asset.id, asset]),
+  )
   const frames = copy.frameAssetIds.flatMap((id, index) => {
     const asset = assets.get(id)
     const atSeconds = frameTime(asset)
@@ -283,7 +296,7 @@ export function saveCopyShots(input: {
   status?: 'analyzed' | 'generating'
   folderId?: string | null
 }): { status: VideoCopyRecord['status'] } | { error: string } {
-  const copy = getVideoCopy(input.copyId)
+  const copy = getVideoCopy(input.copyId, { includeNsfw: readNsfwMode() })
   if (!copy) return { error: 'That copy is not in the library.' }
   if (input.shots.length > MAX_COPY_SHOTS) {
     return { error: `That is ${input.shots.length} shots; the limit is ${MAX_COPY_SHOTS}.` }
@@ -323,10 +336,13 @@ export interface CopyView {
 }
 
 export async function loadCopyView(copyId: string): Promise<CopyView | null> {
-  const copy = getVideoCopy(copyId)
+  const includeNsfw = readNsfwMode()
+  const copy = getVideoCopy(copyId, { includeNsfw })
   if (!copy) return null
 
-  const assets = new Map(getAssetsByIds(copy.frameAssetIds).map((asset) => [asset.id, asset]))
+  const assets = new Map(
+    getAssetsByIds(copy.frameAssetIds, { includeNsfw }).map((asset) => [asset.id, asset]),
+  )
   const frames = copy.frameAssetIds.map((id) => ({
     id,
     atSeconds: frameTime(assets.get(id)),
@@ -335,7 +351,7 @@ export async function loadCopyView(copyId: string): Promise<CopyView | null> {
   }))
 
   const shots = copy.shots.map((shot, index) => {
-    const generation = shot.generationId ? getGeneration(shot.generationId) : null
+    const generation = shot.generationId ? getGeneration(shot.generationId, { includeNsfw }) : null
     const outputId = generation?.outputAssetIds[0] ?? null
     return {
       index,
@@ -346,7 +362,7 @@ export async function loadCopyView(copyId: string): Promise<CopyView | null> {
     }
   })
 
-  const source = getAsset(copy.sourceAssetId)
+  const source = getAsset(copy.sourceAssetId, { includeNsfw })
   let durationSeconds = source?.duration ?? null
   if (source && durationSeconds === null && copy.shots.length === 0) {
     durationSeconds = (await probeVideo(assetPath(source)))?.durationSeconds ?? null
@@ -362,7 +378,7 @@ export async function loadCopyView(copyId: string): Promise<CopyView | null> {
 }
 
 export async function loadLatestCopy(): Promise<CopyView | null> {
-  const latest = listVideoCopies(1)[0]
+  const latest = listVideoCopies(1, { includeNsfw: readNsfwMode() })[0]
   return latest ? loadCopyView(latest.id) : null
 }
 
@@ -383,18 +399,21 @@ function sharedStreams(probes: VideoProbe[]): boolean {
 }
 
 export async function joinCopyClips(copyId: string): Promise<{ assetId: string } | { error: string }> {
-  const copy = getVideoCopy(copyId)
+  const includeNsfw = readNsfwMode()
+  const copy = getVideoCopy(copyId, { includeNsfw })
   if (!copy) return { error: 'That copy is not in the library.' }
   if (copy.outputAssetId) return { assetId: copy.outputAssetId }
   if (copy.shots.length === 0) return { error: 'There are no shots to join.' }
+  const source = getAsset(copy.sourceAssetId, { includeNsfw })
+  if (!source) return { error: 'The source video was deleted. Start a new copy.' }
 
   const clips: string[] = []
   for (const [index, shot] of copy.shots.entries()) {
-    const generation = shot.generationId ? getGeneration(shot.generationId) : null
+    const generation = shot.generationId ? getGeneration(shot.generationId, { includeNsfw }) : null
     if (!generation || generation.status !== 'succeeded' || generation.outputAssetIds.length !== 1) {
       return { error: `shot ${index + 1} has not finished. Wait for the batch, then join.` }
     }
-    const asset = getAsset(generation.outputAssetIds[0] as string)
+    const asset = getAsset(generation.outputAssetIds[0] as string, { includeNsfw })
     if (!asset) return { error: `shot ${index + 1} has no clip on disk. Re-run that shot.` }
     clips.push(assetPath(asset))
   }
@@ -430,6 +449,7 @@ export async function joinCopyClips(copyId: string): Promise<{ assetId: string }
       kind: 'video',
       source: 'generated',
       folderId: copy.folderId,
+      ...inheritVisibility(source),
     })
     updateVideoCopy(copy.id, { status: 'done', outputAssetId: asset.id, error: null })
     return { assetId: asset.id }
