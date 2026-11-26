@@ -1,4 +1,5 @@
 import type { AssetKind, AssetSource, GenerationKind, GenerationStatus, ProviderId } from './domain'
+import type { VideoShot } from './video-shot-list'
 
 export interface GenerationParams {
   aspectRatio?: string
@@ -75,4 +76,31 @@ export interface ProviderJobState {
   status: GenerationStatus
   outputUrls?: string[]
   error?: string
+}
+
+export const VIDEO_COPY_STATUSES = [
+  'extracted',
+  'analyzed',
+  'generating',
+  'joining',
+  'done',
+  'failed',
+] as const
+
+export type VideoCopyStatus = (typeof VIDEO_COPY_STATUSES)[number]
+
+export type VideoCopyShot = VideoShot & { generationId?: string }
+
+export interface VideoCopyRecord {
+  id: string
+  sourceAssetId: string
+  status: VideoCopyStatus
+  agent: string | null
+  shots: VideoCopyShot[]
+  frameAssetIds: string[]
+  outputAssetId: string | null
+  error: string | null
+  folderId: string | null
+  createdAt: number
+  updatedAt: number
 }

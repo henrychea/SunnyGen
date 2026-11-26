@@ -32,10 +32,10 @@ after(() => {
   rmSync(dataDir, { recursive: true, force: true })
 })
 
-test('v3 to v5 keeps rows, adds an asset name, allows duplicate hashes and tags nothing NSFW', () => {
+test('v3 to v6 keeps rows, adds an asset name, NSFW flags and a copy table', () => {
   const db = getDb()
-  assert.equal(SCHEMA_VERSION, 5)
-  assert.equal(MIGRATIONS.length, 5)
+  assert.equal(SCHEMA_VERSION, 6)
+  assert.equal(MIGRATIONS.length, 6)
 
   const columns = db.prepare('PRAGMA table_info(assets)').all() as Array<{ name: string }>
   assert.ok(columns.some((column) => column.name === 'name'))
@@ -78,4 +78,12 @@ test('v3 to v5 keeps rows, adds an asset name, allows duplicate hashes and tags 
     nsfw: number
   }
   assert.equal(existingGeneration.nsfw, 0)
+
+  const copyColumns = db.prepare('PRAGMA table_info(video_copies)').all() as Array<{ name: string }>
+  assert.ok(copyColumns.some((column) => column.name === 'output_asset_id'))
+  assert.ok(copyColumns.some((column) => column.name === 'frame_asset_ids'))
+  const copyIndex = db.prepare("SELECT name FROM sqlite_master WHERE name = 'video_copies_created'").get() as
+    | { name: string }
+    | undefined
+  assert.equal(copyIndex?.name, 'video_copies_created')
 })

@@ -25,6 +25,7 @@ import {
 import {
   ArrowUp,
   ChevronUp,
+  Clapperboard,
   ImagePlus,
   Loader2,
   Maximize2,
@@ -122,8 +123,10 @@ function slotLabels(mode: VideoModeKey, slots: number): string[] {
 
 export function VideoComposer({
   onPickerOpenChange,
+  onCopy,
 }: {
   onPickerOpenChange?: (open: boolean) => void
+  onCopy?: () => void
 } = {}) {
   const queryClient = useQueryClient()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -587,6 +590,19 @@ export function VideoComposer({
                 Edit
               </span>
             </button>
+            {onCopy ? (
+              <button
+                type="button"
+                onClick={onCopy}
+                className={cn(
+                  'text-ink/65 hover:bg-ink/[0.05] hover:text-ink flex h-8 items-center gap-1.5 rounded-lg px-3 text-[11.5px] font-medium transition-[color,background-color,transform]',
+                  motionPress,
+                )}
+              >
+                <Clapperboard size={12} />
+                Copy
+              </button>
+            ) : null}
           </div>
 
           {mode === 'generate' && flowModes.length > 1 ? (

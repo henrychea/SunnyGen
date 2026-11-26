@@ -52,8 +52,7 @@ those four gaps in one release train:
 - No per-user accounts, sessions, or multi-tenant anything. One owner, one local database.
 - No PIN or lock in front of NSFW mode; it is a per-device switch, not a credential.
 
-## Anti-goals
-- Do not fork components per theme. One component tree, tokens switch under it.
+## Anti-goals- Do not fork components per theme. One component tree, tokens switch under it.
 - Do not add a `dark:` Tailwind variant to individual elements. That is how a token
   system rots into per-element overrides.
 - Do not put an agent CLI on the normal generation path. The copy pipeline calls it
@@ -191,8 +190,7 @@ for `'system'` and a `matchMedia` listener keeps it live.
    a cookie does not already cover.
 6. **A provider-agnostic allowlist of "safe" models.** Rejected: the provider schemas
    already say which safety fields exist, and a hardcoded list rots the moment a provider
-   adds one.
-### 4. Video copy pipeline
+   adds one.### 4. Video copy pipeline
 
 1. **Frames → edited keyframes → agent shot list → per-shot prompts → frames mode →
    ffmpeg concat (picked).** Every stage reuses something that already works: frames are
@@ -230,8 +228,7 @@ using `~/.claude/skills/antislop-human/contrast-check.py`.
 Dark theme ratios: ink/canvas 15.87, ink/surface 14.65, accent/canvas 5.62,
 accent/surface 5.18, accent-ink/accent 5.62, success 8.21, warning 8.61, error 6.73,
 line-strong/canvas 4.17, line-strong/surface 3.
-85. Ink at 55% over canvas is 5.45, so the
-27 `text-ink/55` call sites pass in dark without edits. Light theme after the two fixes:
+85. Ink at 55% over canvas is 5.45, so the27 `text-ink/55` call sites pass in dark without edits. Light theme after the two fixes:
 warning/canvas 5.44, line-strong/canvas 3.63, line-strong/surface 3.85.
 
 Two new tokens, each with a reason:
@@ -389,8 +386,7 @@ Presentation:
   fade with no glyph travel. Leaving the mode plays nothing.
 - Controls: a `role="switch"` labelled "Unlock adult content" with the state as text in
   Settings, and a 😈 pill in the app shell (sidebar and mobile drawer) while the mode is
-  on, linking back to Settings.
-### 4. Video copy pipeline
+  on, linking back to Settings.### 4. Video copy pipeline
 
 Stages, all server-side, all resumable:
 
@@ -492,8 +488,7 @@ from a reference, not as an editable timeline.
     blob would be duplicated across them, and deleting or reordering shots would mean
     rewriting generation rows.
 - Core types touched: `ProviderId` (`wiro`, `local`), `PROVIDERS`, `ModelBase.nsfwOnly`,
-  `GenerationParams.nsfw`, `VideoCopyRecord`, `VideoShotList`.
-- Version bump (release, no schema): `package.json`, `apps/web/package.json`,
+  `GenerationParams.nsfw`, `VideoCopyRecord`, `VideoShotList`.- Version bump (release, no schema): `package.json`, `apps/web/package.json`,
   `apps/cli/package.json`, `packages/core/package.json`, `packages/db/package.json`,
   `packages/providers/package.json`, `packages/ui/package.json`,
   `packages/core/src/domain.ts` (`APP_VERSION`), plus
@@ -555,8 +550,7 @@ from a reference, not as an editable timeline.
 8. [copy] Should shot generations be retried automatically when one shot fails, or leave
    the batch paused for a manual retry?
 9. [copy] Manual fallback: paste a shot list JSON when no agent CLI exists. Ship it in
-   v3 or defer?
-## Release order
+   v3 or defer?## Release order
 
 1. **v3.1 dark theme.** Tokens, boot script, settings control, hardcoded colour and
    shadow cleanup. Lands first because the audit must see both themes.
@@ -565,7 +559,7 @@ from a reference, not as an editable timeline.
 3. **v3.3 NSFW mode.** Cookie mode, schema-driven provider safety fields, Wiro and local
    sd-server providers, token block, 😈 transition, picker and submit gates. No schema
    change, so it does not depend on the dark-theme block: the NSFW palette defines every
-   token it needs.4. **v3.4 video copy pipeline.** ffmpeg, agent CLIs, shot list schema, `video_copies`
-   table (migration 6), copy panel, concat.
+   token it needs.
+4. **v3.4 video copy pipeline.** ffmpeg, agent CLIs, shot list schema, `video_copies` table (migration 6), copy panel, concat.
 5. **3.0.0 release.** Version bump in the eight files listed above, update note, changelog
    row. Nothing else may land in this step.

@@ -70,6 +70,7 @@ import {
 import type { ReferenceAvatar } from '~/lib/reference-avatar'
 import { useModelChoices } from '~/lib/use-model-choices'
 import { usePromptBridge } from '~/lib/assistant-context'
+import { takeEditHandoff } from '~/lib/edit-handoff'
 import { oversizedReferences, referenceIsOversized, shouldConfirmResize } from '~/lib/oversized-images'
 import { ResizeImagesDialog } from '~/components/resize-images-dialog'
 import { ReferencePicker } from './reference-picker'
@@ -125,7 +126,8 @@ export function HomeComposer({
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const startModelId = initialAvatar?.lora ? LORA_MODEL_ID : 'gpt-image-2'
   const [loraStrength, setLoraStrength] = useState(LORA_SCALE_DEFAULT)
-  const [mode, setMode] = useState<ComposerMode>('generate')
+  const [handoff] = useState<ReferenceItem[]>(() => takeEditHandoff())
+  const [mode, setMode] = useState<ComposerMode>(handoff.length > 0 ? 'edit' : 'generate')
   const [prompt, setPrompt] = useState('')
   const [modelId, setModelId] = useState(startModelId)
   const [ratio, setRatio] = useState(() => defaultAspectRatio(modelFor(startModelId)))
@@ -152,7 +154,7 @@ export function HomeComposer({
         ]
       : [],
   )
-  const [editTargets, setEditTargets] = useState<ReferenceItem[]>([])
+  const [editTargets, setEditTargets] = useState<ReferenceItem[]>(handoff)
   const [editReferences, setEditReferences] = useState<ReferenceItem[]>([])
   const [picker, setPicker] = useState<PickerTarget | null>(null)
   const [expanded, setExpanded] = useState(false)

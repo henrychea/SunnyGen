@@ -31,6 +31,7 @@ import {
   clearProviderKey,
   loadCodexStatus,
   loadLocalStatus,
+  loadMediaToolsStatus,
   loadSettings,
   saveAzureConfig,
   saveLocalConfig,
@@ -98,6 +99,8 @@ function SettingsPage() {
               <LocalServerCard baseUrl={settings.localBaseUrl} onSaved={() => router.invalidate()} />
               <Separator />
               <CodexCard />
+              <Separator />
+              <MediaToolsCard />
             </CardContent>
           </Card>
 
@@ -239,6 +242,60 @@ function CodexCard() {
       <p className="border-line-strong bg-canvas/60 text-ink/65 rounded-xl border px-3 py-2 text-[11.5px] leading-relaxed">
         Runs GPT Image 2 through your ChatGPT plan. Install <code className="font-mono">codex-imagegen</code>{' '}
         and run <code className="font-mono">codex login</code> on this machine to enable it.
+      </p>
+    </div>
+  )
+}
+
+function MediaToolsCard() {
+  const status = useQuery({ queryKey: ['media-tools-status'], queryFn: () => loadMediaToolsStatus() })
+  const ready = status.data?.ffmpeg ?? false
+  const version = status.data?.version?.match(/version\s+(\S+)/)?.[1] ?? null
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center justify-between">
+        <Label>Media tools</Label>
+        <AnimatePresence initial={false} mode="wait">
+          {status.isLoading ? (
+            <motion.span
+              key="media-loading"
+              variants={motionFade}
+              initial="hidden"
+              animate="visible"
+              exit="hidden"
+              className="skeleton-shimmer block h-4 w-24 rounded-md"
+            />
+          ) : (
+            <motion.span
+              key="media-status"
+              variants={motionFade}
+              initial="hidden"
+              animate="visible"
+              exit="hidden"
+              className="inline-flex"
+            >
+              <StatusBadge
+                tone={ready ? 'success' : 'warning'}
+                value={ready ? `Ready · ffmpeg ${version ?? ''}`.trim() : 'Missing'}
+              />
+            </motion.span>
+          )}
+        </AnimatePresence>
+      </div>
+      <p className="border-line bg-canvas/60 text-ink/50 rounded-xl border px-3 py-2 text-[11.5px] leading-relaxed">
+        {ready ? (
+          <>
+            ffmpeg extracts frames and joins the finished clips for video copy. ffprobe reads each clip's
+            duration, size, and frame rate.
+          </>
+        ) : (
+          <>
+            Video copy needs <code className="font-mono">ffmpeg</code> and{' '}
+            <code className="font-mono">ffprobe</code>. Install them with{' '}
+            <code className="font-mono">apt install ffmpeg</code> on Debian or Ubuntu, or{' '}
+            <code className="font-mono">brew install ffmpeg</code> on macOS.
+          </>
+        )}
       </p>
     </div>
   )

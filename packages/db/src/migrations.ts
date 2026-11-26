@@ -1,4 +1,4 @@
-export const SCHEMA_VERSION = 5
+export const SCHEMA_VERSION = 6
 
 export const MIGRATIONS: readonly string[] = [
   `
@@ -126,5 +126,21 @@ export const MIGRATIONS: readonly string[] = [
   ALTER TABLE assets ADD COLUMN nsfw INTEGER NOT NULL DEFAULT 0;
   CREATE INDEX assets_nsfw ON assets(nsfw);
   CREATE INDEX generations_nsfw ON generations(nsfw);
+  `,
+  `
+  CREATE TABLE video_copies (
+    id TEXT PRIMARY KEY,
+    source_asset_id TEXT NOT NULL REFERENCES assets(id) ON DELETE CASCADE,
+    status TEXT NOT NULL,
+    agent TEXT,
+    shots TEXT NOT NULL DEFAULT '[]',
+    frame_asset_ids TEXT NOT NULL DEFAULT '[]',
+    output_asset_id TEXT REFERENCES assets(id) ON DELETE SET NULL,
+    error TEXT,
+    folder_id TEXT REFERENCES folders(id) ON DELETE SET NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  ) STRICT;
+  CREATE INDEX video_copies_created ON video_copies(created_at DESC);
   `,
 ]
