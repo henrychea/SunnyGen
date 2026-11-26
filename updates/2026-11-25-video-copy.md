@@ -1,7 +1,7 @@
 # Video copy: frames, a shot list, and a joined clip
 
 - Date: 2026-11-25
-- Status: working tree, not committed
+- Status: shipped in 3.0.0, branch `henrychea/v3-video-copy`
 
 ## Summary
 
@@ -47,7 +47,7 @@ apply without new machinery.
   naming the shot, never as exceptions.
 - `packages/core/src/generation.ts`: `VIDEO_COPY_STATUSES`, `VideoCopyStatus`,
   `VideoCopyShot` (a shot plus the generation that realises it) and `VideoCopyRecord`.
-- `packages/db`: migration 5 adds `video_copies` with `output_asset_id`,
+- `packages/db`: migration 6 adds `video_copies` with `output_asset_id`,
   `frame_asset_ids`, `shots`, `agent`, `error`, `folder_id` and
   `CREATE INDEX video_copies_created`. `repositories/video-copies.ts` reads and writes it;
   every write moves `updated_at`, and deleting a copy leaves its frames and clips alone.
