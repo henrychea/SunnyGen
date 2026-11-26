@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SunnyGen 3.0.0: Dark Theme, NSFW Mode, Video Copy</title>
+<meta name="description" content="SunnyGen 3.0.0 adds a dark theme, an NSFW mode with uncensored providers, a video copy pipeline on the Video tab, and a UI audit pass. Upgrade notes included.">
+<link rel="canonical" href="https://henrychea.github.io/SunnyGen/releases/3-0-0/">
+<meta name="theme-color" content="#FAF6EF">
+<meta name="color-scheme" content="light">
+<meta name="author" content="Henry Chea">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../../assets/icons/apple-touch-icon.png">
+<link rel="manifest" href="../../site.webmanifest">
+<link rel="preload" href="../../assets/fonts/space-grotesk.woff2" as="font" type="font/woff2" crossorigin>
+
+<link rel="stylesheet" href="../../assets/site.css">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="SunnyGen">
+<meta property="og:locale" content="en_US">
+<meta property="og:title" content="SunnyGen 3.0.0: Dark Theme, NSFW Mode, Video Copy">
+<meta property="og:description" content="SunnyGen 3.0.0 adds a dark theme, an NSFW mode with uncensored providers, a video copy pipeline on the Video tab, and a UI audit pass. Upgrade notes included.">
+<meta property="og:url" content="https://henrychea.github.io/SunnyGen/releases/3-0-0/">
+<meta property="og:image" content="https://henrychea.github.io/SunnyGen/assets/og/home.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="SunnyGen, a self-hosted AI image and video studio">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="SunnyGen 3.0.0: Dark Theme, NSFW Mode, Video Copy">
+<meta name="twitter:description" content="SunnyGen 3.0.0 adds a dark theme, an NSFW mode with uncensored providers, a video copy pipeline on the Video tab, and a UI audit pass. Upgrade notes included.">
+<meta name="twitter:image" content="https://henrychea.github.io/SunnyGen/assets/og/home.png">
+<meta name="twitter:image:alt" content="SunnyGen, a self-hosted AI image and video studio">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Article","headline":"SunnyGen 3.0.0: dark theme, NSFW mode, video copy","datePublished":"2026-11-26","author":{"@id":"https://henrychea.github.io/SunnyGen/#author"},"about":{"@id":"https://henrychea.github.io/SunnyGen/#software"},"inLanguage":"en"},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://henrychea.github.io/SunnyGen/"},{"@type":"ListItem","position":2,"name":"Releases","item":"https://henrychea.github.io/SunnyGen/releases/"},{"@type":"ListItem","position":3,"name":"3.0.0","item":"https://henrychea.github.io/SunnyGen/releases/3-0-0/"}]},{"@type":"WebPage","@id":"https://henrychea.github.io/SunnyGen/releases/3-0-0/#webpage","url":"https://henrychea.github.io/SunnyGen/releases/3-0-0/","name":"SunnyGen 3.0.0: Dark Theme, NSFW Mode, Video Copy","description":"SunnyGen 3.0.0 adds a dark theme, an NSFW mode with uncensored providers, a video copy pipeline on the Video tab, and a UI audit pass. Upgrade notes included.","isPartOf":{"@id":"https://henrychea.github.io/SunnyGen/#website"},"about":{"@id":"https://henrychea.github.io/SunnyGen/#software"},"inLanguage":"en"}]}</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-header">
+<div class="wrap">
+<a class="brand" href="../../"><svg viewBox="0 0 64 64" aria-hidden="true" focusable="false"><rect width="64" height="64" rx="16" fill="#A31621"/><circle cx="32" cy="32" r="9" fill="#FAF6EF"/><g stroke="#FAF6EF" stroke-width="3.5" stroke-linecap="round"><path d="M32 12v7M32 45v7M12 32h7M45 32h7M18.3 18.3l5 5M40.7 40.7l5 5M45.7 18.3l-5 5M23.3 40.7l-5 5"/></g></svg>SunnyGen</a>
+<nav class="nav" aria-label="Main"><ul><li><a href="../../ai-avatar-studio/">Studio</a></li><li><a href="../../node-canvas/">Canvas</a></li><li><a href="../../lora-training/">LoRA training</a></li><li><a href="../../self-hosted-ai-image-generator/">Self-hosting</a></li><li><a href="../../install/">Quick start</a></li><li><a href="../../releases/">Releases</a></li><li><a href="../../faq/">FAQ</a></li><li><a href="https://github.com/henrychea/SunnyGen">GitHub</a></li></ul></nav>
+</div>
+</header>
+<nav class="crumbs wrap" aria-label="Breadcrumb"><ol><li><a href="../../">Home</a></li><li><a href="../../releases/">Releases</a></li><li><span aria-current="page">3.0.0</span></li></ol></nav>
+<main id="main">
+<section class="page-hero wrap prose" aria-labelledby="title">
+<h1 id="title">SunnyGen 3.0.0</h1>
+<p class="lead">A dark theme, an NSFW mode that unlocks uncensored providers, and a video copy pipeline that turns a reference clip into a shot list and a joined remake.</p>
+<ul class="facts"><li>2026-11-26</li><li>Migrations 5 and 6</li><li>ffmpeg for video copy</li><li>NSFW mode off by default</li></ul>
+</section>
+
+<section class="section" aria-labelledby="theme">
+<div class="wrap prose">
+<h2 id="theme">Dark theme</h2>
+<p>Settings → Theme offers System, Light and Dark. The choice is stored in the browser and applies per device, so the phone and the desktop can differ. A small script sets the palette before the first paint, so a dark device never flashes the light theme while the app loads, and the browser chrome colour follows.</p>
+<p>Dark is a second token set under the same variables the light theme uses, not a set of per-component overrides, so every route and every dialog follows without a second stylesheet.</p>
+</div>
+</section>
+
+<section class="section" aria-labelledby="nsfw">
+<div class="wrap prose">
+<h2 id="nsfw">NSFW mode and uncensored providers</h2>
+<p>NSFW mode is a switch in Settings, off by default, remembered per device. While it is on, SunnyGen writes the least restrictive documented value for every safety field the chosen provider endpoint exposes, and it opens the uncensored models. While it is off, requests carry exactly the fields they carried before, so nothing changes for an install that never turns it on.</p>
+<p>Visibility is a server rule, not a blur. Generations and assets made in NSFW mode are marked, and safe mode removes them in SQL, so the rows never reach the browser and the media route answers 404. Frames and joined clips made by the video copy pipeline inherit their source's flag, and a copy of an NSFW clip is hidden with it.</p>
+<div class="table-wrap"><table>
+<thead><tr><th scope="col">Provider</th><th scope="col">Models</th><th scope="col">Credential</th></tr></thead>
+<tbody>
+<tr><td>Wiro</td><td>Z Image, Z Image Pro, Qwen Image Edit, uncensored variants</td><td>Wiro API key</td></tr>
+<tr><td>Local sd-server</td><td>Local sd-server</td><td>None; the server URL from Settings</td></tr>
+</tbody></table></div>
+<p>The local provider talks to a <code>stable-diffusion.cpp</code> sd-server that you run yourself; SunnyGen never installs or starts it. Both providers exist only while NSFW mode is on.</p>
+</div>
+</section>
+
+<section class="section" aria-labelledby="copy">
+<div class="wrap prose">
+<h2 id="copy">Video copy pipeline</h2>
+<p>The Video tab has a Copy panel beside Generate and Edit. It rebuilds a reference clip as your own generation instead of guessing one prompt for the whole video.</p>
+<ol class="steps">
+<li><strong>Extract frames.</strong> Pick a source clip of 600 seconds or less and pull up to 48 stills by scene change, by interval, or at exact timestamps.</li>
+<li><strong>Edit a frame.</strong> Any still opens in the existing image editor, so a costume or a background changes before the plan is written.</li>
+<li><strong>Read a shot list.</strong> Claude Code, Codex, OMP or Pi reads the stills and returns a schema-checked shot list, or you paste one and edit it by hand.</li>
+<li><strong>Generate and join.</strong> Each shot renders through the existing start-and-end-frame video mode, up to 24 shots, then Join concatenates the finished clips into one new asset.</li>
+</ol>
+<p>The work is stored as it goes, so a reload resumes at the stage it reached. Joining stream-copies only when every clip shares its codec, size and frame rate, and re-encodes otherwise. The rest of the app runs without ffmpeg; this panel says what to install when it is missing.</p>
+</div>
+</section>
+
+<section class="section" aria-labelledby="ui">
+<div class="wrap prose">
+<h2 id="ui">UI cleanup</h2>
+<p>Every surface, both palettes, was audited against one written standard and the findings were fixed:</p>
+<ul>
+<li>One muted text tier above the WCAG AA contrast floor replaced six opacity steps that failed it.</li>
+<li>Container borders use a stronger line token, and the warning colour passes AA in the light theme.</li>
+<li>Shadows stay on dialogs, menus, toasts, panels and the assistant button; cards lost theirs.</li>
+<li>No blur, no uppercase micro-labels, no list entrance animation, and no text below 11px.</li>
+<li>Touch pointers get 44px targets, and two hand-rolled dialogs gained focus containment.</li>
+</ul>
+</div>
+</section>
+
+<section class="section" aria-labelledby="upgrade">
+<div class="wrap prose">
+<h2 id="upgrade">Upgrading</h2>
+<div class="note"><p>Back up <code>data/sunnygen.db</code> before the first 3.0.0 start. Migrations 5 and 6 run automatically, and there is no down-migration.</p></div>
+<ul>
+<li><strong>Migrations.</strong> 5 adds an <code>nsfw</code> flag to generations and assets with a safe default, so every existing render stays visible. 6 adds the video copy table.</li>
+<li><strong>ffmpeg.</strong> The video copy panel needs <code>ffmpeg</code> and <code>ffprobe</code> on <code>PATH</code>: <code>apt install ffmpeg</code> or <code>brew install ffmpeg</code>. The Docker image ships both.</li>
+<li><strong>Agent CLIs are optional.</strong> Shot-list analysis uses <code>claude</code>, <code>codex</code>, <code>omp</code> or <code>pi</code> when one is installed and logged in; without one, paste a shot list.</li>
+<li><strong>Two per-device modes.</strong> NSFW mode is a cookie and the theme is browser storage. Neither is written to the database, and clearing site data returns an install to safe mode and System theme.</li>
+</ul>
+<p>Full detail: <a href="https://github.com/henrychea/SunnyGen/blob/main/updates/2026-11-26-v3.0.0.md">the 3.0.0 release note</a> · <a href="../../releases/">all releases</a>.</p>
+</div>
+</section>
+</main>
+<footer class="site-footer">
+<div class="wrap">
+<div class="cols">
+<div>
+<a class="brand" href="../../"><svg viewBox="0 0 64 64" aria-hidden="true" focusable="false"><rect width="64" height="64" rx="16" fill="#A31621"/><circle cx="32" cy="32" r="9" fill="#FAF6EF"/><g stroke="#FAF6EF" stroke-width="3.5" stroke-linecap="round"><path d="M32 12v7M32 45v7M12 32h7M45 32h7M18.3 18.3l5 5M40.7 40.7l5 5M45.7 18.3l-5 5M23.3 40.7l-5 5"/></g></svg>SunnyGen</a>
+<p>A free, MIT-licensed, self-hosted studio for AI image and video generation. Your models. Your machine. Your library.</p>
+</div>
+<nav aria-label="Features"><h2>Features</h2><ul>
+<li><a href="../../ai-avatar-studio/">AI avatar studio</a></li>
+<li><a href="../../node-canvas/">Node canvas</a></li>
+<li><a href="../../lora-training/">FLUX LoRA training</a></li>
+<li><a href="../../self-hosted-ai-image-generator/">Self-hosted generator</a></li>
+</ul></nav>
+<nav aria-label="Project"><h2>Project</h2><ul>
+<li><a href="../../install/">Quick start</a></li>
+<li><a href="../../releases/">Releases</a></li>
+<li><a href="../../faq/">FAQ</a></li>
+<li><a href="https://github.com/henrychea/SunnyGen">Source on GitHub</a></li>
+<li><a href="https://github.com/henrychea/SunnyGen/blob/main/LICENSE">MIT license</a></li>
+</ul></nav>
+</div>
+<p class="fine">Built by <a href="https://github.com/henrychea">Henry Chea</a> with TanStack Start, React, and TypeScript. Screenshots show demo content.</p>
+</div>
+</footer>
+</body>
+</html>

@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://henrychea.github.io/SunnyGen/</loc><lastmod>2026-11-20</lastmod></url>
-  <url><loc>https://henrychea.github.io/SunnyGen/self-hosted-ai-image-generator/</loc><lastmod>2026-11-20</lastmod></url>
-  <url><loc>https://henrychea.github.io/SunnyGen/node-canvas/</loc><lastmod>2026-11-20</lastmod></url>
-  <url><loc>https://henrychea.github.io/SunnyGen/ai-avatar-studio/</loc><lastmod>2026-11-20</lastmod></url>
-  <url><loc>https://henrychea.github.io/SunnyGen/lora-training/</loc><lastmod>2026-11-20</lastmod></url>
-  <url><loc>https://henrychea.github.io/SunnyGen/install/</loc><lastmod>2026-11-20</lastmod></url>
-  <url><loc>https://henrychea.github.io/SunnyGen/faq/</loc><lastmod>2026-11-20</lastmod></url>
+  <url><loc>https://henrychea.github.io/SunnyGen/</loc><lastmod>2026-11-26</lastmod></url>
+  <url><loc>https://henrychea.github.io/SunnyGen/self-hosted-ai-image-generator/</loc><lastmod>2026-11-26</lastmod></url>
+  <url><loc>https://henrychea.github.io/SunnyGen/node-canvas/</loc><lastmod>2026-11-26</lastmod></url>
+  <url><loc>https://henrychea.github.io/SunnyGen/ai-avatar-studio/</loc><lastmod>2026-11-26</lastmod></url>
+  <url><loc>https://henrychea.github.io/SunnyGen/lora-training/</loc><lastmod>2026-11-26</lastmod></url>
+  <url><loc>https://henrychea.github.io/SunnyGen/install/</loc><lastmod>2026-11-26</lastmod></url>
+  <url><loc>https://henrychea.github.io/SunnyGen/releases/</loc><lastmod>2026-11-26</lastmod></url>
+  <url><loc>https://henrychea.github.io/SunnyGen/releases/3-0-0/</loc><lastmod>2026-11-26</lastmod></url>
+  <url><loc>https://henrychea.github.io/SunnyGen/faq/</loc><lastmod>2026-11-26</lastmod></url>
 </urlset>

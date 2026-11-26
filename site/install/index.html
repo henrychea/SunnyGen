@@ -1,277 +1,125 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Install SunnyGen: Quick Start Guide</title>
-    <meta
-      name="description"
-      content="Install SunnyGen in four commands with Node.js and pnpm, add a provider key, and render your first image. Docker, service, LAN, and PWA setup included."
-    />
-    <link rel="canonical" href="https://henrychea.github.io/SunnyGen/install/" />
-    <meta name="theme-color" content="#FAF6EF" />
-    <meta name="color-scheme" content="light" />
-    <meta name="author" content="Henry Chea" />
-    <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
-    <link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png" />
-    <link rel="manifest" href="../site.webmanifest" />
-    <link rel="preload" href="../assets/fonts/space-grotesk.woff2" as="font" type="font/woff2" crossorigin />
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Install SunnyGen: Quick Start Guide</title>
+<meta name="description" content="Install SunnyGen in four commands with Node.js and pnpm, add a provider key, and render your first image. Docker, service, LAN, and PWA setup included.">
+<link rel="canonical" href="https://henrychea.github.io/SunnyGen/install/">
+<meta name="theme-color" content="#FAF6EF">
+<meta name="color-scheme" content="light">
+<meta name="author" content="Henry Chea">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png">
+<link rel="manifest" href="../site.webmanifest">
+<link rel="preload" href="../assets/fonts/space-grotesk.woff2" as="font" type="font/woff2" crossorigin>
 
-    <link rel="stylesheet" href="../assets/site.css" />
-    <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="SunnyGen" />
-    <meta property="og:locale" content="en_US" />
-    <meta property="og:title" content="Install SunnyGen: Quick Start Guide" />
-    <meta
-      property="og:description"
-      content="Install SunnyGen in four commands with Node.js and pnpm, add a provider key, and render your first image. Docker, service, LAN, and PWA setup included."
-    />
-    <meta property="og:url" content="https://henrychea.github.io/SunnyGen/install/" />
-    <meta property="og:image" content="https://henrychea.github.io/SunnyGen/assets/og/home.png" />
-    <meta property="og:image:type" content="image/png" />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="SunnyGen, a self-hosted AI image and video studio" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Install SunnyGen: Quick Start Guide" />
-    <meta
-      name="twitter:description"
-      content="Install SunnyGen in four commands with Node.js and pnpm, add a provider key, and render your first image. Docker, service, LAN, and PWA setup included."
-    />
-    <meta name="twitter:image" content="https://henrychea.github.io/SunnyGen/assets/og/home.png" />
-    <meta name="twitter:image:alt" content="SunnyGen, a self-hosted AI image and video studio" />
-    <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@graph": [
-          {
-            "@type": "Person",
-            "@id": "https://henrychea.github.io/SunnyGen/#author",
-            "name": "Henry Chea",
-            "url": "https://github.com/henrychea"
-          },
-          {
-            "@type": "HowTo",
-            "name": "Install SunnyGen",
-            "totalTime": "PT10M",
-            "tool": [
-              { "@type": "HowToTool", "name": "Node.js 22.20 or newer" },
-              { "@type": "HowToTool", "name": "pnpm 9.15" }
-            ],
-            "step": [
-              {
-                "@type": "HowToStep",
-                "name": "Clone",
-                "text": "git clone https://github.com/henrychea/SunnyGen.git and cd SunnyGen."
-              },
-              { "@type": "HowToStep", "name": "Install", "text": "Run pnpm install." },
-              {
-                "@type": "HowToStep",
-                "name": "Start",
-                "text": "Run ./sunnygen and open http://localhost:8977."
-              },
-              {
-                "@type": "HowToStep",
-                "name": "Add a provider",
-                "text": "Add a Sunra.ai, fal.ai, Azure, or Codex credential under Settings → Providers."
-              }
-            ]
-          },
-          {
-            "@type": "BreadcrumbList",
-            "itemListElement": [
-              {
-                "@type": "ListItem",
-                "position": 1,
-                "name": "Home",
-                "item": "https://henrychea.github.io/SunnyGen/"
-              },
-              {
-                "@type": "ListItem",
-                "position": 2,
-                "name": "Quick start",
-                "item": "https://henrychea.github.io/SunnyGen/install/"
-              }
-            ]
-          },
-          {
-            "@type": "WebPage",
-            "@id": "https://henrychea.github.io/SunnyGen/install/#webpage",
-            "url": "https://henrychea.github.io/SunnyGen/install/",
-            "name": "Install SunnyGen: Quick Start Guide",
-            "description": "Install SunnyGen in four commands with Node.js and pnpm, add a provider key, and render your first image. Docker, service, LAN, and PWA setup included.",
-            "isPartOf": { "@id": "https://henrychea.github.io/SunnyGen/#website" },
-            "about": { "@id": "https://henrychea.github.io/SunnyGen/#software" },
-            "inLanguage": "en"
-          }
-        ]
-      }
-    </script>
-  </head>
-  <body>
-    <a class="skip" href="#main">Skip to content</a>
-    <header class="site-header">
-      <div class="wrap">
-        <a class="brand" href="../"
-          ><svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
-            <rect width="64" height="64" rx="16" fill="#A31621" />
-            <circle cx="32" cy="32" r="9" fill="#FAF6EF" />
-            <g stroke="#FAF6EF" stroke-width="3.5" stroke-linecap="round">
-              <path
-                d="M32 12v7M32 45v7M12 32h7M45 32h7M18.3 18.3l5 5M40.7 40.7l5 5M45.7 18.3l-5 5M23.3 40.7l-5 5"
-              />
-            </g></svg
-          >SunnyGen</a
-        >
-        <nav class="nav" aria-label="Main">
-          <ul>
-            <li><a href="../ai-avatar-studio/">Studio</a></li>
-            <li><a href="../node-canvas/">Canvas</a></li>
-            <li><a href="../lora-training/">LoRA training</a></li>
-            <li><a href="../self-hosted-ai-image-generator/">Self-hosting</a></li>
-            <li><a href="../install/" aria-current="page">Quick start</a></li>
-            <li><a href="../faq/">FAQ</a></li>
-            <li><a href="https://github.com/henrychea/SunnyGen">GitHub</a></li>
-          </ul>
-        </nav>
-      </div>
-    </header>
-    <nav class="crumbs wrap" aria-label="Breadcrumb">
-      <ol>
-        <li><a href="../">Home</a></li>
-        <li><span aria-current="page">Quick start</span></li>
-      </ol>
-    </nav>
-    <main id="main">
-      <section class="page-hero wrap prose" aria-labelledby="title">
-        <span class="eyebrow">Quick start</span>
-        <h1 id="title">Install SunnyGen in four commands</h1>
-        <p class="lead">
-          You need Node.js 22.20 or newer (24 recommended) and pnpm 9.15. Docker is optional.
-        </p>
-      </section>
+<link rel="stylesheet" href="../assets/site.css">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="SunnyGen">
+<meta property="og:locale" content="en_US">
+<meta property="og:title" content="Install SunnyGen: Quick Start Guide">
+<meta property="og:description" content="Install SunnyGen in four commands with Node.js and pnpm, add a provider key, and render your first image. Docker, service, LAN, and PWA setup included.">
+<meta property="og:url" content="https://henrychea.github.io/SunnyGen/install/">
+<meta property="og:image" content="https://henrychea.github.io/SunnyGen/assets/og/home.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="SunnyGen, a self-hosted AI image and video studio">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Install SunnyGen: Quick Start Guide">
+<meta name="twitter:description" content="Install SunnyGen in four commands with Node.js and pnpm, add a provider key, and render your first image. Docker, service, LAN, and PWA setup included.">
+<meta name="twitter:image" content="https://henrychea.github.io/SunnyGen/assets/og/home.png">
+<meta name="twitter:image:alt" content="SunnyGen, a self-hosted AI image and video studio">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Person","@id":"https://henrychea.github.io/SunnyGen/#author","name":"Henry Chea","url":"https://github.com/henrychea"},{"@type":"HowTo","name":"Install SunnyGen","totalTime":"PT10M","tool":[{"@type":"HowToTool","name":"Node.js 22.20 or newer"},{"@type":"HowToTool","name":"pnpm 9.15"}],"step":[{"@type":"HowToStep","name":"Clone","text":"git clone https://github.com/henrychea/SunnyGen.git and cd SunnyGen."},{"@type":"HowToStep","name":"Install","text":"Run pnpm install."},{"@type":"HowToStep","name":"Start","text":"Run ./sunnygen and open http://localhost:8977."},{"@type":"HowToStep","name":"Add a provider","text":"Add a Sunra.ai, fal.ai, Azure, or Codex credential under Settings → Providers."}]},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://henrychea.github.io/SunnyGen/"},{"@type":"ListItem","position":2,"name":"Quick start","item":"https://henrychea.github.io/SunnyGen/install/"}]},{"@type":"WebPage","@id":"https://henrychea.github.io/SunnyGen/install/#webpage","url":"https://henrychea.github.io/SunnyGen/install/","name":"Install SunnyGen: Quick Start Guide","description":"Install SunnyGen in four commands with Node.js and pnpm, add a provider key, and render your first image. Docker, service, LAN, and PWA setup included.","isPartOf":{"@id":"https://henrychea.github.io/SunnyGen/#website"},"about":{"@id":"https://henrychea.github.io/SunnyGen/#software"},"inLanguage":"en"}]}</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-header">
+<div class="wrap">
+<a class="brand" href="../"><svg viewBox="0 0 64 64" aria-hidden="true" focusable="false"><rect width="64" height="64" rx="16" fill="#A31621"/><circle cx="32" cy="32" r="9" fill="#FAF6EF"/><g stroke="#FAF6EF" stroke-width="3.5" stroke-linecap="round"><path d="M32 12v7M32 45v7M12 32h7M45 32h7M18.3 18.3l5 5M40.7 40.7l5 5M45.7 18.3l-5 5M23.3 40.7l-5 5"/></g></svg>SunnyGen</a>
+<nav class="nav" aria-label="Main"><ul><li><a href="../ai-avatar-studio/">Studio</a></li><li><a href="../node-canvas/">Canvas</a></li><li><a href="../lora-training/">LoRA training</a></li><li><a href="../self-hosted-ai-image-generator/">Self-hosting</a></li><li><a href="../install/" aria-current="page">Quick start</a></li><li><a href="../releases/">Releases</a></li><li><a href="../faq/">FAQ</a></li><li><a href="https://github.com/henrychea/SunnyGen">GitHub</a></li></ul></nav>
+</div>
+</header>
+<nav class="crumbs wrap" aria-label="Breadcrumb"><ol><li><a href="../">Home</a></li><li><span aria-current="page">Quick start</span></li></ol></nav>
+<main id="main">
+<section class="page-hero wrap prose" aria-labelledby="title">
+<span class="eyebrow">Quick start</span>
+<h1 id="title">Install SunnyGen in four commands</h1>
+<p class="lead">You need Node.js 22.20 or newer (24 recommended) and pnpm 9.15. Docker is optional.</p>
+</section>
 
-      <section class="section" aria-labelledby="steps">
-        <div class="wrap prose">
-          <h2 id="steps">Install and start</h2>
-          <pre><code>git clone https://github.com/henrychea/SunnyGen.git
+<section class="section" aria-labelledby="steps">
+<div class="wrap prose">
+<h2 id="steps">Install and start</h2>
+<pre><code>git clone https://github.com/henrychea/SunnyGen.git
 cd SunnyGen
 pnpm install
 ./sunnygen</code></pre>
-          <p>
-            The launcher builds when the source is newer than the last build and serves on
-            <code>0.0.0.0:8977</code>. Open <code>http://localhost:8977</code>.
-          </p>
-          <h2>Your first render</h2>
-          <ol class="steps">
-            <li>
-              <strong>Settings → Providers.</strong> Add a Sunra.ai, fal.ai, Azure, or Codex credential.
-            </li>
-            <li>
-              <strong>Canvas.</strong> Connect a Prompt node to a Generate node and press
-              <strong>Run all</strong>.
-            </li>
-            <li><strong>Gallery.</strong> Every finished render lands here automatically.</li>
-          </ol>
-          <p>Prefer hot reload while you hack on it? Run <code>pnpm dev</code>.</p>
-        </div>
-      </section>
+<p>The launcher builds when the source is newer than the last build and serves on <code>0.0.0.0:8977</code>. Open <code>http://localhost:8977</code>.</p>
+<h2>Your first render</h2>
+<ol class="steps">
+<li><strong>Settings → Providers.</strong> Add a Sunra.ai, fal.ai, Azure, or Codex credential.</li>
+<li><strong>Canvas.</strong> Connect a Prompt node to a Generate node and press <strong>Run all</strong>.</li>
+<li><strong>Gallery.</strong> Every finished render lands here automatically.</li>
+</ol>
+<p>Prefer hot reload while you hack on it? Run <code>pnpm dev</code>.</p>
+</div>
+</section>
 
-      <section class="section" aria-labelledby="options">
-        <div class="wrap prose">
-          <h2 id="options">Run options</h2>
-          <h3>Reach it from other devices</h3>
-          <pre><code>./sunnygen --name studio     # http://studio.local:8977
+<section class="section" aria-labelledby="options">
+<div class="wrap prose">
+<h2 id="options">Run options</h2>
+<h3>Reach it from other devices</h3>
+<pre><code>./sunnygen --name studio     # http://studio.local:8977
 ./sunnygen --port 3000
 ./sunnygen --background      # detach, log to .sunnygen/
 ./sunnygen --tunnel          # Cloudflare Tunnel connector</code></pre>
-          <p>The launcher prints local, LAN, Tailscale, and MagicDNS URLs.</p>
-          <h3>Keep it running as a service</h3>
-          <pre><code>./sunnygen --install-service
+<p>The launcher prints local, LAN, Tailscale, and MagicDNS URLs.</p>
+<h3>Keep it running as a service</h3>
+<pre><code>./sunnygen --install-service
 ./sunnygen --service-status
 ./sunnygen --restart-service</code></pre>
-          <p>
-            This uses launchd on macOS and <code>systemd --user</code> on Linux, and restarts the app after a
-            crash.
-          </p>
-          <h3>Run it in Docker</h3>
-          <pre><code>docker compose -p sunnygen-prod up -d --build</code></pre>
-          <p>The image serves on port 8977 and mounts the data directory from the host.</p>
-          <h3>Install as an app</h3>
-          <ul>
-            <li><strong>Chrome or Edge:</strong> use the install icon in the address bar.</li>
-            <li><strong>iPhone or iPad (Safari):</strong> Share → Add to Home Screen.</li>
-            <li><strong>Android (Chrome):</strong> Menu → Install app.</li>
-          </ul>
-          <h3>Optional extras</h3>
-          <p>
-            Social imports need a local cobalt container: <code>./sunnygen --cobalt</code>. The Codex provider
-            needs the <code>codex</code> CLI logged in on the same machine. Environment fallbacks for keys:
-            <code>SUNRA_API_KEY</code>, <code>FAL_KEY</code>, <code>AZURE_API_KEY</code>,
-            <code>OPENROUTER_API_KEY</code>.
-          </p>
-          <div class="note">
-            <p>
-              SunnyGen has no login. Before you expose it beyond your private network, put an authenticating
-              proxy such as Cloudflare Access in front of it.
-            </p>
-          </div>
-          <div class="cta">
-            <a class="btn btn-primary" href="https://github.com/henrychea/SunnyGen"
-              ><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-                <path
-                  d="M8 0a8 8 0 0 0-2.53 15.59c.4.07.55-.17.55-.38v-1.34c-2.23.48-2.7-1.07-2.7-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.06-.49.06-.49.8.06 1.23.83 1.23.83.72 1.22 1.87.87 2.33.66.07-.52.28-.87.5-1.07-1.78-.2-3.65-.89-3.65-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.28.82 2.15 0 3.07-1.87 3.75-3.66 3.95.29.25.54.73.54 1.48v2.2c0 .21.15.46.55.38A8 8 0 0 0 8 0Z"
-                /></svg
-              >View on GitHub</a
-            ><a class="btn btn-secondary" href="../install/">Quick start</a>
-          </div>
-        </div>
-      </section>
-    </main>
-    <footer class="site-footer">
-      <div class="wrap">
-        <div class="cols">
-          <div>
-            <a class="brand" href="../"
-              ><svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
-                <rect width="64" height="64" rx="16" fill="#A31621" />
-                <circle cx="32" cy="32" r="9" fill="#FAF6EF" />
-                <g stroke="#FAF6EF" stroke-width="3.5" stroke-linecap="round">
-                  <path
-                    d="M32 12v7M32 45v7M12 32h7M45 32h7M18.3 18.3l5 5M40.7 40.7l5 5M45.7 18.3l-5 5M23.3 40.7l-5 5"
-                  />
-                </g></svg
-              >SunnyGen</a
-            >
-            <p>
-              A free, MIT-licensed, self-hosted studio for AI image and video generation. Your models. Your
-              machine. Your library.
-            </p>
-          </div>
-          <nav aria-label="Features">
-            <h2>Features</h2>
-            <ul>
-              <li><a href="../ai-avatar-studio/">AI avatar studio</a></li>
-              <li><a href="../node-canvas/">Node canvas</a></li>
-              <li><a href="../lora-training/">FLUX LoRA training</a></li>
-              <li><a href="../self-hosted-ai-image-generator/">Self-hosted generator</a></li>
-            </ul>
-          </nav>
-          <nav aria-label="Project">
-            <h2>Project</h2>
-            <ul>
-              <li><a href="../install/">Quick start</a></li>
-              <li><a href="../faq/">FAQ</a></li>
-              <li><a href="https://github.com/henrychea/SunnyGen">Source on GitHub</a></li>
-              <li><a href="https://github.com/henrychea/SunnyGen/blob/main/LICENSE">MIT license</a></li>
-            </ul>
-          </nav>
-        </div>
-        <p class="fine">
-          Built by <a href="https://github.com/henrychea">Henry Chea</a> with TanStack Start, React, and
-          TypeScript. Screenshots show demo content.
-        </p>
-      </div>
-    </footer>
-  </body>
+<p>This uses launchd on macOS and <code>systemd --user</code> on Linux, and restarts the app after a crash.</p>
+<h3>Run it in Docker</h3>
+<pre><code>docker compose -p sunnygen-prod up -d --build</code></pre>
+<p>The image serves on port 8977 and mounts the data directory from the host.</p>
+<h3>Install as an app</h3>
+<ul>
+<li><strong>Chrome or Edge:</strong> use the install icon in the address bar.</li>
+<li><strong>iPhone or iPad (Safari):</strong> Share → Add to Home Screen.</li>
+<li><strong>Android (Chrome):</strong> Menu → Install app.</li>
+</ul>
+<h3>Optional extras</h3>
+<p>Social imports need a local cobalt container: <code>./sunnygen --cobalt</code>. The Codex provider needs the <code>codex</code> CLI logged in on the same machine. Environment fallbacks for keys: <code>SUNRA_API_KEY</code>, <code>FAL_KEY</code>, <code>AZURE_API_KEY</code>, <code>OPENROUTER_API_KEY</code>.</p>
+<div class="note"><p>SunnyGen has no login. Before you expose it beyond your private network, put an authenticating proxy such as Cloudflare Access in front of it.</p></div>
+<div class="cta"><a class="btn btn-primary" href="https://github.com/henrychea/SunnyGen"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 0a8 8 0 0 0-2.53 15.59c.4.07.55-.17.55-.38v-1.34c-2.23.48-2.7-1.07-2.7-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.06-.49.06-.49.8.06 1.23.83 1.23.83.72 1.22 1.87.87 2.33.66.07-.52.28-.87.5-1.07-1.78-.2-3.65-.89-3.65-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.28.82 2.15 0 3.07-1.87 3.75-3.66 3.95.29.25.54.73.54 1.48v2.2c0 .21.15.46.55.38A8 8 0 0 0 8 0Z"/></svg>View on GitHub</a><a class="btn btn-secondary" href="../install/">Quick start</a></div>
+</div>
+</section>
+</main>
+<footer class="site-footer">
+<div class="wrap">
+<div class="cols">
+<div>
+<a class="brand" href="../"><svg viewBox="0 0 64 64" aria-hidden="true" focusable="false"><rect width="64" height="64" rx="16" fill="#A31621"/><circle cx="32" cy="32" r="9" fill="#FAF6EF"/><g stroke="#FAF6EF" stroke-width="3.5" stroke-linecap="round"><path d="M32 12v7M32 45v7M12 32h7M45 32h7M18.3 18.3l5 5M40.7 40.7l5 5M45.7 18.3l-5 5M23.3 40.7l-5 5"/></g></svg>SunnyGen</a>
+<p>A free, MIT-licensed, self-hosted studio for AI image and video generation. Your models. Your machine. Your library.</p>
+</div>
+<nav aria-label="Features"><h2>Features</h2><ul>
+<li><a href="../ai-avatar-studio/">AI avatar studio</a></li>
+<li><a href="../node-canvas/">Node canvas</a></li>
+<li><a href="../lora-training/">FLUX LoRA training</a></li>
+<li><a href="../self-hosted-ai-image-generator/">Self-hosted generator</a></li>
+</ul></nav>
+<nav aria-label="Project"><h2>Project</h2><ul>
+<li><a href="../install/">Quick start</a></li>
+<li><a href="../releases/">Releases</a></li>
+<li><a href="../faq/">FAQ</a></li>
+<li><a href="https://github.com/henrychea/SunnyGen">Source on GitHub</a></li>
+<li><a href="https://github.com/henrychea/SunnyGen/blob/main/LICENSE">MIT license</a></li>
+</ul></nav>
+</div>
+<p class="fine">Built by <a href="https://github.com/henrychea">Henry Chea</a> with TanStack Start, React, and TypeScript. Screenshots show demo content.</p>
+</div>
+</footer>
+</body>
 </html>

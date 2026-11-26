@@ -1,506 +1,146 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Self-Hosted AI Image Generator, Free and Open Source</title>
-    <meta
-      name="description"
-      content="Run your own AI image and video generator: SQLite and media on disk, encrypted keys, no account, no telemetry. MIT-licensed, Docker and PWA ready."
-    />
-    <link rel="canonical" href="https://henrychea.github.io/SunnyGen/self-hosted-ai-image-generator/" />
-    <meta name="theme-color" content="#FAF6EF" />
-    <meta name="color-scheme" content="light" />
-    <meta name="author" content="Henry Chea" />
-    <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
-    <link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png" />
-    <link rel="manifest" href="../site.webmanifest" />
-    <link rel="preload" href="../assets/fonts/space-grotesk.woff2" as="font" type="font/woff2" crossorigin />
-    <link
-      rel="preload"
-      as="image"
-      type="image/avif"
-      href="../assets/img/gallery-1024.avif"
-      imagesrcset="../assets/img/gallery-480.avif 480w, ../assets/img/gallery-768.avif 768w, ../assets/img/gallery-1024.avif 1024w"
-      imagesizes="(min-width: 72rem) 69rem, (min-width: 40rem) calc(100vw - 3rem), calc(100vw - 2rem)"
-      fetchpriority="high"
-    />
-    <link rel="stylesheet" href="../assets/site.css" />
-    <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="SunnyGen" />
-    <meta property="og:locale" content="en_US" />
-    <meta property="og:title" content="Self-Hosted AI Image Generator, Free and Open Source" />
-    <meta
-      property="og:description"
-      content="Run your own AI image and video generator: SQLite and media on disk, encrypted keys, no account, no telemetry. MIT-licensed, Docker and PWA ready."
-    />
-    <meta property="og:url" content="https://henrychea.github.io/SunnyGen/self-hosted-ai-image-generator/" />
-    <meta property="og:image" content="https://henrychea.github.io/SunnyGen/assets/og/self-hosted.png" />
-    <meta property="og:image:type" content="image/png" />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="SunnyGen, a self-hosted AI image and video studio" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Self-Hosted AI Image Generator, Free and Open Source" />
-    <meta
-      name="twitter:description"
-      content="Run your own AI image and video generator: SQLite and media on disk, encrypted keys, no account, no telemetry. MIT-licensed, Docker and PWA ready."
-    />
-    <meta name="twitter:image" content="https://henrychea.github.io/SunnyGen/assets/og/self-hosted.png" />
-    <meta name="twitter:image:alt" content="SunnyGen, a self-hosted AI image and video studio" />
-    <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@graph": [
-          {
-            "@type": "Person",
-            "@id": "https://henrychea.github.io/SunnyGen/#author",
-            "name": "Henry Chea",
-            "url": "https://github.com/henrychea"
-          },
-          {
-            "@type": ["SoftwareApplication", "SoftwareSourceCode"],
-            "@id": "https://henrychea.github.io/SunnyGen/#software",
-            "name": "SunnyGen",
-            "description": "Free, open-source, self-hosted AI image and video generation studio with a node-based canvas, an avatar and lookbook Studio, and FLUX LoRA training. Bring your own API keys.",
-            "url": "https://henrychea.github.io/SunnyGen/",
-            "applicationCategory": "MultimediaApplication",
-            "applicationSubCategory": "AI image and video generation",
-            "operatingSystem": "macOS, Linux, Docker",
-            "softwareVersion": "2.0.0",
-            "isAccessibleForFree": true,
-            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
-            "license": "https://opensource.org/licenses/MIT",
-            "codeRepository": "https://github.com/henrychea/SunnyGen",
-            "programmingLanguage": "TypeScript",
-            "runtimePlatform": "Node.js 22.20+",
-            "author": { "@id": "https://henrychea.github.io/SunnyGen/#author" },
-            "image": "https://henrychea.github.io/SunnyGen/assets/og/home.png",
-            "screenshot": [
-              {
-                "@type": "ImageObject",
-                "url": "https://henrychea.github.io/SunnyGen/assets/img/studio-1024.webp",
-                "width": 1024,
-                "height": 853
-              },
-              {
-                "@type": "ImageObject",
-                "url": "https://henrychea.github.io/SunnyGen/assets/img/canvas-1024.webp",
-                "width": 1024,
-                "height": 711
-              },
-              {
-                "@type": "ImageObject",
-                "url": "https://henrychea.github.io/SunnyGen/assets/img/gallery-1024.webp",
-                "width": 1024,
-                "height": 853
-              },
-              {
-                "@type": "ImageObject",
-                "url": "https://henrychea.github.io/SunnyGen/assets/img/studio-models-1600.webp",
-                "width": 1600,
-                "height": 900
-              }
-            ],
-            "featureList": [
-              "Node-based infinite canvas for reusable image and video pipelines",
-              "Studio for avatars, wardrobe, poses, scenes, and 1-4 angle lookbooks",
-              "FLUX LoRA training on your own avatars through fal.ai",
-              "Bring-your-own API keys for Sunra.ai, fal.ai, Azure AI Foundry, Codex CLI, and OpenRouter",
-              "Local SQLite database and media on disk, no account, no telemetry",
-              "Encrypted API key storage",
-              "Installable PWA on desktop and mobile",
-              "Docker image"
-            ]
-          },
-          {
-            "@type": "BreadcrumbList",
-            "itemListElement": [
-              {
-                "@type": "ListItem",
-                "position": 1,
-                "name": "Home",
-                "item": "https://henrychea.github.io/SunnyGen/"
-              },
-              {
-                "@type": "ListItem",
-                "position": 2,
-                "name": "Self-hosted AI image generator",
-                "item": "https://henrychea.github.io/SunnyGen/self-hosted-ai-image-generator/"
-              }
-            ]
-          },
-          {
-            "@type": "WebPage",
-            "@id": "https://henrychea.github.io/SunnyGen/self-hosted-ai-image-generator/#webpage",
-            "url": "https://henrychea.github.io/SunnyGen/self-hosted-ai-image-generator/",
-            "name": "Self-Hosted AI Image Generator, Free and Open Source",
-            "description": "Run your own AI image and video generator: SQLite and media on disk, encrypted keys, no account, no telemetry. MIT-licensed, Docker and PWA ready.",
-            "isPartOf": { "@id": "https://henrychea.github.io/SunnyGen/#website" },
-            "about": { "@id": "https://henrychea.github.io/SunnyGen/#software" },
-            "inLanguage": "en"
-          }
-        ]
-      }
-    </script>
-  </head>
-  <body>
-    <a class="skip" href="#main">Skip to content</a>
-    <header class="site-header">
-      <div class="wrap">
-        <a class="brand" href="../"
-          ><svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
-            <rect width="64" height="64" rx="16" fill="#A31621" />
-            <circle cx="32" cy="32" r="9" fill="#FAF6EF" />
-            <g stroke="#FAF6EF" stroke-width="3.5" stroke-linecap="round">
-              <path
-                d="M32 12v7M32 45v7M12 32h7M45 32h7M18.3 18.3l5 5M40.7 40.7l5 5M45.7 18.3l-5 5M23.3 40.7l-5 5"
-              />
-            </g></svg
-          >SunnyGen</a
-        >
-        <nav class="nav" aria-label="Main">
-          <ul>
-            <li><a href="../ai-avatar-studio/">Studio</a></li>
-            <li><a href="../node-canvas/">Canvas</a></li>
-            <li><a href="../lora-training/">LoRA training</a></li>
-            <li><a href="../self-hosted-ai-image-generator/" aria-current="page">Self-hosting</a></li>
-            <li><a href="../install/">Quick start</a></li>
-            <li><a href="../faq/">FAQ</a></li>
-            <li><a href="https://github.com/henrychea/SunnyGen">GitHub</a></li>
-          </ul>
-        </nav>
-      </div>
-    </header>
-    <nav class="crumbs wrap" aria-label="Breadcrumb">
-      <ol>
-        <li><a href="../">Home</a></li>
-        <li><span aria-current="page">Self-hosted AI image generator</span></li>
-      </ol>
-    </nav>
-    <main id="main">
-      <section class="page-hero wrap" aria-labelledby="title">
-        <span class="eyebrow">Self-hosting</span>
-        <h1 id="title">A self-hosted AI image generator that keeps your library on disk</h1>
-        <p class="lead">
-          SunnyGen runs on your machine. Projects, renders, references, and encrypted provider keys live in a
-          local folder, and generation goes straight to the provider accounts you own.
-        </p>
-        <div class="cta">
-          <a class="btn btn-primary" href="../install/">Quick start</a
-          ><a class="btn btn-secondary" href="https://github.com/henrychea/SunnyGen"
-            ><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-              <path
-                d="M8 0a8 8 0 0 0-2.53 15.59c.4.07.55-.17.55-.38v-1.34c-2.23.48-2.7-1.07-2.7-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.06-.49.06-.49.8.06 1.23.83 1.23.83.72 1.22 1.87.87 2.33.66.07-.52.28-.87.5-1.07-1.78-.2-3.65-.89-3.65-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.28.82 2.15 0 3.07-1.87 3.75-3.66 3.95.29.25.54.73.54 1.48v2.2c0 .21.15.46.55.38A8 8 0 0 0 8 0Z"
-              /></svg
-            >View on GitHub</a
-          >
-        </div>
-        <figure class="shot">
-          <picture
-            ><source
-              type="image/avif"
-              srcset="
-                ../assets/img/gallery-480.avif   480w,
-                ../assets/img/gallery-768.avif   768w,
-                ../assets/img/gallery-1024.avif 1024w
-              "
-              sizes="(min-width: 72rem) 69rem, (min-width: 40rem) calc(100vw - 3rem), calc(100vw - 2rem)" />
-            <source
-              type="image/webp"
-              srcset="
-                ../assets/img/gallery-480.webp   480w,
-                ../assets/img/gallery-768.webp   768w,
-                ../assets/img/gallery-1024.webp 1024w
-              "
-              sizes="(min-width: 72rem) 69rem, (min-width: 40rem) calc(100vw - 3rem), calc(100vw - 2rem)" />
-            <img
-              src="../assets/img/gallery-1024.webp"
-              srcset="
-                ../assets/img/gallery-480.webp   480w,
-                ../assets/img/gallery-768.webp   768w,
-                ../assets/img/gallery-1024.webp 1024w
-              "
-              sizes="(min-width: 72rem) 69rem, (min-width: 40rem) calc(100vw - 3rem), calc(100vw - 2rem)"
-              width="1024"
-              height="853"
-              alt="SunnyGen gallery as a canvas wall of finished AI image renders, with folder filters and a canvas or grid switch"
-              fetchpriority="high"
-              decoding="async"
-          /></picture>
-          <figcaption>
-            The gallery: renders, folders, retries, and downloads, served from your own disk.
-          </figcaption>
-        </figure>
-      </section>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Self-Hosted AI Image Generator, Free and Open Source</title>
+<meta name="description" content="Run your own AI image and video generator: SQLite and media on disk, encrypted keys, no account, no telemetry. MIT-licensed, Docker and PWA ready.">
+<link rel="canonical" href="https://henrychea.github.io/SunnyGen/self-hosted-ai-image-generator/">
+<meta name="theme-color" content="#FAF6EF">
+<meta name="color-scheme" content="light">
+<meta name="author" content="Henry Chea">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png">
+<link rel="manifest" href="../site.webmanifest">
+<link rel="preload" href="../assets/fonts/space-grotesk.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" as="image" type="image/avif" href="../assets/img/gallery-1024.avif" imagesrcset="../assets/img/gallery-480.avif 480w, ../assets/img/gallery-768.avif 768w, ../assets/img/gallery-1024.avif 1024w" imagesizes="(min-width: 72rem) 69rem, (min-width: 40rem) calc(100vw - 3rem), calc(100vw - 2rem)" fetchpriority="high">
+<link rel="stylesheet" href="../assets/site.css">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="SunnyGen">
+<meta property="og:locale" content="en_US">
+<meta property="og:title" content="Self-Hosted AI Image Generator, Free and Open Source">
+<meta property="og:description" content="Run your own AI image and video generator: SQLite and media on disk, encrypted keys, no account, no telemetry. MIT-licensed, Docker and PWA ready.">
+<meta property="og:url" content="https://henrychea.github.io/SunnyGen/self-hosted-ai-image-generator/">
+<meta property="og:image" content="https://henrychea.github.io/SunnyGen/assets/og/self-hosted.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="SunnyGen, a self-hosted AI image and video studio">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Self-Hosted AI Image Generator, Free and Open Source">
+<meta name="twitter:description" content="Run your own AI image and video generator: SQLite and media on disk, encrypted keys, no account, no telemetry. MIT-licensed, Docker and PWA ready.">
+<meta name="twitter:image" content="https://henrychea.github.io/SunnyGen/assets/og/self-hosted.png">
+<meta name="twitter:image:alt" content="SunnyGen, a self-hosted AI image and video studio">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Person","@id":"https://henrychea.github.io/SunnyGen/#author","name":"Henry Chea","url":"https://github.com/henrychea"},{"@type":["SoftwareApplication","SoftwareSourceCode"],"@id":"https://henrychea.github.io/SunnyGen/#software","name":"SunnyGen","description":"Free, open-source, self-hosted AI image and video generation studio with a node-based canvas, an avatar and lookbook Studio, and FLUX LoRA training. Bring your own API keys.","url":"https://henrychea.github.io/SunnyGen/","applicationCategory":"MultimediaApplication","applicationSubCategory":"AI image and video generation","operatingSystem":"macOS, Linux, Docker","softwareVersion":"3.0.0","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"license":"https://opensource.org/licenses/MIT","codeRepository":"https://github.com/henrychea/SunnyGen","programmingLanguage":"TypeScript","runtimePlatform":"Node.js 22.20+","author":{"@id":"https://henrychea.github.io/SunnyGen/#author"},"image":"https://henrychea.github.io/SunnyGen/assets/og/home.png","screenshot":[{"@type":"ImageObject","url":"https://henrychea.github.io/SunnyGen/assets/img/studio-1024.webp","width":1024,"height":853},{"@type":"ImageObject","url":"https://henrychea.github.io/SunnyGen/assets/img/canvas-1024.webp","width":1024,"height":711},{"@type":"ImageObject","url":"https://henrychea.github.io/SunnyGen/assets/img/gallery-1024.webp","width":1024,"height":853},{"@type":"ImageObject","url":"https://henrychea.github.io/SunnyGen/assets/img/studio-models-1600.webp","width":1600,"height":900}],"featureList":["Node-based infinite canvas for reusable image and video pipelines","Studio for avatars, wardrobe, poses, scenes, and 1-4 angle lookbooks","FLUX LoRA training on your own avatars through fal.ai","Bring-your-own API keys for Sunra.ai, fal.ai, Azure AI Foundry, Codex CLI, and OpenRouter","Local SQLite database and media on disk, no account, no telemetry","Encrypted API key storage","Installable PWA on desktop and mobile","Docker image"]},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://henrychea.github.io/SunnyGen/"},{"@type":"ListItem","position":2,"name":"Self-hosted AI image generator","item":"https://henrychea.github.io/SunnyGen/self-hosted-ai-image-generator/"}]},{"@type":"WebPage","@id":"https://henrychea.github.io/SunnyGen/self-hosted-ai-image-generator/#webpage","url":"https://henrychea.github.io/SunnyGen/self-hosted-ai-image-generator/","name":"Self-Hosted AI Image Generator, Free and Open Source","description":"Run your own AI image and video generator: SQLite and media on disk, encrypted keys, no account, no telemetry. MIT-licensed, Docker and PWA ready.","isPartOf":{"@id":"https://henrychea.github.io/SunnyGen/#website"},"about":{"@id":"https://henrychea.github.io/SunnyGen/#software"},"inLanguage":"en"}]}</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-header">
+<div class="wrap">
+<a class="brand" href="../"><svg viewBox="0 0 64 64" aria-hidden="true" focusable="false"><rect width="64" height="64" rx="16" fill="#A31621"/><circle cx="32" cy="32" r="9" fill="#FAF6EF"/><g stroke="#FAF6EF" stroke-width="3.5" stroke-linecap="round"><path d="M32 12v7M32 45v7M12 32h7M45 32h7M18.3 18.3l5 5M40.7 40.7l5 5M45.7 18.3l-5 5M23.3 40.7l-5 5"/></g></svg>SunnyGen</a>
+<nav class="nav" aria-label="Main"><ul><li><a href="../ai-avatar-studio/">Studio</a></li><li><a href="../node-canvas/">Canvas</a></li><li><a href="../lora-training/">LoRA training</a></li><li><a href="../self-hosted-ai-image-generator/" aria-current="page">Self-hosting</a></li><li><a href="../install/">Quick start</a></li><li><a href="../releases/">Releases</a></li><li><a href="../faq/">FAQ</a></li><li><a href="https://github.com/henrychea/SunnyGen">GitHub</a></li></ul></nav>
+</div>
+</header>
+<nav class="crumbs wrap" aria-label="Breadcrumb"><ol><li><a href="../">Home</a></li><li><span aria-current="page">Self-hosted AI image generator</span></li></ol></nav>
+<main id="main">
+<section class="page-hero wrap" aria-labelledby="title">
+<span class="eyebrow">Self-hosting</span>
+<h1 id="title">A self-hosted AI image generator that keeps your library on disk</h1>
+<p class="lead">SunnyGen runs on your machine. Projects, renders, references, and encrypted provider keys live in a local folder, and generation goes straight to the provider accounts you own.</p>
+<div class="cta"><a class="btn btn-primary" href="../install/">Quick start</a><a class="btn btn-secondary" href="https://github.com/henrychea/SunnyGen"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 0a8 8 0 0 0-2.53 15.59c.4.07.55-.17.55-.38v-1.34c-2.23.48-2.7-1.07-2.7-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.06-.49.06-.49.8.06 1.23.83 1.23.83.72 1.22 1.87.87 2.33.66.07-.52.28-.87.5-1.07-1.78-.2-3.65-.89-3.65-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.28.82 2.15 0 3.07-1.87 3.75-3.66 3.95.29.25.54.73.54 1.48v2.2c0 .21.15.46.55.38A8 8 0 0 0 8 0Z"/></svg>View on GitHub</a></div>
+<figure class="shot"><picture><source type="image/avif" srcset="../assets/img/gallery-480.avif 480w, ../assets/img/gallery-768.avif 768w, ../assets/img/gallery-1024.avif 1024w" sizes="(min-width: 72rem) 69rem, (min-width: 40rem) calc(100vw - 3rem), calc(100vw - 2rem)"><source type="image/webp" srcset="../assets/img/gallery-480.webp 480w, ../assets/img/gallery-768.webp 768w, ../assets/img/gallery-1024.webp 1024w" sizes="(min-width: 72rem) 69rem, (min-width: 40rem) calc(100vw - 3rem), calc(100vw - 2rem)"><img src="../assets/img/gallery-1024.webp" srcset="../assets/img/gallery-480.webp 480w, ../assets/img/gallery-768.webp 768w, ../assets/img/gallery-1024.webp 1024w" sizes="(min-width: 72rem) 69rem, (min-width: 40rem) calc(100vw - 3rem), calc(100vw - 2rem)" width="1024" height="853" alt="SunnyGen gallery as a canvas wall of finished AI image renders, with folder filters and a canvas or grid switch" fetchpriority="high" decoding="async"></picture><figcaption>The gallery: renders, folders, retries, and downloads, served from your own disk.</figcaption></figure>
+</section>
 
-      <section class="section" aria-labelledby="why">
-        <div class="wrap prose">
-          <h2 id="why">Why self-host your image generation</h2>
-          <ul>
-            <li><strong>No account.</strong> There is no sign-up and no login to a SunnyGen service.</li>
-            <li>
-              <strong>No shared credit pool.</strong> You pay each provider directly, at its own price, with
-              no markup.
-            </li>
-            <li><strong>No telemetry.</strong> The app talks only to the providers you configure.</li>
-            <li>
-              <strong>Boring storage.</strong> A SQLite database and content-addressed media files, with no
-              cloud bucket.
-            </li>
-            <li><strong>Hackable.</strong> Small TypeScript packages in a MIT-licensed monorepo.</li>
-          </ul>
-        </div>
-      </section>
+<section class="section" aria-labelledby="why">
+<div class="wrap prose">
+<h2 id="why">Why self-host your image generation</h2>
+<ul>
+<li><strong>No account.</strong> There is no sign-up and no login to a SunnyGen service.</li>
+<li><strong>No shared credit pool.</strong> You pay each provider directly, at its own price, with no markup.</li>
+<li><strong>No telemetry.</strong> The app talks only to the providers you configure.</li>
+<li><strong>Boring storage.</strong> A SQLite database and content-addressed media files, with no cloud bucket.</li>
+<li><strong>Hackable.</strong> Small TypeScript packages in a MIT-licensed monorepo.</li>
+</ul>
+</div>
+</section>
 
-      <section class="section" aria-labelledby="data">
-        <div class="wrap prose">
-          <h2 id="data">What stays on your machine</h2>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th scope="col">What</th>
-                  <th scope="col">Default location</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>Database</td>
-                  <td><code>data/sunnygen.db</code></td>
-                </tr>
-                <tr>
-                  <td>Media: uploads, references, renders</td>
-                  <td><code>data/media/</code></td>
-                </tr>
-                <tr>
-                  <td>Master key for encrypted API keys</td>
-                  <td><code>data/secrets.key</code></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <p>
-            Move them with <code>SUNNYGEN_DATA_DIR</code> and <code>SUNNYGEN_MEDIA_DIR</code>. Provider and
-            assistant keys are encrypted in SQLite with AES-256-GCM. Set <code>SUNNYGEN_SECRET</code> to
-            supply the master key yourself.
-          </p>
-          <h3>Library tools</h3>
-          <p>
-            Uploads and imported references are deduplicated by SHA-256 and streamed with byte-range support.
-            Social post links can be imported through an optional local
-            <a href="https://github.com/imputnet/cobalt">cobalt</a> container; without it, the rest of the app
-            keeps working.
-          </p>
-        </div>
-        <div class="wrap row pair">
-          <figure class="shot">
-            <picture
-              ><source
-                type="image/avif"
-                srcset="
-                  ../assets/img/assets-480.avif   480w,
-                  ../assets/img/assets-768.avif   768w,
-                  ../assets/img/assets-1024.avif 1024w
-                "
-                sizes="(min-width: 72rem) 39rem, (min-width: 60rem) 56vw, (min-width: 40rem) calc(100vw - 3rem), calc(100vw - 2rem)" />
-              <source
-                type="image/webp"
-                srcset="
-                  ../assets/img/assets-480.webp   480w,
-                  ../assets/img/assets-768.webp   768w,
-                  ../assets/img/assets-1024.webp 1024w
-                "
-                sizes="(min-width: 72rem) 39rem, (min-width: 60rem) 56vw, (min-width: 40rem) calc(100vw - 3rem), calc(100vw - 2rem)" />
-              <img
-                src="../assets/img/assets-1024.webp"
-                srcset="
-                  ../assets/img/assets-480.webp   480w,
-                  ../assets/img/assets-768.webp   768w,
-                  ../assets/img/assets-1024.webp 1024w
-                "
-                sizes="(min-width: 72rem) 39rem, (min-width: 60rem) 56vw, (min-width: 40rem) calc(100vw - 3rem), calc(100vw - 2rem)"
-                width="1024"
-                height="711"
-                alt="SunnyGen asset library with uploaded garment references, file sizes, folders, and image, video, and audio filters"
-                loading="lazy"
-                decoding="async"
-            /></picture>
-            <figcaption>Assets: uploads and imported references, ready to reuse.</figcaption>
-          </figure>
-          <figure class="shot">
-            <picture
-              ><source
-                type="image/avif"
-                srcset="
-                  ../assets/img/assistant-480.avif   480w,
-                  ../assets/img/assistant-768.avif   768w,
-                  ../assets/img/assistant-1024.avif 1024w
-                "
-                sizes="(min-width: 72rem) 39rem, (min-width: 60rem) 56vw, (min-width: 40rem) calc(100vw - 3rem), calc(100vw - 2rem)" />
-              <source
-                type="image/webp"
-                srcset="
-                  ../assets/img/assistant-480.webp   480w,
-                  ../assets/img/assistant-768.webp   768w,
-                  ../assets/img/assistant-1024.webp 1024w
-                "
-                sizes="(min-width: 72rem) 39rem, (min-width: 60rem) 56vw, (min-width: 40rem) calc(100vw - 3rem), calc(100vw - 2rem)" />
-              <img
-                src="../assets/img/assistant-1024.webp"
-                srcset="
-                  ../assets/img/assistant-480.webp   480w,
-                  ../assets/img/assistant-768.webp   768w,
-                  ../assets/img/assistant-1024.webp 1024w
-                "
-                sizes="(min-width: 72rem) 39rem, (min-width: 60rem) 56vw, (min-width: 40rem) calc(100vw - 3rem), calc(100vw - 2rem)"
-                width="1024"
-                height="711"
-                alt="SunnyGen assistant drafting a warm autumn lookbook direction, with a response mode and model picker"
-                loading="lazy"
-                decoding="async"
-            /></picture>
-            <figcaption>Assistant: prompt drafting through OpenRouter, never used for generation.</figcaption>
-          </figure>
-        </div>
-      </section>
+<section class="section" aria-labelledby="data">
+<div class="wrap prose">
+<h2 id="data">What stays on your machine</h2>
+<div class="table-wrap"><table>
+<thead><tr><th scope="col">What</th><th scope="col">Default location</th></tr></thead>
+<tbody>
+<tr><td>Database</td><td><code>data/sunnygen.db</code></td></tr>
+<tr><td>Media: uploads, references, renders</td><td><code>data/media/</code></td></tr>
+<tr><td>Master key for encrypted API keys</td><td><code>data/secrets.key</code></td></tr>
+</tbody></table></div>
+<p>Move them with <code>SUNNYGEN_DATA_DIR</code> and <code>SUNNYGEN_MEDIA_DIR</code>. Provider and assistant keys are encrypted in SQLite with AES-256-GCM. Set <code>SUNNYGEN_SECRET</code> to supply the master key yourself.</p>
+<h3>Library tools</h3>
+<p>Uploads and imported references are deduplicated by SHA-256 and streamed with byte-range support. Social post links can be imported through an optional local <a href="https://github.com/imputnet/cobalt">cobalt</a> container; without it, the rest of the app keeps working.</p>
+</div>
+<div class="wrap row pair">
+<figure class="shot"><picture><source type="image/avif" srcset="../assets/img/assets-480.avif 480w, ../assets/img/assets-768.avif 768w, ../assets/img/assets-1024.avif 1024w" sizes="(min-width: 72rem) 39rem, (min-width: 60rem) 56vw, (min-width: 40rem) calc(100vw - 3rem), calc(100vw - 2rem)"><source type="image/webp" srcset="../assets/img/assets-480.webp 480w, ../assets/img/assets-768.webp 768w, ../assets/img/assets-1024.webp 1024w" sizes="(min-width: 72rem) 39rem, (min-width: 60rem) 56vw, (min-width: 40rem) calc(100vw - 3rem), calc(100vw - 2rem)"><img src="../assets/img/assets-1024.webp" srcset="../assets/img/assets-480.webp 480w, ../assets/img/assets-768.webp 768w, ../assets/img/assets-1024.webp 1024w" sizes="(min-width: 72rem) 39rem, (min-width: 60rem) 56vw, (min-width: 40rem) calc(100vw - 3rem), calc(100vw - 2rem)" width="1024" height="711" alt="SunnyGen asset library with uploaded garment references, file sizes, folders, and image, video, and audio filters" loading="lazy" decoding="async"></picture><figcaption>Assets: uploads and imported references, ready to reuse.</figcaption></figure>
+<figure class="shot"><picture><source type="image/avif" srcset="../assets/img/assistant-480.avif 480w, ../assets/img/assistant-768.avif 768w, ../assets/img/assistant-1024.avif 1024w" sizes="(min-width: 72rem) 39rem, (min-width: 60rem) 56vw, (min-width: 40rem) calc(100vw - 3rem), calc(100vw - 2rem)"><source type="image/webp" srcset="../assets/img/assistant-480.webp 480w, ../assets/img/assistant-768.webp 768w, ../assets/img/assistant-1024.webp 1024w" sizes="(min-width: 72rem) 39rem, (min-width: 60rem) 56vw, (min-width: 40rem) calc(100vw - 3rem), calc(100vw - 2rem)"><img src="../assets/img/assistant-1024.webp" srcset="../assets/img/assistant-480.webp 480w, ../assets/img/assistant-768.webp 768w, ../assets/img/assistant-1024.webp 1024w" sizes="(min-width: 72rem) 39rem, (min-width: 60rem) 56vw, (min-width: 40rem) calc(100vw - 3rem), calc(100vw - 2rem)" width="1024" height="711" alt="SunnyGen assistant drafting a warm autumn lookbook direction, with a response mode and model picker" loading="lazy" decoding="async"></picture><figcaption>Assistant: prompt drafting through OpenRouter, never used for generation.</figcaption></figure>
+</div>
+</section>
 
-      <section class="section" aria-labelledby="keys">
-        <div class="wrap">
-          <div class="section-head">
-            <h2 id="keys">Bring your own API keys</h2>
-            <p>
-              Connect the providers you already pay for. If the selected provider is not configured, SunnyGen
-              falls back to another configured provider that supports the same model.
-            </p>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th scope="col">Provider</th>
-                  <th scope="col">Models</th>
-                  <th scope="col">Credential</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>Sunra.ai</td>
-                  <td>Nano Banana, Seedream, GPT Image, Veo, Kling, Grok Imagine</td>
-                  <td>Sunra API key</td>
-                </tr>
-                <tr>
-                  <td>fal.ai</td>
-                  <td>GPT Image 2, FLUX.1 LoRA, LoRA training</td>
-                  <td>fal API key</td>
-                </tr>
-                <tr>
-                  <td>Azure AI Foundry</td>
-                  <td>GPT Image 2 in your own deployment</td>
-                  <td>Key, base URL, deployment</td>
-                </tr>
-                <tr>
-                  <td>Codex CLI</td>
-                  <td>GPT Image 2 through a ChatGPT plan</td>
-                  <td>Local <code>codex</code> login</td>
-                </tr>
-                <tr>
-                  <td>OpenRouter</td>
-                  <td>Prompt assistant only</td>
-                  <td>OpenRouter key</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <h3>Supported models</h3>
-          <ul class="facts">
-            <li>Nano Banana 2 and Pro</li>
-            <li>Seedream 5.0 Lite and Pro</li>
-            <li>GPT Image 2</li>
-            <li>Grok Imagine</li>
-            <li>FLUX.1 LoRA</li>
-            <li>Veo 3.1</li>
-            <li>Kling 3.0</li>
-          </ul>
-        </div>
-      </section>
+<section class="section" aria-labelledby="keys">
+<div class="wrap">
+<div class="section-head">
+<h2 id="keys">Bring your own API keys</h2>
+<p>Connect the providers you already pay for. If the selected provider is not configured, SunnyGen falls back to another configured provider that supports the same model.</p>
+</div>
+<div class="table-wrap"><table>
+<thead><tr><th scope="col">Provider</th><th scope="col">Models</th><th scope="col">Credential</th></tr></thead>
+<tbody>
+<tr><td>Sunra.ai</td><td>Nano Banana, Seedream, GPT Image, Veo, Kling, Grok Imagine</td><td>Sunra API key</td></tr>
+<tr><td>fal.ai</td><td>GPT Image 2, FLUX.1 LoRA, LoRA training</td><td>fal API key</td></tr>
+<tr><td>Azure AI Foundry</td><td>GPT Image 2 in your own deployment</td><td>Key, base URL, deployment</td></tr>
+<tr><td>Codex CLI</td><td>GPT Image 2 through a ChatGPT plan</td><td>Local <code>codex</code> login</td></tr>
+<tr><td>OpenRouter</td><td>Prompt assistant only</td><td>OpenRouter key</td></tr>
+</tbody></table></div>
+<h3>Supported models</h3>
+<ul class="facts"><li>Nano Banana 2 and Pro</li><li>Seedream 5.0 Lite and Pro</li><li>GPT Image 2</li><li>Grok Imagine</li><li>FLUX.1 LoRA</li><li>Veo 3.1</li><li>Kling 3.0</li></ul>
+</div>
+</section>
 
-      <section class="section" aria-labelledby="run">
-        <div class="wrap prose">
-          <h2 id="run">Run it where you work</h2>
-          <h3>On your network</h3>
-          <p>
-            The <code>./sunnygen</code> launcher prints local, LAN, Tailscale, and MagicDNS URLs, and can
-            publish a Bonjour name so phones and other laptops can connect.
-            <code>./sunnygen --tunnel</code> starts a Cloudflare Tunnel connector.
-          </p>
-          <h3>As a service or in Docker</h3>
-          <p>
-            <code>./sunnygen --install-service</code> registers a login service that restarts after a crash:
-            launchd on macOS, <code>systemd --user</code> on Linux. A root Dockerfile builds a production
-            image that serves on port 8977 with the data directory mounted from the host.
-          </p>
-          <h3>As an app on desktop and mobile</h3>
-          <p>
-            SunnyGen is an installable PWA with a standalone window and a cached shell, so the interface opens
-            even when the server is unreachable.
-          </p>
-          <div class="note">
-            <p>
-              SunnyGen has no login. If you expose it beyond localhost or your private network, put an
-              authenticating proxy in front of it, for example Cloudflare Access.
-            </p>
-          </div>
-          <p style="margin-top: 1.5rem">
-            <a href="../install/">Install SunnyGen</a> · <a href="../faq/">Read the FAQ</a>
-          </p>
-        </div>
-      </section>
-    </main>
-    <footer class="site-footer">
-      <div class="wrap">
-        <div class="cols">
-          <div>
-            <a class="brand" href="../"
-              ><svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
-                <rect width="64" height="64" rx="16" fill="#A31621" />
-                <circle cx="32" cy="32" r="9" fill="#FAF6EF" />
-                <g stroke="#FAF6EF" stroke-width="3.5" stroke-linecap="round">
-                  <path
-                    d="M32 12v7M32 45v7M12 32h7M45 32h7M18.3 18.3l5 5M40.7 40.7l5 5M45.7 18.3l-5 5M23.3 40.7l-5 5"
-                  />
-                </g></svg
-              >SunnyGen</a
-            >
-            <p>
-              A free, MIT-licensed, self-hosted studio for AI image and video generation. Your models. Your
-              machine. Your library.
-            </p>
-          </div>
-          <nav aria-label="Features">
-            <h2>Features</h2>
-            <ul>
-              <li><a href="../ai-avatar-studio/">AI avatar studio</a></li>
-              <li><a href="../node-canvas/">Node canvas</a></li>
-              <li><a href="../lora-training/">FLUX LoRA training</a></li>
-              <li><a href="../self-hosted-ai-image-generator/">Self-hosted generator</a></li>
-            </ul>
-          </nav>
-          <nav aria-label="Project">
-            <h2>Project</h2>
-            <ul>
-              <li><a href="../install/">Quick start</a></li>
-              <li><a href="../faq/">FAQ</a></li>
-              <li><a href="https://github.com/henrychea/SunnyGen">Source on GitHub</a></li>
-              <li><a href="https://github.com/henrychea/SunnyGen/blob/main/LICENSE">MIT license</a></li>
-            </ul>
-          </nav>
-        </div>
-        <p class="fine">
-          Built by <a href="https://github.com/henrychea">Henry Chea</a> with TanStack Start, React, and
-          TypeScript. Screenshots show demo content.
-        </p>
-      </div>
-    </footer>
-  </body>
+<section class="section" aria-labelledby="run">
+<div class="wrap prose">
+<h2 id="run">Run it where you work</h2>
+<h3>On your network</h3>
+<p>The <code>./sunnygen</code> launcher prints local, LAN, Tailscale, and MagicDNS URLs, and can publish a Bonjour name so phones and other laptops can connect. <code>./sunnygen --tunnel</code> starts a Cloudflare Tunnel connector.</p>
+<h3>As a service or in Docker</h3>
+<p><code>./sunnygen --install-service</code> registers a login service that restarts after a crash: launchd on macOS, <code>systemd --user</code> on Linux. A root Dockerfile builds a production image that serves on port 8977 with the data directory mounted from the host.</p>
+<h3>As an app on desktop and mobile</h3>
+<p>SunnyGen is an installable PWA with a standalone window and a cached shell, so the interface opens even when the server is unreachable.</p>
+<div class="note"><p>SunnyGen has no login. If you expose it beyond localhost or your private network, put an authenticating proxy in front of it, for example Cloudflare Access.</p></div>
+<p style="margin-top:1.5rem"><a href="../install/">Install SunnyGen</a> · <a href="../faq/">Read the FAQ</a></p>
+</div>
+</section>
+</main>
+<footer class="site-footer">
+<div class="wrap">
+<div class="cols">
+<div>
+<a class="brand" href="../"><svg viewBox="0 0 64 64" aria-hidden="true" focusable="false"><rect width="64" height="64" rx="16" fill="#A31621"/><circle cx="32" cy="32" r="9" fill="#FAF6EF"/><g stroke="#FAF6EF" stroke-width="3.5" stroke-linecap="round"><path d="M32 12v7M32 45v7M12 32h7M45 32h7M18.3 18.3l5 5M40.7 40.7l5 5M45.7 18.3l-5 5M23.3 40.7l-5 5"/></g></svg>SunnyGen</a>
+<p>A free, MIT-licensed, self-hosted studio for AI image and video generation. Your models. Your machine. Your library.</p>
+</div>
+<nav aria-label="Features"><h2>Features</h2><ul>
+<li><a href="../ai-avatar-studio/">AI avatar studio</a></li>
+<li><a href="../node-canvas/">Node canvas</a></li>
+<li><a href="../lora-training/">FLUX LoRA training</a></li>
+<li><a href="../self-hosted-ai-image-generator/">Self-hosted generator</a></li>
+</ul></nav>
+<nav aria-label="Project"><h2>Project</h2><ul>
+<li><a href="../install/">Quick start</a></li>
+<li><a href="../releases/">Releases</a></li>
+<li><a href="../faq/">FAQ</a></li>
+<li><a href="https://github.com/henrychea/SunnyGen">Source on GitHub</a></li>
+<li><a href="https://github.com/henrychea/SunnyGen/blob/main/LICENSE">MIT license</a></li>
+</ul></nav>
+</div>
+<p class="fine">Built by <a href="https://github.com/henrychea">Henry Chea</a> with TanStack Start, React, and TypeScript. Screenshots show demo content.</p>
+</div>
+</footer>
+</body>
 </html>

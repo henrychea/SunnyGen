@@ -18,6 +18,9 @@
 - Assistant: prompt drafting through OpenRouter, never used for generation
 - Providers: Sunra.ai, fal.ai, Azure AI Foundry, Codex CLI, OpenRouter (assistant only)
 - Models: Nano Banana 2 and Pro, Seedream 5.0 Lite and Pro, GPT Image 2, Grok Imagine, FLUX.1 LoRA, Veo 3.1, Kling 3.0
+- Themes: light and dark, per device, pre-paint so there is no flash
+- NSFW mode: per device and off by default; writes the least restrictive documented provider safety fields and unlocks Wiro and a local sd-server
+- Video copy: extract frames with ffmpeg, agent shot list, generate each shot, join the clips
 - Privacy: no account, no telemetry, API keys encrypted with AES-256-GCM in local SQLite
 - Runs as: PWA on desktop and mobile, Docker image, launchd or systemd service; LAN, Tailscale, and Cloudflare Tunnel friendly
 
@@ -29,4 +32,6 @@
 - [FLUX LoRA training](https://henrychea.github.io/SunnyGen/lora-training/): training flow and costs
 - [Self-hosted AI image generator](https://henrychea.github.io/SunnyGen/self-hosted-ai-image-generator/): storage, keys, providers, deployment
 - [Quick start](https://henrychea.github.io/SunnyGen/install/): install and run
+- [Releases](https://henrychea.github.io/SunnyGen/releases/): what changed in each version
+- [3.0.0](https://henrychea.github.io/SunnyGen/releases/3-0-0/): dark theme, NSFW mode, video copy
 - [FAQ](https://henrychea.github.io/SunnyGen/faq/): common questions
