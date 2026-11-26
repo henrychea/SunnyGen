@@ -16,6 +16,7 @@ import {
   type WallCard,
 } from '~/components/home/wall-cards'
 import { buildWallEntries } from '~/lib/wall-groups'
+import { CopyPanel } from '~/components/video/copy-panel'
 import { VideoComposer } from '~/components/video/composer'
 import { loadFolders, loadGenerationWall } from '~/server/library.functions'
 
@@ -39,6 +40,7 @@ function VideoPage() {
     folderId?: string
   } | null>(null)
   const [pickerOpen, setPickerOpen] = useState(false)
+  const [copyOpen, setCopyOpen] = useState(false)
 
   const wall = useQuery({
     queryKey: ['video-wall'],
@@ -226,7 +228,11 @@ function VideoPage() {
         </div>
       </PageScroll>
 
-      <VideoComposer onPickerOpenChange={setPickerOpen} />
+      <VideoComposer onPickerOpenChange={setPickerOpen} onCopy={() => setCopyOpen(true)} />
+
+      <AnimatePresence>
+        {copyOpen ? <CopyPanel key="copy-panel" onClose={() => setCopyOpen(false)} /> : null}
+      </AnimatePresence>
 
       <AnimatePresence>
         {groupModal ? (

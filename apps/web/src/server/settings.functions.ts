@@ -6,6 +6,14 @@ import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 import { PROVIDERS } from '@sunnygen/core'
 import { deleteSetting, getDatabaseInfo, readSetting, writeSetting } from '@sunnygen/db'
+import {
+  AGENT_IDS,
+  AGENT_LABELS,
+  detectAgents,
+  ffmpegVersion,
+  isFfmpegAvailable,
+  type AgentId,
+} from '@sunnygen/providers'
 
 export interface ProviderKeyState {
   id: string
@@ -110,7 +118,6 @@ export interface CodexStatus {
   authFound: boolean
   ready: boolean
 }
-
 function codexBinaryInstalled(): Promise<boolean> {
   const { promise, resolve } = Promise.withResolvers<boolean>()
   const proc = spawn('codex-imagegen', ['--help'], { stdio: 'ignore' })
@@ -124,4 +131,27 @@ export const loadCodexStatus = createServerFn({ method: 'GET' }).handler(async (
   const installed = await codexBinaryInstalled()
   const authFound = existsSync(authPath)
   return { installed, authFound, ready: installed && authFound }
+})
+
+export interface MediaToolsStatus {
+  ffmpeg: boolean
+  version: string | null
+}
+
+export const loadMediaToolsStatus = createServerFn({ method: 'GET' }).handler(
+  async (): Promise<MediaToolsStatus> => {
+    const version = await ffmpegVersion()
+    return { ffmpeg: await isFfmpegAvailable(), version }
+  },
+)
+
+export interface AgentStatus {
+  id: AgentId
+  label: string
+  installed: boolean
+}
+
+export const loadAgentStatus = createServerFn({ method: 'GET' }).handler(async (): Promise<AgentStatus[]> => {
+  const installed = await detectAgents()
+  return AGENT_IDS.map((id) => ({ id, label: AGENT_LABELS[id], installed: installed[id] }))
 })

@@ -72,7 +72,9 @@ Prefer Docker? `docker compose -p sunnygen-prod up -d --build` builds the `sunny
 image from the root `Dockerfile` and serves it on `0.0.0.0:8977`. See [Builds](#builds).
 
 **Requirements:** Node.js 22.20+ (24 recommended), pnpm 9.15. Docker is optional: it runs
-the production container, and social imports need a local cobalt container.
+the production container, and social imports need a local cobalt container. The video copy
+pipeline needs `ffmpeg` and `ffprobe` on `PATH` (`apt install ffmpeg` or
+`brew install ffmpeg`), and the Docker image ships both.
 
 ### Install as an app
 

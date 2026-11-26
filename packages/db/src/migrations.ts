@@ -1,4 +1,4 @@
-export const SCHEMA_VERSION = 4
+export const SCHEMA_VERSION = 5
 
 export const MIGRATIONS: readonly string[] = [
   `
@@ -120,5 +120,21 @@ export const MIGRATIONS: readonly string[] = [
   ALTER TABLE assets ADD COLUMN name TEXT;
   DROP INDEX IF EXISTS assets_sha256;
   CREATE INDEX assets_sha256 ON assets(sha256);
+  `,
+  `
+  CREATE TABLE video_copies (
+    id TEXT PRIMARY KEY,
+    source_asset_id TEXT NOT NULL REFERENCES assets(id) ON DELETE CASCADE,
+    status TEXT NOT NULL,
+    agent TEXT,
+    shots TEXT NOT NULL DEFAULT '[]',
+    frame_asset_ids TEXT NOT NULL DEFAULT '[]',
+    output_asset_id TEXT REFERENCES assets(id) ON DELETE SET NULL,
+    error TEXT,
+    folder_id TEXT REFERENCES folders(id) ON DELETE SET NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  ) STRICT;
+  CREATE INDEX video_copies_created ON video_copies(created_at DESC);
   `,
 ]

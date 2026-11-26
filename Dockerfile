@@ -34,7 +34,7 @@ ARG GID=1000
 
 RUN set -eux; \
     apt-get update; \
-    apt-get install -y --no-install-recommends ca-certificates; \
+    apt-get install -y --no-install-recommends ca-certificates ffmpeg; \
     rm -rf /var/lib/apt/lists/*; \
     userdel -r node >/dev/null 2>&1 || true; \
     groupdel node >/dev/null 2>&1 || true; \
