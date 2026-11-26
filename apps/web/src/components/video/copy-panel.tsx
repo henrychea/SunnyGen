@@ -21,7 +21,19 @@ import {
   motionFast,
   toast,
 } from '@sunnygen/ui'
-import { Check, Film, Link2, Loader2, RefreshCw, Scissors, Sparkles, X } from 'lucide-react'
+import {
+  Check,
+  Clapperboard,
+  Film,
+  Link2,
+  ListChecks,
+  Loader2,
+  Paintbrush,
+  RefreshCw,
+  ScanSearch,
+  Scissors,
+  X,
+} from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useMemo, useState } from 'react'
 import { ReferencePicker } from '~/components/home/reference-picker'
@@ -403,13 +415,13 @@ export function CopyPanel({ onClose }: { onClose: () => void }) {
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="text-ink/60 hover:bg-ink/5 grid size-8 shrink-0 place-items-center rounded-lg transition-colors"
+            className="text-ink/65 hover:bg-ink/5 grid size-8 shrink-0 place-items-center rounded-lg transition-colors"
           >
             <X size={15} aria-hidden="true" />
           </button>
         </div>
 
-        <ol className="mt-3 flex flex-wrap items-center gap-1.5 text-[10.5px]">
+        <ol className="mt-3 flex flex-wrap items-center gap-1.5 text-[11px]">
           {STEPS.map((label, index) => {
             const number = index + 1
             const active = step === number
@@ -423,8 +435,8 @@ export function CopyPanel({ onClose }: { onClose: () => void }) {
                   active
                     ? 'border-accent/45 text-accent bg-accent/[0.06]'
                     : done
-                      ? 'border-line text-ink/70'
-                      : 'border-line text-ink/45',
+                      ? 'border-line-strong text-ink/70'
+                      : 'border-line-strong text-ink/65',
                 )}
               >
                 <span className="font-semibold">{number}</span>
@@ -441,7 +453,7 @@ export function CopyPanel({ onClose }: { onClose: () => void }) {
               <div className="flex flex-col gap-1.5">
                 <Label>Source video</Label>
                 {restoredSource ? (
-                  <div className="border-line bg-canvas/50 flex items-center justify-between gap-2 rounded-xl border px-3 py-2">
+                  <div className="border-line-strong bg-canvas/50 flex items-center justify-between gap-2 rounded-xl border px-3 py-2">
                     <span className="text-ink truncate text-[12px]">{restoredSource.name}</span>
                     <button
                       type="button"
@@ -449,7 +461,7 @@ export function CopyPanel({ onClose }: { onClose: () => void }) {
                         setSource(null)
                         setSourceCleared(true)
                       }}
-                      className="text-ink/60 hover:text-ink text-[11px]"
+                      className="text-ink/65 hover:text-ink text-[11px]"
                     >
                       Change
                     </button>
@@ -462,16 +474,14 @@ export function CopyPanel({ onClose }: { onClose: () => void }) {
                 )}
                 {probe.data?.error ? <p className="text-error text-[11px]">{probe.data.error}</p> : null}
                 {probe.data?.durationSeconds ? (
-                  <p className="text-ink/60 text-[11px]">
+                  <p className="text-ink/65 text-[11px]">
                     {probe.data.durationSeconds.toFixed(1)}s long, under the 600s limit.
                   </p>
                 ) : null}
               </div>
 
               <fieldset className="flex flex-col gap-1.5">
-                <legend className="text-ink/70 text-[11px] font-semibold tracking-[0.08em] uppercase">
-                  Frames
-                </legend>
+                <legend className="text-ink/70 text-[11px] font-semibold">Frames</legend>
                 <div className="flex flex-wrap gap-1.5">
                   {(Object.keys(MODE_LABELS) as FrameMode[]).map((entry) => (
                     <button
@@ -483,7 +493,7 @@ export function CopyPanel({ onClose }: { onClose: () => void }) {
                         'rounded-lg border px-2.5 py-1.5 text-[11.5px] transition-colors',
                         mode === entry
                           ? 'border-accent/50 bg-accent/[0.06] text-accent'
-                          : 'border-line text-ink/70 hover:border-ink/25',
+                          : 'border-line-strong text-ink/70 hover:border-ink/25',
                       )}
                     >
                       {MODE_LABELS[entry]}
@@ -567,7 +577,7 @@ export function CopyPanel({ onClose }: { onClose: () => void }) {
                 </p>
                 <div className="flex items-center gap-2">
                   <Button variant="outline" size="sm" onClick={() => sendToEdit(view.frames.map(frameItem))}>
-                    <Sparkles size={13} aria-hidden="true" />
+                    <Paintbrush size={13} aria-hidden="true" />
                     Send all to Edit
                   </Button>
                   <Button
@@ -590,7 +600,7 @@ export function CopyPanel({ onClose }: { onClose: () => void }) {
               <div className="flex flex-wrap gap-2">
                 {view.frames.map((frame) => (
                   <figure key={frame.id} className="w-28">
-                    <div className="border-line bg-canvas/40 relative overflow-hidden rounded-lg border">
+                    <div className="border-line-strong bg-canvas/40 relative overflow-hidden rounded-lg border">
                       <img
                         src={thumbUrl(frame.url, 320)}
                         srcSet={thumbSrcSet(frame.url, [160, 320, 640])}
@@ -601,7 +611,7 @@ export function CopyPanel({ onClose }: { onClose: () => void }) {
                         className="aspect-video w-full object-cover"
                       />
                     </div>
-                    <figcaption className="mt-1 flex items-center justify-between text-[10px]">
+                    <figcaption className="mt-1 flex items-center justify-between text-[11px]">
                       <span className="text-ink/65">
                         {frame.atSeconds === null ? 'unknown' : `${frame.atSeconds.toFixed(1)}s`}
                       </span>
@@ -619,7 +629,7 @@ export function CopyPanel({ onClose }: { onClose: () => void }) {
 
               <div>
                 <Button size="sm" onClick={() => setStage(3)}>
-                  <Sparkles size={13} aria-hidden="true" />
+                  <ListChecks size={13} aria-hidden="true" />
                   Continue to the shot list
                 </Button>
               </div>
@@ -647,7 +657,7 @@ export function CopyPanel({ onClose }: { onClose: () => void }) {
                           'rounded-lg border px-2.5 py-1.5 text-[11.5px] transition-colors',
                           agent?.id === entry.id
                             ? 'border-accent/50 bg-accent/[0.06] text-accent'
-                            : 'border-line text-ink/70 hover:border-ink/25',
+                            : 'border-line-strong text-ink/70 hover:border-ink/25',
                         )}
                       >
                         {entry.label}
@@ -664,12 +674,12 @@ export function CopyPanel({ onClose }: { onClose: () => void }) {
                       if (agent) void analyze(agent.id)
                     }}
                   >
-                    <Sparkles size={13} aria-hidden="true" />
+                    <ScanSearch size={13} aria-hidden="true" />
                     Read the frames
                   </Button>
                 </div>
                 {agents.data && agents.data.length > 0 && installed.length === 0 ? (
-                  <p className="text-ink/60 text-[11px]">
+                  <p className="text-ink/65 text-[11px]">
                     Install one: Claude Code, Codex CLI, OMP, or Pi. Then reload this panel.
                   </p>
                 ) : null}
@@ -704,7 +714,7 @@ export function CopyPanel({ onClose }: { onClose: () => void }) {
             <section className="flex flex-col gap-3">
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[620px] border-separate border-spacing-y-1 text-[11.5px]">
-                  <thead className="text-ink/55 text-left text-[10px] tracking-[0.08em] uppercase">
+                  <thead className="text-ink/65 text-left text-[11px]">
                     <tr>
                       <th className="px-1.5 py-1">#</th>
                       <th className="px-1.5 py-1">Time</th>
@@ -722,7 +732,7 @@ export function CopyPanel({ onClose }: { onClose: () => void }) {
                       const retrying = busy === `retry-${index}`
                       return (
                         <tr key={`${entry.shot.start}-${index}`} className="align-top">
-                          <td className="text-ink/60 px-1.5 py-1">{index + 1}</td>
+                          <td className="text-ink/65 px-1.5 py-1">{index + 1}</td>
                           <td className="text-ink/70 px-1.5 py-1 whitespace-nowrap">
                             {shot.start.toFixed(1)}–{shot.end.toFixed(1)}s
                           </td>
@@ -745,13 +755,13 @@ export function CopyPanel({ onClose }: { onClose: () => void }) {
                               }}
                               rows={3}
                               aria-label={`Prompt for shot ${index + 1}`}
-                              className="border-line bg-surface text-ink focus-visible:border-accent/45 w-full min-w-40 resize-y rounded-lg border px-2 py-1 text-[11px] leading-snug outline-none"
+                              className="border-line-strong bg-surface text-ink focus-visible:border-accent/45 w-full min-w-40 resize-y rounded-lg border px-2 py-1 text-[11px] leading-snug outline-none"
                             />
                           </td>
                           <td className="px-1.5 py-1">
                             <Badge tone={statusTone(entry.status)}>{entry.status}</Badge>
                             {entry.error ? (
-                              <p className="text-error mt-1 max-w-32 text-[10px]">{entry.error}</p>
+                              <p className="text-error mt-1 max-w-32 text-[11px]">{entry.error}</p>
                             ) : null}
                           </td>
                           <td className="px-1.5 py-1 whitespace-nowrap">
@@ -761,7 +771,7 @@ export function CopyPanel({ onClose }: { onClose: () => void }) {
                                   type="button"
                                   disabled={retrying}
                                   onClick={() => void recreate(index)}
-                                  className="text-accent text-[10.5px] hover:underline disabled:opacity-50"
+                                  className="text-accent text-[11px] hover:underline disabled:opacity-50"
                                 >
                                   {retrying ? 'Retrying…' : 'Retry'}
                                 </button>
@@ -775,7 +785,7 @@ export function CopyPanel({ onClose }: { onClose: () => void }) {
                                   )
                                   void persist(next)
                                 }}
-                                className="text-ink/50 hover:text-error text-[10.5px]"
+                                className="text-ink/65 hover:text-error text-[11px]"
                               >
                                 Remove
                               </button>
@@ -788,7 +798,7 @@ export function CopyPanel({ onClose }: { onClose: () => void }) {
                 </table>
               </div>
 
-              <div className="border-line flex flex-col gap-2 rounded-xl border px-3 py-2.5">
+              <div className="border-line-strong flex flex-col gap-2 rounded-xl border px-3 py-2.5">
                 <div className="flex flex-wrap items-end gap-2">
                   <div className="min-w-52 flex-1">
                     <Label>Model</Label>
@@ -820,7 +830,7 @@ export function CopyPanel({ onClose }: { onClose: () => void }) {
                     loading={busy === 'recreate'}
                     onClick={() => void recreate()}
                   >
-                    <Sparkles size={13} aria-hidden="true" />
+                    <Clapperboard size={13} aria-hidden="true" />
                     Recreate
                   </Button>
                   <Button
@@ -834,13 +844,13 @@ export function CopyPanel({ onClose }: { onClose: () => void }) {
                     Join clips
                   </Button>
                   {allSucceeded && !view.copy.outputAssetId ? (
-                    <p className="text-ink/60 text-[11px]">Every shot is ready. Join them into one clip.</p>
+                    <p className="text-ink/65 text-[11px]">Every shot is ready. Join them into one clip.</p>
                   ) : null}
                 </div>
               </div>
 
               {view.copy.outputAssetId ? (
-                <div className="border-line rounded-xl border p-2">
+                <div className="border-line-strong rounded-xl border p-2">
                   <p className="text-ink/70 mb-1 text-[11px]">Joined clip</p>
                   <video
                     src={`/api/media/${view.copy.outputAssetId}`}
@@ -854,7 +864,7 @@ export function CopyPanel({ onClose }: { onClose: () => void }) {
           ) : null}
 
           {copyQuery.isFetching && step > 1 ? (
-            <p className="text-ink/50 mt-2 flex items-center gap-1.5 text-[10.5px]">
+            <p className="text-ink/65 mt-2 flex items-center gap-1.5 text-[11px]">
               <Loader2 size={11} className="animate-spin" aria-hidden="true" />
               Reading the copy…
             </p>

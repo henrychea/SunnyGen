@@ -282,7 +282,7 @@ function MediaToolsCard() {
           )}
         </AnimatePresence>
       </div>
-      <p className="border-line bg-canvas/60 text-ink/50 rounded-xl border px-3 py-2 text-[11.5px] leading-relaxed">
+      <p className="border-line-strong bg-canvas/60 text-ink/65 rounded-xl border px-3 py-2 text-[11.5px] leading-relaxed">
         {ready ? (
           <>
             ffmpeg extracts frames and joins the finished clips for video copy. ffprobe reads each clip's
